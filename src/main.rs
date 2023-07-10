@@ -215,7 +215,6 @@ _ => { panic!("Table does not exist for {} or {}", table_name_lower, table_name_
     let mut migration_statements = Vec::<String>::new();
 
     for (column_name, data_type, is_nullable) in &fields {
-        println!("trying {} {} ", column_name, data_type);
         let matching_column = existing_columns.iter().find(|(col_name, _, _)| col_name == column_name);
 
         if let Some((_, existing_type, existing_nullable)) = matching_column {
@@ -340,6 +339,7 @@ fn convert_data_type_from_pg(data_type: &str) -> &str {
         "String" => "varchar",
         "sqlx::Json" => "jsonb",
         "chrono::DateTime<chrono::Utc>" => "timestamptz",
+        "DateTime<Utc>" => "timestamptz",
         "chrono::NaiveDate" => "date",
         "f32" => "float4",
         "f64" => "float8",
@@ -358,21 +358,6 @@ fn generate_query_code(row: &TableColumn) -> String {
     todo!()
 }
 
-// fn parse_struct_fields(struct_code: &str) -> Vec<(String, String, String)> {
-//     let struct_regex = regex::Regex::new(r"pub\s+(?P<field>\w+):\s+(?P<type>\w+),?").unwrap();
-//     let captures_iter = struct_regex.captures_iter(struct_code);
-
-//     let mut fields = Vec::new();
-
-//     for captures in captures_iter {
-//         if let (Some(field), Some(data_type)) = (captures.name("field"), captures.name("type")) {
-//             fields.push((field.as_str().to_owned(), data_type.as_str().to_owned(), "".to_owned()));
-//         }
-//     }
-
-//     fields
-// }
-
 fn parse_struct_fields(struct_code: &str) -> Vec<(String, String, String)> {
     let lines = struct_code.lines();
     let mut fields = Vec::new();
@@ -383,20 +368,19 @@ fn parse_struct_fields(struct_code: &str) -> Vec<(String, String, String)> {
             continue;
         }
 
-        let parts: Vec<&str> = trimmed_line.split(":").collect();
+        let parts: Vec<&str> = trimmed_line.split(": ").collect();
         if parts.len() != 2 {
             continue;
         }
 
         let field = parts[0].trim().trim_start_matches("pub").trim();
-        let data_type_optional = parts[1].trim().trim_end_matches(",").trim();
+        //let data_type_optional = parts[1].trim().trim_end_matches(",").trim();
         let mut is_nullable = String::from("NO");
 
-        let data_type = if data_type_optional.starts_with("Option") {
+        let data_type = if parts[1].trim().starts_with("Option") {
             is_nullable = String::from("YES");
-           data_type_optional.trim_start_matches("Option<").trim_end_matches(">"
-           )
-        } else { data_type_optional };
+          parts[1].trim().trim_start_matches("Option<").trim_end_matches(">,")
+        } else { parts[1].trim().trim_end_matches(",") };
 
         fields.push((field.to_owned(), data_type.to_owned(), is_nullable));
     }
