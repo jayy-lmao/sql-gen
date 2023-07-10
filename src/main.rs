@@ -8,7 +8,8 @@ use std::path::PathBuf;
 struct TableColumn {
     table_name: String,
     column_name: String,
-    data_type: String,
+    udt_name: String,
+    is_nullable: bool
 }
 
 #[tokio::main]
@@ -81,9 +82,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Get all tables from the database
         let query = "
-            SELECT table_name, column_name, data_type
+            SELECT table_name, column_name, udt_name, is_nullable = 'YES' as is_nullable
             FROM information_schema.columns
-            WHERE table_schema = 'public'
+            WHERE table_schema = 'public' ORDER BY table_name, ordinal_position
         ";
 
         let rows = sqlx::query_as::<_, TableColumn>(query)
@@ -93,15 +94,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Create the output folder if it doesn't exist
         fs::create_dir_all(output_folder)?;
 
+        // let tables_duplicated = rows.iter().map(|row| row.table_name.clone()).collect::<Vec<String>>();
+let mut unique = std::collections::BTreeSet::new();
+for row in &rows {
+    unique.insert(row.table_name.clone());
+}
+let tables = unique.into_iter().collect::<Vec<String>>();
+
+
+
+        println!("Outputting tables: {:?}", tables);
+
         // Generate structs and queries for each table
-        for row in rows {
+        for table in tables {
             // Generate the struct code based on the row
-            let struct_code = generate_struct_code(&row);
+            let struct_code = generate_struct_code(&table, &rows);
 
             // Generate the query code based on the row
             // let query_code = generate_query_code(&row);
 
-            let struct_file_path = format!("{}/{}_struct.rs", output_folder, row.table_name);
+            let struct_file_path = format!("{}/{}.rs", output_folder, to_snake_case(&table));
             fs::write(struct_file_path, struct_code)?;
 
             // Write the query code to a file
@@ -279,15 +291,22 @@ async fn generate_migration_code(
     Ok(migration_code)
 }
 
-fn generate_struct_code(row: &TableColumn) -> String {
-    let struct_name = to_pascal_case(&row.table_name);
+fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String {
+    let struct_name = to_pascal_case(table_name);
     let mut struct_code = format!("#[derive(sqlx::FromRow)]\n");
     struct_code.push_str(&format!("struct {} {{\n", struct_name));
 
+    for row in rows {
+        if row.table_name == table_name {
     let column_name = to_snake_case(&row.column_name);
-    let data_type = convert_data_type(&row.data_type);
-
+    let mut data_type = convert_data_type(&row.udt_name);
+    let optional_type = format!("Option<{}>", data_type);
+  if row.is_nullable {
+    data_type = optional_type.as_str();
+  } 
+    
     struct_code.push_str(&format!("    {}: {},\n", column_name, data_type));
+            }    }
     struct_code.push_str("}\n");
 
     struct_code
@@ -295,15 +314,20 @@ fn generate_struct_code(row: &TableColumn) -> String {
 
 fn convert_data_type(data_type: &str) -> &str {
     match data_type {
-        "int" => "i32",
-        "bigint" => "i64",
-        "real" => "f32",
-        "double precision" => "f64",
-        "boolean" => "bool",
+        "int8" => "i64",
+        "int4" => "i32",
+        "int2" => "i16",
         "text" => "String",
-        // Add more data type conversions as needed
-
-        _ => "Unsupported",
+        "varchar" => "String",
+        "jsonb" => "sqlx::Json",
+        "timestamptz" => "chrono::DateTime<chrono::Utc>",
+        "date" => "chrono::NaiveDate",
+        "float4" => "f32",
+        "float8" => "f64",
+        "uuid" => "uuid::Uuid",
+        "boolean" => "bool",
+        "bytea" => "Vec<u8>", // is this right?
+        _ => panic!("Unknown type: {}",data_type),
     }
 }
 
