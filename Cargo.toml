@@ -1,0 +1,12 @@
+[package]
+name = "sqlgen"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sqlx = { version = "0.7", features = ["postgres","runtime-tokio"] }
+clap = "3.0"
+regex = "1.5"
+chrono = "0.4"
+# regex = "1.5"
+tokio = { version = "1", features = ["full"] }
