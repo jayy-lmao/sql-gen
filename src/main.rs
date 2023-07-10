@@ -220,11 +220,13 @@ _ => { panic!("Table does not exist for {} or {}", table_name_lower, table_name_
 
         if let Some((_, existing_type, existing_nullable)) = matching_column {
             // Compare data types and nullability
-            if data_type != existing_type || is_nullable != existing_nullable {
+            let column_definition = convert_data_type_from_pg(data_type);
+            if column_definition != existing_type || is_nullable != existing_nullable {
+                println!("Nullable for {} existing {} new {}", column_name, existing_nullable, is_nullable);
+                println!("Type for {} existing {} new {}", column_name, existing_type, data_type);
                 let alter_table = format!("ALTER TABLE {}", table_name);
 
                 // Generate appropriate column definition
-                let column_definition = convert_data_type_from_pg(data_type);
 
                 // Generate the ALTER TABLE statement
                 let nullable_keyword = if is_nullable == "YES" {
