@@ -1,5 +1,5 @@
 use clap::{App, Arg, SubCommand};
-use sqlx::postgres::{PgPool, PgPoolOptions, PgRow};
+use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Row;
 use std::fs;
 use std::path::PathBuf;
@@ -168,7 +168,7 @@ async fn generate_migration_code(
     pool: &PgPool,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let table_name_lower = struct_name.to_lowercase();
-    let table_name_upper = to_pascal_case(&struct_name);
+    let table_name_upper = to_pascal_case(struct_name);
 
     // Get the column names and data types from the struct code
     let fields = parse_struct_fields(&struct_code);
@@ -288,7 +288,7 @@ async fn generate_migration_code(
     // Generate the full migration code
     let migration_code = if !migration_statements.is_empty() {
         let timestamp = chrono::Utc::now().format("%Y%m%d%H%M%S");
-        let migration_name = format!("{}_{}.sql", timestamp, struct_name);
+        let _migration_name = format!("{}_{}.sql", timestamp, struct_name);
 
         let migration_statements_code = migration_statements.join(";\n");
 
@@ -305,7 +305,7 @@ async fn generate_migration_code(
 
 fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String {
     let struct_name = to_pascal_case(table_name);
-    let mut struct_code = format!("#[derive(sqlx::FromRow)]\n");
+    let mut struct_code = "#[derive(sqlx::FromRow)]\n".to_string();
     struct_code.push_str(&format!("pub struct {} {{\n", struct_name));
 
     for row in rows {
@@ -364,7 +364,7 @@ fn convert_data_type_from_pg(data_type: &str) -> &str {
     }
 }
 
-fn generate_query_code(row: &TableColumn) -> String {
+fn generate_query_code(_row: &TableColumn) -> String {
     // ... (implementation of generate_query_code)
     // query_code
     todo!()
@@ -396,7 +396,7 @@ fn parse_struct_fields(struct_code: &str) -> Vec<(String, String, String)> {
                 .trim_start_matches("Option<")
                 .trim_end_matches(">,")
         } else {
-            parts[1].trim().trim_end_matches(",")
+            parts[1].trim().trim_end_matches(',')
         };
 
         fields.push((field.to_owned(), data_type.to_owned(), is_nullable));
