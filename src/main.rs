@@ -144,13 +144,13 @@ let tables = unique.into_iter().collect::<Vec<String>>();
         for file_path in existing_files {
             // Parse the struct name from the file name
             let file_name = file_path.file_stem().unwrap().to_string_lossy().to_string();
-            let struct_name = file_name.strip_suffix("_struct").unwrap();
+            let struct_name = file_name;
 
             // Read the struct code from the file
             let struct_code = fs::read_to_string(&file_path)?;
 
             // Check if the struct fields differ from the database
-            let migration_code = generate_migration_code(struct_name, struct_code, &pool).await?;
+            let migration_code = generate_migration_code(&struct_name, struct_code, &pool).await?;
 
             // Generate a timestamp and migration name
             let timestamp = chrono::Utc::now().format("%Y%m%d%H%M%S");
@@ -161,7 +161,6 @@ let tables = unique.into_iter().collect::<Vec<String>>();
             fs::write(migration_file_path, migration_code)?;
         }
     }
-
     Ok(())
 }
 
@@ -170,28 +169,53 @@ async fn generate_migration_code(
     struct_code: String,
     pool: &PgPool,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    let table_name = struct_name.to_lowercase();
+    let table_name_lower = struct_name.to_lowercase();
+    let table_name_upper = to_pascal_case(&struct_name);
 
     // Get the column names and data types from the struct code
     let fields = parse_struct_fields(&struct_code);
 
     // Query the database for column information
-    let query = format!(
-        "SELECT column_name, data_type, is_nullable
+    let query_lower = format!(
+        "SELECT column_name, udt_name, is_nullable
          FROM information_schema.columns
-         WHERE table_name = '{}'
-           AND table_schema = 'public'",
-        table_name
+         WHERE table_name = '{}'",
+        table_name_lower,
     );
 
-    let existing_columns: Vec<(String, String, String)> = sqlx::query_as(query.as_str())
+    let existing_columns_lower: Vec<(String, String, String)> = sqlx::query_as(query_lower.as_str())
         .fetch_all(pool)
         .await?;
+
+    // Query the database for column information
+    let query_upper = format!(
+        "SELECT column_name, udt_name, is_nullable
+         FROM information_schema.columns
+         WHERE table_name = '{}'",
+        table_name_upper,
+    );
+
+    let existing_columns_upper: Vec<(String, String, String)> = sqlx::query_as(query_upper.as_str())
+        .fetch_all(pool)
+        .await?;
+
+
+    let (table_name, existing_columns) = match (!existing_columns_lower.is_empty(), !existing_columns_upper.is_empty()) {
+(true, _) => (table_name_lower, existing_columns_lower),
+(_, true) => (table_name_upper, existing_columns_upper),
+_ => { panic!("Table does not exist for {} or {}", table_name_lower, table_name_upper); }
+    };
+
+    println!("Struct: {:?}", struct_name);
+    println!("Existing Columns: {:?}", existing_columns);
+    println!("Fields Columns: {:?}", fields);
+    
 
     // Compare existing columns with struct fields
     let mut migration_statements = Vec::<String>::new();
 
     for (column_name, data_type, is_nullable) in &fields {
+        println!("trying {} {} ", column_name, data_type);
         let matching_column = existing_columns.iter().find(|(col_name, _, _)| col_name == column_name);
 
         if let Some((_, existing_type, existing_nullable)) = matching_column {
@@ -200,21 +224,7 @@ async fn generate_migration_code(
                 let alter_table = format!("ALTER TABLE {}", table_name);
 
                 // Generate appropriate column definition
-                let column_definition = match data_type.as_str() {
-                    "bool" => "BOOLEAN",
-                    "i32" => "INTEGER",
-                    "i64" => "BIGINT",
-                    "f32" => "REAL",
-                    "f64" => "DOUBLE PRECISION",
-                    "String" => "TEXT",
-                    // Add more data types as needed
-
-                    _ => {
-                        // Handle unsupported data types
-                        println!("Warning: Unsupported data type: {}", data_type);
-                        continue;
-                    }
-                };
+                let column_definition = convert_data_type_from_pg(data_type);
 
                 // Generate the ALTER TABLE statement
                 let nullable_keyword = if is_nullable == "YES" {
@@ -232,21 +242,8 @@ async fn generate_migration_code(
             }
         } else {
             let alter_table = format!("ALTER TABLE {}", table_name);
-            let column_definition = match data_type.as_str() {
-                "bool" => "BOOLEAN",
-                "i32" => "INTEGER",
-                "i64" => "BIGINT",
-                "f32" => "REAL",
-                "f64" => "DOUBLE PRECISION",
-                "String" => "TEXT",
-                // Add more data types as needed
+                            let column_definition = convert_data_type_from_pg(data_type);
 
-                _ => {
-                    // Handle unsupported data types
-                    println!("Warning: Unsupported data type: {}", data_type);
-                    continue;
-                }
-            };
             let nullable_keyword = if is_nullable == "YES" {
                 "NULL"
             } else {
@@ -294,7 +291,7 @@ async fn generate_migration_code(
 fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String {
     let struct_name = to_pascal_case(table_name);
     let mut struct_code = format!("#[derive(sqlx::FromRow)]\n");
-    struct_code.push_str(&format!("struct {} {{\n", struct_name));
+    struct_code.push_str(&format!("pub struct {} {{\n", struct_name));
 
     for row in rows {
         if row.table_name == table_name {
@@ -305,7 +302,7 @@ fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String {
     data_type = optional_type.as_str();
   } 
     
-    struct_code.push_str(&format!("    {}: {},\n", column_name, data_type));
+    struct_code.push_str(&format!(" pub {}: {},\n", column_name, data_type));
             }    }
     struct_code.push_str("}\n");
 
@@ -330,6 +327,27 @@ fn convert_data_type(data_type: &str) -> &str {
         _ => panic!("Unknown type: {}",data_type),
     }
 }
+
+
+fn convert_data_type_from_pg(data_type: &str) -> &str {
+    match data_type {
+        "i64" => "int8",
+        "i32" => "int4",
+        "i16" => "int2",
+        "String" => "text",
+        "String" => "varchar",
+        "sqlx::Json" => "jsonb",
+        "chrono::DateTime<chrono::Utc>" => "timestamptz",
+        "chrono::NaiveDate" => "date",
+        "f32" => "float4",
+        "f64" => "float8",
+        "uuid::Uuid" => "uuid",
+        "bool" => "boolean",
+        "Vec<u8>" => "bytea", // is this right ?
+        _ => panic!("Unknown type: {}",data_type),
+    }
+}
+
 
 
 fn generate_query_code(row: &TableColumn) -> String {
@@ -369,9 +387,16 @@ fn parse_struct_fields(struct_code: &str) -> Vec<(String, String, String)> {
         }
 
         let field = parts[0].trim().trim_start_matches("pub").trim();
-        let data_type = parts[1].trim().trim_end_matches(",").trim();
+        let data_type_optional = parts[1].trim().trim_end_matches(",").trim();
+        let mut is_nullable = String::from("NO");
 
-        fields.push((field.to_owned(), data_type.to_owned(), "".to_owned()));
+        let data_type = if data_type_optional.starts_with("Option") {
+            is_nullable = String::from("YES");
+           data_type_optional.trim_start_matches("Option<").trim_end_matches(">"
+           )
+        } else { data_type_optional };
+
+        fields.push((field.to_owned(), data_type.to_owned(), is_nullable));
     }
 
     fields

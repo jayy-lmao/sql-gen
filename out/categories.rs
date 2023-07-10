@@ -1,6 +1,6 @@
 #[derive(sqlx::FromRow)]
-struct Categories {
-    id: i64,
-    created_at: Option<chrono::DateTime<chrono::Utc>>,
-    label: String,
+pub struct Categories {
+ pub id: i64,
+ pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+ pub label: String,
 }
