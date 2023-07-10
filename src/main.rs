@@ -9,7 +9,7 @@ struct TableColumn {
     table_name: String,
     column_name: String,
     udt_name: String,
-    is_nullable: bool
+    is_nullable: bool,
 }
 
 #[tokio::main]
@@ -95,13 +95,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         fs::create_dir_all(output_folder)?;
 
         // let tables_duplicated = rows.iter().map(|row| row.table_name.clone()).collect::<Vec<String>>();
-let mut unique = std::collections::BTreeSet::new();
-for row in &rows {
-    unique.insert(row.table_name.clone());
-}
-let tables = unique.into_iter().collect::<Vec<String>>();
-
-
+        let mut unique = std::collections::BTreeSet::new();
+        for row in &rows {
+            unique.insert(row.table_name.clone());
+        }
+        let tables = unique.into_iter().collect::<Vec<String>>();
 
         println!("Outputting tables: {:?}", tables);
 
@@ -183,9 +181,8 @@ async fn generate_migration_code(
         table_name_lower,
     );
 
-    let existing_columns_lower: Vec<(String, String, String)> = sqlx::query_as(query_lower.as_str())
-        .fetch_all(pool)
-        .await?;
+    let existing_columns_lower: Vec<(String, String, String)> =
+        sqlx::query_as(query_lower.as_str()).fetch_all(pool).await?;
 
     // Query the database for column information
     let query_upper = format!(
@@ -195,34 +192,47 @@ async fn generate_migration_code(
         table_name_upper,
     );
 
-    let existing_columns_upper: Vec<(String, String, String)> = sqlx::query_as(query_upper.as_str())
-        .fetch_all(pool)
-        .await?;
+    let existing_columns_upper: Vec<(String, String, String)> =
+        sqlx::query_as(query_upper.as_str()).fetch_all(pool).await?;
 
-
-    let (table_name, existing_columns) = match (!existing_columns_lower.is_empty(), !existing_columns_upper.is_empty()) {
-(true, _) => (table_name_lower, existing_columns_lower),
-(_, true) => (table_name_upper, existing_columns_upper),
-_ => { panic!("Table does not exist for {} or {}", table_name_lower, table_name_upper); }
+    let (table_name, existing_columns) = match (
+        !existing_columns_lower.is_empty(),
+        !existing_columns_upper.is_empty(),
+    ) {
+        (true, _) => (table_name_lower, existing_columns_lower),
+        (_, true) => (table_name_upper, existing_columns_upper),
+        _ => {
+            panic!(
+                "Table does not exist for {} or {}",
+                table_name_lower, table_name_upper
+            );
+        }
     };
 
     println!("Struct: {:?}", struct_name);
     println!("Existing Columns: {:?}", existing_columns);
     println!("Fields Columns: {:?}", fields);
-    
 
     // Compare existing columns with struct fields
     let mut migration_statements = Vec::<String>::new();
 
     for (column_name, data_type, is_nullable) in &fields {
-        let matching_column = existing_columns.iter().find(|(col_name, _, _)| col_name == column_name);
+        let matching_column = existing_columns
+            .iter()
+            .find(|(col_name, _, _)| col_name == column_name);
 
         if let Some((_, existing_type, existing_nullable)) = matching_column {
             // Compare data types and nullability
             let column_definition = convert_data_type_from_pg(data_type);
             if column_definition != existing_type || is_nullable != existing_nullable {
-                println!("Nullable for {} existing {} new {}", column_name, existing_nullable, is_nullable);
-                println!("Type for {} existing {} new {}", column_name, existing_type, data_type);
+                println!(
+                    "Nullable for {} existing {} new {}",
+                    column_name, existing_nullable, is_nullable
+                );
+                println!(
+                    "Type for {} existing {} new {}",
+                    column_name, existing_type, data_type
+                );
                 let alter_table = format!("ALTER TABLE {}", table_name);
 
                 // Generate appropriate column definition
@@ -243,7 +253,7 @@ _ => { panic!("Table does not exist for {} or {}", table_name_lower, table_name_
             }
         } else {
             let alter_table = format!("ALTER TABLE {}", table_name);
-                            let column_definition = convert_data_type_from_pg(data_type);
+            let column_definition = convert_data_type_from_pg(data_type);
 
             let nullable_keyword = if is_nullable == "YES" {
                 "NULL"
@@ -261,7 +271,11 @@ _ => { panic!("Table does not exist for {} or {}", table_name_lower, table_name_
     // Compare existing columns with struct fields to identify removed columns
     let removed_columns: Vec<&(String, _, _)> = existing_columns
         .iter()
-        .filter(|(col_name, _, _)| !fields.iter().any(|(field_name, _, _)| field_name == col_name))
+        .filter(|(col_name, _, _)| {
+            !fields
+                .iter()
+                .any(|(field_name, _, _)| field_name == col_name)
+        })
         .collect();
 
     for (column_name, _, _) in removed_columns {
@@ -296,15 +310,16 @@ fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String {
 
     for row in rows {
         if row.table_name == table_name {
-    let column_name = to_snake_case(&row.column_name);
-    let mut data_type = convert_data_type(&row.udt_name);
-    let optional_type = format!("Option<{}>", data_type);
-  if row.is_nullable {
-    data_type = optional_type.as_str();
-  } 
-    
-    struct_code.push_str(&format!(" pub {}: {},\n", column_name, data_type));
-            }    }
+            let column_name = to_snake_case(&row.column_name);
+            let mut data_type = convert_data_type(&row.udt_name);
+            let optional_type = format!("Option<{}>", data_type);
+            if row.is_nullable {
+                data_type = optional_type.as_str();
+            }
+
+            struct_code.push_str(&format!(" pub {}: {},\n", column_name, data_type));
+        }
+    }
     struct_code.push_str("}\n");
 
     struct_code
@@ -325,10 +340,9 @@ fn convert_data_type(data_type: &str) -> &str {
         "uuid" => "uuid::Uuid",
         "boolean" => "bool",
         "bytea" => "Vec<u8>", // is this right?
-        _ => panic!("Unknown type: {}",data_type),
+        _ => panic!("Unknown type: {}", data_type),
     }
 }
-
 
 fn convert_data_type_from_pg(data_type: &str) -> &str {
     match data_type {
@@ -346,11 +360,9 @@ fn convert_data_type_from_pg(data_type: &str) -> &str {
         "uuid::Uuid" => "uuid",
         "bool" => "boolean",
         "Vec<u8>" => "bytea", // is this right ?
-        _ => panic!("Unknown type: {}",data_type),
+        _ => panic!("Unknown type: {}", data_type),
     }
 }
-
-
 
 fn generate_query_code(row: &TableColumn) -> String {
     // ... (implementation of generate_query_code)
@@ -379,15 +391,19 @@ fn parse_struct_fields(struct_code: &str) -> Vec<(String, String, String)> {
 
         let data_type = if parts[1].trim().starts_with("Option") {
             is_nullable = String::from("YES");
-          parts[1].trim().trim_start_matches("Option<").trim_end_matches(">,")
-        } else { parts[1].trim().trim_end_matches(",") };
+            parts[1]
+                .trim()
+                .trim_start_matches("Option<")
+                .trim_end_matches(">,")
+        } else {
+            parts[1].trim().trim_end_matches(",")
+        };
 
         fields.push((field.to_owned(), data_type.to_owned(), is_nullable));
     }
 
     fields
 }
-
 
 #[cfg(test)]
 mod tests {
