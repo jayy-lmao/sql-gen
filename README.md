@@ -129,6 +129,8 @@ These queries may need modifying or changing, but they can serve as a good start
 let customers = PostgresContext.customer.select_all(&pool).await?;
 ```
 
+The suggested way to add customer queries etc would be to add them somewhere like `db/customer_custom_queries.rs` so that they are not overwritten by codgen. If you `impl CustomerSet` and add functions it will extend it.
+
 ### Generate Migrations
 
 To generate SQL migrations based on changes in the structs, use the `migrate generate` command:
