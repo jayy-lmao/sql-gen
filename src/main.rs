@@ -38,6 +38,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .value_name("Context name")
                         .help("The name of the context for calling functions. Defaults to DB name")
                         .takes_value(true),
+                )
+                .arg(
+                    Arg::new("force")
+                        .short('f')
+                        .long("force")
+                        .value_name("Force overwrite")
+                        .takes_value(false)
+                        .required(false)
+                        .help("Overwrites existing files sharing names in that folder"),
                 ),
         )
         .subcommand(
@@ -77,7 +86,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let output_folder = matches.value_of("output").unwrap();
         let context = matches.value_of("context");
         let database_url = matches.value_of("database").unwrap();
-        generate::generate(output_folder, database_url, context).await?;
+        let force = matches.is_present("force");
+        generate::generate(output_folder, database_url, context, force).await?;
     } else if let Some(matches) = matches.subcommand_matches("migrate") {
         let include_folder = matches.value_of("include").unwrap();
         let output_folder = matches.value_of("output").unwrap();

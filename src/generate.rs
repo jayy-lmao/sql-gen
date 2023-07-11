@@ -1,6 +1,7 @@
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use std::fs;
+use std::path::Path;
 
 use crate::models::TableColumn;
 use crate::utils::{generate_struct_code, to_pascal_case, to_snake_case};
@@ -11,6 +12,7 @@ pub async fn generate(
     output_folder: &str,
     database_url: &str,
     context: Option<&str>,
+    force: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Connect to the Postgres database
     let pool = PgPoolOptions::new()
@@ -80,11 +82,26 @@ ORDER BY
         let query_code = generate_query_code(&table, &rows);
 
         let struct_file_path = format!("{}/{}.rs", output_folder, to_snake_case(&table));
-        fs::write(struct_file_path, struct_code)?;
+        //fs::write(struct_file_path, struct_code)?;
+        if Path::new(&struct_file_path).exists() && !force {
+            eprintln!(
+                "{} already exists, skipping. use --force flag to overwrite",
+                struct_file_path
+            );
+        } else {
+            fs::write(struct_file_path, struct_code)?;
+        }
 
         // Write the query code to a file
         let query_file_path = format!("{}/{}_db_set.rs", output_folder, to_snake_case(&table));
-        fs::write(query_file_path, query_code)?;
+        if Path::new(&query_file_path).exists() && !force {
+            eprintln!(
+                "{} already exists, skipping. use --force flag to overwrite",
+                query_file_path
+            );
+        } else {
+            fs::write(query_file_path, query_code)?;
+        }
     }
 
     let context_code = generate_db_context(context.unwrap_or(&database_name), &tables, &rows);
