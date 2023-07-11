@@ -34,7 +34,7 @@ pub fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String
                 data_type = optional_type.as_str();
             }
 
-            struct_code.push_str(&format!(" pub {}: {},\n", column_name, data_type));
+            struct_code.push_str(&format!("  pub {}: {},\n", column_name, data_type));
         }
     }
     struct_code.push_str("}\n");

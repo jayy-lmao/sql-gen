@@ -12,6 +12,8 @@ pub async fn migrate(
     include_folder: &str,
     output_folder: &str,
     database_url: &str,
+    tables: Option<Vec<&str>>,
+    schemas: Option<Vec<&str>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Connect to the Postgres database
     let pool = PgPoolOptions::new()
@@ -38,7 +40,8 @@ pub async fn migrate(
         let struct_code = fs::read_to_string(&file_path)?;
 
         // Check if the struct fields differ from the database
-        let migration_code = generate_migration_code(&struct_name, struct_code, &pool).await?;
+        let migration_code =
+            generate_migration_code(&struct_name, struct_code, &pool, schemas.clone()).await?;
 
         // Generate a timestamp and migration name
         let timestamp = chrono::Utc::now().format("%Y%m%d%H%M%S");
@@ -57,19 +60,29 @@ pub async fn generate_migration_code(
     struct_name: &str,
     struct_code: String,
     pool: &PgPool,
+    schemas: Option<Vec<&str>>,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let table_name_lower = struct_name.to_lowercase();
     let table_name_upper = to_pascal_case(struct_name);
 
+    let default_schema = "public";
     // Get the column names and data types from the struct code
     let fields = parse_struct_fields(&struct_code);
     let table_names_lower = vec![table_name_lower.clone()];
-    let existing_columns_lower =
-        get_table_columns(pool, "public", Some(&table_names_lower)).await?;
+    let existing_columns_lower = get_table_columns(
+        pool,
+        schemas.clone().unwrap_or(vec![default_schema]),
+        Some(&table_names_lower),
+    )
+    .await?;
 
     let table_names_upper = vec![table_name_upper.clone()];
-    let existing_columns_upper =
-        get_table_columns(pool, "public", Some(&table_names_upper)).await?;
+    let existing_columns_upper = get_table_columns(
+        pool,
+        schemas.unwrap_or(vec![default_schema]),
+        Some(&table_names_upper),
+    )
+    .await?;
 
     let (table_name, existing_columns) = match (
         !existing_columns_lower.is_empty(),

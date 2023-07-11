@@ -14,6 +14,8 @@ pub async fn generate(
     database_url: &str,
     context: Option<&str>,
     force: bool,
+    tables: Option<Vec<&str>>,
+    schemas: Option<Vec<&str>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Connect to the Postgres database
     let pool = PgPoolOptions::new()
@@ -24,7 +26,8 @@ pub async fn generate(
     let database_name = get_database_name(&pool).await?;
     println!("Generating for database: {}", database_name);
 
-    let rows = get_table_columns(&pool, "public", None).await?;
+    let default_schema = "public";
+    let rows = get_table_columns(&pool, schemas.unwrap_or(vec![default_schema]), None).await?;
 
     // Create the output folder if it doesn't exist
     fs::create_dir_all(output_folder)?;

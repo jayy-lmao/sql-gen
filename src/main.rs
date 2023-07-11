@@ -40,6 +40,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .takes_value(true),
                 )
                 .arg(
+                    Arg::with_name("schema")
+                        .short('s')
+                        .long("schema")
+                        .takes_value(true)
+                        .multiple(true)
+                        .help("Specify the schema name(s)"),
+                )
+                .arg(
+                    Arg::with_name("table")
+                        .short('t')
+                        .long("table")
+                        .takes_value(true)
+                        .multiple(true)
+                        .help("Specify the table name(s)"),
+                )
+                .arg(
                     Arg::new("force")
                         .short('f')
                         .long("force")
@@ -60,6 +76,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .help("Sets the folder containing existing struct files")
                         .takes_value(true)
                         .required(true),
+                )
+                .arg(
+                    Arg::with_name("table")
+                        .short('t')
+                        .long("table")
+                        .takes_value(true)
+                        .multiple(true)
+                        .help("Specify the table name(s)"),
+                )
+                .arg(
+                    Arg::with_name("schema")
+                        .short('s')
+                        .long("schema")
+                        .takes_value(true)
+                        .multiple(true)
+                        .help("Specify the schema name(s)"),
                 )
                 .arg(
                     Arg::with_name("output")
@@ -86,13 +118,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let output_folder = matches.value_of("output").unwrap();
         let context = matches.value_of("context");
         let database_url = matches.value_of("database").unwrap();
+        let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
+        let schemas: Option<Vec<&str>> =
+            matches.values_of("schema").map(|schemas| schemas.collect());
         let force = matches.is_present("force");
-        generate::generate(output_folder, database_url, context, force).await?;
+        generate::generate(output_folder, database_url, context, force, tables, schemas).await?;
     } else if let Some(matches) = matches.subcommand_matches("migrate") {
         let include_folder = matches.value_of("include").unwrap();
         let output_folder = matches.value_of("output").unwrap();
         let database_url = matches.value_of("database").unwrap();
-        migrate::migrate(include_folder, output_folder, database_url).await?;
+        let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
+        let schemas: Option<Vec<&str>> =
+            matches.values_of("schema").map(|schemas| schemas.collect());
+        migrate::migrate(include_folder, output_folder, database_url, tables, schemas).await?;
     }
     Ok(())
 }

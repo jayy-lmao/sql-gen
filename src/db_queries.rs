@@ -4,7 +4,7 @@ use crate::models::TableColumn;
 
 pub async fn get_table_columns(
     pool: &PgPool,
-    schema: &str,
+    schemas: Vec<&str>,
     table_names: Option<&Vec<String>>,
 ) -> sqlx::Result<Vec<TableColumn>> {
     // Get all tables from the database
@@ -51,7 +51,7 @@ LEFT JOIN
             constraint_type = 'FOREIGN KEY'
     )
 WHERE
-    c.table_schema = $1
+    c.table_schema = ANY($1)
     AND
     ($2 IS NULL OR c.table_name = ANY($2))
 ORDER BY
@@ -61,7 +61,7 @@ ORDER BY
         ";
 
     let rows = sqlx::query_as::<_, TableColumn>(query)
-        .bind(schema)
+        .bind(schemas)
         .bind(table_names)
         .fetch_all(pool)
         .await?;
