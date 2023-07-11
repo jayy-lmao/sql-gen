@@ -6,4 +6,6 @@ pub struct TableColumn {
     pub(crate) is_nullable: bool,
     pub(crate) is_primary_key: bool,
     pub(crate) is_foreign_key: bool,
+    // #todo
+    pub(crate) table_schema: String,
 }

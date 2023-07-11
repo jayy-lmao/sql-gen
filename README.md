@@ -182,6 +182,7 @@ sqlgen --help
 SQLGen is under active development, and future enhancements are planned. Here are some items on the roadmap:
 
 - environment variable support
+- support schemas other than public
 - Support for more data types in struct and query generation.
 - Integration with other database systems (MySQL, SQLite, etc.).
 - Advanced migration scenarios (renaming columns, table-level changes, etc.).

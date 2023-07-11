@@ -13,6 +13,7 @@ SELECT
     c.table_name,
     c.column_name,
     c.udt_name,
+    c.table_schema,
     c.is_nullable = 'YES' AS is_nullable,
     CASE
         WHEN k.column_name IS NOT NULL THEN TRUE

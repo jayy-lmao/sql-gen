@@ -14,7 +14,7 @@ pub async fn generate(
     database_url: &str,
     context: Option<&str>,
     force: bool,
-    tables: Option<Vec<&str>>,
+    include_tables: Option<Vec<&str>>,
     schemas: Option<Vec<&str>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Connect to the Postgres database
@@ -32,7 +32,6 @@ pub async fn generate(
     // Create the output folder if it doesn't exist
     fs::create_dir_all(output_folder)?;
 
-    // let tables_duplicated = rows.iter().map(|row| row.table_name.clone()).collect::<Vec<String>>();
     let mut unique = std::collections::BTreeSet::new();
     for row in &rows {
         unique.insert(row.table_name.clone());
@@ -43,6 +42,11 @@ pub async fn generate(
 
     // Generate structs and queries for each table
     for table in &tables {
+        if let Some(ts) = include_tables.clone() {
+            if !ts.contains(&table.as_str()) {
+                continue;
+            }
+        }
         // Generate the struct code based on the row
         let struct_code = generate_struct_code(&table, &rows);
 
@@ -50,7 +54,6 @@ pub async fn generate(
         let query_code = generate_query_code(&table, &rows);
 
         let struct_file_path = format!("{}/{}.rs", output_folder, to_snake_case(&table));
-        //fs::write(struct_file_path, struct_code)?;
         if Path::new(&struct_file_path).exists() && !force {
             eprintln!(
                 "{} already exists, skipping. use --force flag to overwrite",

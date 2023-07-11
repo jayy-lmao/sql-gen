@@ -39,14 +39,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .help("The name of the context for calling functions. Defaults to DB name")
                         .takes_value(true),
                 )
-                .arg(
-                    Arg::with_name("schema")
-                        .short('s')
-                        .long("schema")
-                        .takes_value(true)
-                        .multiple(true)
-                        .help("Specify the schema name(s)"),
-                )
+                // .arg(
+                //     Arg::with_name("schema")
+                //         .short('s')
+                //         .long("schema")
+                //         .takes_value(true)
+                //         .multiple(true)
+                //         .help("Specify the schema name(s)"),
+                // )
                 .arg(
                     Arg::with_name("table")
                         .short('t')
@@ -85,14 +85,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .multiple(true)
                         .help("Specify the table name(s)"),
                 )
-                .arg(
-                    Arg::with_name("schema")
-                        .short('s')
-                        .long("schema")
-                        .takes_value(true)
-                        .multiple(true)
-                        .help("Specify the schema name(s)"),
-                )
+                // .arg(
+                //     Arg::with_name("schema")
+                //         .short('s')
+                //         .long("schema")
+                //         .takes_value(true)
+                //         .multiple(true)
+                //         .help("Specify the schema name(s)"),
+                // )
                 .arg(
                     Arg::with_name("output")
                         .short('o')
