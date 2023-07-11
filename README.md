@@ -177,31 +177,11 @@ For a complete list of available commands and options, you can use the `--help` 
 sqlgen --help
 ```
 
-### Environment Variables
-
-SQLGen also supports using environment variables instead of command-line flags. To use environment variables, follow these steps:
-
-1. Create a `.env` file in your project directory.
-2. Add the desired environment variables in the format `VARIABLE_NAME=VALUE`. For example:
-
-   ```plaintext
-   DATABASE_URL=postgresql://postgres:password@localhost/mydatabase
-   ```
-
-3. When running SQLGen, omit the command-line flags related to the environment variables. SQLGen will automatically read the values from the `.env` file.
-
-   **Example:**
-
-   ```shell
-   sqlgen generate --output db
-   ```
-
-   In this example, SQLGen will read the `DATABASE_URL` value from the `.env` file.
-
 ## Roadmap
 
 SQLGen is under active development, and future enhancements are planned. Here are some items on the roadmap:
 
+- environment variable support
 - Support for more data types in struct and query generation.
 - Integration with other database systems (MySQL, SQLite, etc.).
 - Advanced migration scenarios (renaming columns, table-level changes, etc.).
