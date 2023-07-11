@@ -75,7 +75,7 @@ pub async fn generate(
     Ok(())
 }
 
-fn generate_db_context(database_name: &str, tables: &[String], rows: &[TableColumn]) -> String {
+fn generate_db_context(database_name: &str, tables: &[String], _rows: &[TableColumn]) -> String {
     let mut db_context_code = String::new();
     for table in tables {
         db_context_code.push_str(&format!("pub mod {};\n", to_snake_case(table)));

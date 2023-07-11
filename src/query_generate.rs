@@ -33,7 +33,7 @@ pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
     query_code
 }
 
-fn generate_select_query_code(table_name: &str, rows: &[TableColumn]) -> String {
+fn generate_select_query_code(table_name: &str, _rows: &[TableColumn]) -> String {
     let struct_name = to_pascal_case(table_name);
     let mut select_code = String::new();
     select_code.push_str(&format!(
@@ -127,7 +127,7 @@ fn generate_placeholder_list(table_name: &str, rows: &[TableColumn]) -> String {
         .iter()
         .filter(|row| row.table_name == table_name)
         .enumerate()
-        .map(|(idx, col)| format!("${}", idx + 1))
+        .map(|(idx, _col)| format!("${}", idx + 1))
         .collect::<Vec<String>>()
         .join(", ");
     format!("{}", placeholders)
@@ -151,7 +151,7 @@ fn generate_update_values(table_name: &str, rows: &[TableColumn]) -> String {
     rows.iter()
         .filter(|r| r.table_name == table_name)
         .enumerate()
-        .filter(|(idx, row)| !row.is_primary_key)
+        .filter(|(_idx, row)| !row.is_primary_key)
         .map(|(idx, row)| format!("{} = ${}", row.column_name, idx + 1))
         .collect::<Vec<_>>()
         .join(", ")
@@ -161,7 +161,7 @@ fn generate_update_conditions(table_name: &str, rows: &[TableColumn]) -> String 
     rows.iter()
         .filter(|r| r.table_name == table_name)
         .enumerate()
-        .filter(|(idx, row)| row.is_primary_key)
+        .filter(|(_idx, row)| row.is_primary_key)
         .map(|(idx, row)| format!("{} = {}", row.column_name, idx + 1))
         .collect::<Vec<String>>()
         .join(" AND ")
