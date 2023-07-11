@@ -7,23 +7,6 @@ mod models;
 mod query_generate;
 mod utils;
 
-// async fn test_sqlx_query<'a, E: sqlx::Executor<'a, Database = Postgres>>(e: E) -> sqlx::Result<()> {
-//     sqlx::query("SELECT * FROM Categories").fetch_all(e).await?;
-//     Ok(())
-// }
-
-//   pub async fn insert<'e, E: Executor<'e, Database = Postgres>>(executor: E) -> Result<(), Error> {
-//         sqlx::query("INSERT INTO Categories (id, created_at, label) VALUES ($1, $2, $3)")
-//             .bind(1, 2, 3)
-//             .execute(executor)
-//             .await?;
-//         Ok(())
-//     }
-// fn test_sqlx_query<'a>() -> sqlx::query::Query<'a, Postgres, PgArguments> {
-//     let res = sqlx::query("SELECT * FROM Categories");
-//     res
-// }
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("SQL Gen")

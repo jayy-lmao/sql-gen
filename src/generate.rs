@@ -95,6 +95,22 @@ ORDER BY
 
 fn generate_db_context(database_name: &str, tables: &[String], rows: &[TableColumn]) -> String {
     let mut db_context_code = String::new();
+    for table in tables {
+        db_context_code.push_str(&format!("pub mod {};\n", to_snake_case(table)));
+        db_context_code.push_str(&format!(
+            "pub use {}::{};\n",
+            to_snake_case(table),
+            to_pascal_case(table),
+        ));
+        db_context_code.push_str(&format!("pub mod {}_db_set;\n", to_snake_case(table)));
+        db_context_code.push_str(&format!(
+            "pub use {}_db_set::{}Set;\n\n",
+            to_snake_case(table),
+            to_pascal_case(table),
+        ));
+    }
+
+    db_context_code.push_str("\n");
     db_context_code.push_str(&format!(
         "pub struct {}Context;\n\n",
         to_pascal_case(database_name)
@@ -103,6 +119,14 @@ fn generate_db_context(database_name: &str, tables: &[String], rows: &[TableColu
         "impl {}Context {{\n",
         to_pascal_case(database_name)
     ));
+    for table in tables {
+        db_context_code.push_str(&format!(
+            "  pub fn {}(&self) -> {}Set {{ {}Set }}\n\n",
+            to_snake_case(table),
+            to_pascal_case(table),
+            to_pascal_case(table),
+        ));
+    }
     db_context_code.push_str("}");
     db_context_code
 }
