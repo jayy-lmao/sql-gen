@@ -86,7 +86,7 @@ fn generate_query_code(_row: &TableColumn) -> String {
     todo!()
 }
 
-pub fn parse_struct_fields(struct_code: &str) -> Vec<(String, String, String)> {
+pub fn parse_struct_fields(struct_code: &str) -> Vec<(String, String, bool)> {
     let lines = struct_code.lines();
     let mut fields = Vec::new();
 
@@ -103,10 +103,10 @@ pub fn parse_struct_fields(struct_code: &str) -> Vec<(String, String, String)> {
 
         let field = parts[0].trim().trim_start_matches("pub").trim();
         //let data_type_optional = parts[1].trim().trim_end_matches(",").trim();
-        let mut is_nullable = String::from("NO");
+        let mut is_nullable = false;
 
         let data_type = if parts[1].trim().starts_with("Option") {
-            is_nullable = String::from("YES");
+            is_nullable = true;
             parts[1]
                 .trim()
                 .trim_start_matches("Option<")

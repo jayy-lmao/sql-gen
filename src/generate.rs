@@ -3,6 +3,7 @@ use sqlx::PgPool;
 use std::fs;
 use std::path::Path;
 
+use crate::db_queries::get_table_columns;
 use crate::models::TableColumn;
 use crate::utils::{generate_struct_code, to_pascal_case, to_snake_case};
 
@@ -23,43 +24,7 @@ pub async fn generate(
     let database_name = get_database_name(&pool).await?;
     println!("Generating for database: {}", database_name);
 
-    // Get all tables from the database
-    let query = "
-            SELECT
-    c.table_name,
-    c.column_name,
-    c.udt_name,
-    c.is_nullable = 'YES' AS is_nullable,
-    CASE
-        WHEN k.column_name IS NOT NULL THEN TRUE
-        ELSE FALSE
-    END AS is_primary_key
-FROM
-    information_schema.columns c
-LEFT JOIN
-    information_schema.key_column_usage k ON
-    c.table_schema = k.table_schema AND
-    c.table_name = k.table_name AND
-    c.column_name = k.column_name AND
-    k.constraint_name IN (
-        SELECT
-            constraint_name
-        FROM
-            information_schema.table_constraints
-        WHERE
-            constraint_type = 'PRIMARY KEY'
-    )
-WHERE
-    c.table_schema = 'public'
-ORDER BY
-    c.table_name,
-    c.ordinal_position
-
-        ";
-
-    let rows = sqlx::query_as::<_, TableColumn>(query)
-        .fetch_all(&pool)
-        .await?;
+    let rows = get_table_columns(&pool, "public", None).await?;
 
     // Create the output folder if it doesn't exist
     fs::create_dir_all(output_folder)?;

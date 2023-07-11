@@ -1,6 +1,7 @@
 use clap::{App, Arg, SubCommand};
 use sqlx::{postgres::PgArguments, Executor, Postgres};
 
+mod db_queries;
 mod generate;
 mod migrate;
 mod models;

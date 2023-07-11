@@ -2,7 +2,11 @@ use sqlx::postgres::{PgPool, PgPoolOptions};
 use std::fs;
 use std::path::PathBuf;
 
-use crate::utils::{convert_data_type_from_pg, parse_struct_fields, to_pascal_case};
+use crate::{
+    db_queries::get_table_columns,
+    models::TableColumn,
+    utils::{convert_data_type_from_pg, parse_struct_fields, to_pascal_case},
+};
 
 pub async fn migrate(
     include_folder: &str,
@@ -59,75 +63,13 @@ pub async fn generate_migration_code(
 
     // Get the column names and data types from the struct code
     let fields = parse_struct_fields(&struct_code);
+    let table_names_lower = vec![table_name_lower.clone()];
+    let existing_columns_lower =
+        get_table_columns(pool, "public", Some(&table_names_lower)).await?;
 
-    // Query the database for column information
-    let query_lower = format!(
-        "
-
-         SELECT
-    c.table_name,
-    c.column_name,
-    c.udt_name,
-    c.is_nullable = 'YES' AS is_nullable,
-    CASE
-        WHEN k.column_name IS NOT NULL THEN TRUE
-        ELSE FALSE
-    END AS is_primary_key
-FROM
-    information_schema.columns c
-LEFT JOIN
-    information_schema.key_column_usage k ON
-    c.table_schema = k.table_schema AND
-    c.table_name = k.table_name AND
-    c.column_name = k.column_name AND
-    k.constraint_name IN (
-        SELECT
-            constraint_name
-        FROM
-            information_schema.table_constraints
-        WHERE
-            constraint_type = 'PRIMARY KEY'
-    )
-         WHERE table_name = '{}'",
-        table_name_lower,
-    );
-
-    let existing_columns_lower: Vec<(String, String, String)> =
-        sqlx::query_as(query_lower.as_str()).fetch_all(pool).await?;
-
-    // Query the database for column information
-    let query_upper = format!(
-        "
-         SELECT
-    c.table_name,
-    c.column_name,
-    c.udt_name,
-    c.is_nullable = 'YES' AS is_nullable,
-    CASE
-        WHEN k.column_name IS NOT NULL THEN TRUE
-        ELSE FALSE
-    END AS is_primary_key
-FROM
-    information_schema.columns c
-LEFT JOIN
-    information_schema.key_column_usage k ON
-    c.table_schema = k.table_schema AND
-    c.table_name = k.table_name AND
-    c.column_name = k.column_name AND
-    k.constraint_name IN (
-        SELECT
-            constraint_name
-        FROM
-            information_schema.table_constraints
-        WHERE
-            constraint_type = 'PRIMARY KEY'
-    )
-         WHERE table_name = '{}'",
-        table_name_upper,
-    );
-
-    let existing_columns_upper: Vec<(String, String, String)> =
-        sqlx::query_as(query_upper.as_str()).fetch_all(pool).await?;
+    let table_names_upper = vec![table_name_upper.clone()];
+    let existing_columns_upper =
+        get_table_columns(pool, "public", Some(&table_names_upper)).await?;
 
     let (table_name, existing_columns) = match (
         !existing_columns_lower.is_empty(),
@@ -149,18 +91,20 @@ LEFT JOIN
     for (column_name, data_type, is_nullable) in &fields {
         let matching_column = existing_columns
             .iter()
-            .find(|(col_name, _, _)| col_name == column_name);
+            .find(|row| &row.column_name == column_name);
 
-        if let Some((_, existing_type, existing_nullable)) = matching_column {
+        if let Some(table_row) = matching_column {
+            let existing_nullable = table_row.is_nullable;
+            let existing_type = &table_row.udt_name;
             // Compare data types and nullability
             let column_definition = convert_data_type_from_pg(data_type);
-            if column_definition != existing_type || is_nullable != existing_nullable {
+            if column_definition != existing_type || is_nullable != &existing_nullable {
                 let alter_table = format!("ALTER TABLE {}", table_name);
 
                 // Generate appropriate column definition
 
                 // Generate the ALTER TABLE statement
-                let nullable_keyword = if is_nullable == "YES" {
+                let nullable_keyword = if *is_nullable {
                     "DROP NOT NULL"
                 } else {
                     "SET NOT NULL"
@@ -177,11 +121,7 @@ LEFT JOIN
             let alter_table = format!("ALTER TABLE {}", table_name);
             let column_definition = convert_data_type_from_pg(data_type);
 
-            let nullable_keyword = if is_nullable == "YES" {
-                "NULL"
-            } else {
-                "NOT NULL"
-            };
+            let nullable_keyword = if *is_nullable { "NULL" } else { "NOT NULL" };
             let migration_statement = format!(
                 "{} ADD COLUMN {} {} {}",
                 alter_table, column_name, column_definition, nullable_keyword
@@ -191,18 +131,18 @@ LEFT JOIN
     }
 
     // Compare existing columns with struct fields to identify removed columns
-    let removed_columns: Vec<&(String, _, _)> = existing_columns
+    let removed_columns: Vec<&TableColumn> = existing_columns
         .iter()
-        .filter(|(col_name, _, _)| {
+        .filter(|row| {
             !fields
                 .iter()
-                .any(|(field_name, _, _)| field_name == col_name)
+                .any(|(field_name, _, _)| field_name == &row.column_name)
         })
         .collect();
 
-    for (column_name, _, _) in removed_columns {
+    for table_column in removed_columns {
         let alter_table = format!("ALTER TABLE {}", table_name);
-        let drop_column = format!("DROP COLUMN {}", column_name);
+        let drop_column = format!("DROP COLUMN {}", table_column.column_name);
         let migration_statement = format!("{} {}", alter_table, drop_column);
         migration_statements.push(migration_statement);
     }
