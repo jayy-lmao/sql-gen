@@ -29,8 +29,6 @@ Or for the latest github
 cargo install --git https://github.com/jayy-lmao/sql-codegen --branch main
 ```
 
-Replace `your-username` with your GitHub username. This will install SQL-Gen globally on your system, making it available as a command-line tool.
-
 ## Usage
 
 ```
