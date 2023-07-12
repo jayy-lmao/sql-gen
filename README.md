@@ -97,7 +97,7 @@ This will generate the following Rust structs and queries:
 ```rust
 // in db/customer.rs
 
-#[derive(sqlx::FromRow)]
+#[derive(sqlx::FromRow, Debug)]
 struct Customer {
     pub id: i32,
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
