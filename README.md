@@ -243,7 +243,7 @@ sql-gen --help
 
 SQL-Gen is under active development, and future enhancements are planned. Here are some items on the roadmap:
 
-- Singularise/Pluralise correctly with inflection crate
+- Singularise/Pluralise correctly with inflection crate (e.g. your table is called customers, maybe you want the struct to still be Customer)
 - A way to customise generated derives
 - Clearer input types that allow for leaving out default fields
 - Tests
