@@ -167,8 +167,8 @@ fn generate_select_by_pk_query_code_optional(table_name: &str, rows: &[TableColu
         "        query_as::<_, {}>(\"SELECT * FROM {} WHERE {}\")\n",
         struct_name, table_name, condition
     ));
-    select_code.push_str("            .fetch_optional(executor)\n");
     select_code.push_str(&bind);
+    select_code.push_str("            .fetch_optional(executor)\n");
 
     select_code.push_str("            .await\n");
     select_code.push_str("    }\n");
