@@ -239,6 +239,7 @@ sqlgen --help
 
 SQLGen is under active development, and future enhancements are planned. Here are some items on the roadmap:
 
+- A way to customise generated derives
 - Clearer input types that allow for leaving out default fields
 - Tests
 - Linting on output (rustfmt has proven tricky with derive macros)

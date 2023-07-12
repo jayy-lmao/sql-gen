@@ -54,7 +54,7 @@ fn generate_select_query_code(table_name: &str, _rows: &[TableColumn]) -> String
         struct_name
     ));
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(\"SELECT * FROM {}\")\n",
+        "        query_as::<_, {}>(\"SELECT * FROM \"{}\")\n",
         struct_name, table_name
     ));
     select_code.push_str("            .fetch_all(executor)\n");
