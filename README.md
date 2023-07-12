@@ -26,7 +26,42 @@ Replace `your-username` with your GitHub username. This will install SQLGen glob
 
 ## Usage
 
-SQLGen supports various commands and options to perform different operations on your PostgreSQL database. Here are some examples of how to use SQLGen:
+```
+sql-gen [SUBCOMMAND] [OPTIONS]
+```
+
+### Subcommands:
+
+- `generate` - Generate structs and queries for tables
+- `migrate` - Generate SQL migrations based on struct differences
+
+### Options:
+
+- `generate` subcommand options:
+  - `-o, --output <SQLGEN_MODEL_OUTPUT_FOLDER>` - Sets the output folder for generated structs (required)
+  - `-d, --database <DATABASE_URL>` - Sets the database connection URL (required)
+  - `-c, --context <SQLGEN_CONTEXT_NAME>` - The name of the context for calling functions. Defaults to DB name
+  - `-t, --table <SQLGEN_TABLE>` - Specify the table name(s) (multiple values supported, use delimiter)
+  - `-f, --force` - Overwrites existing files sharing names in that folder
+
+- `migrate` subcommand options:
+  - `-i, --include <SQLGEN_MODEL_FOLDER>` - Sets the folder containing existing struct files (required)
+  - `-t, --table <SQLGEN_TABLE>` - Specify the table name(s) (multiple values supported, use delimiter)
+  - `-o, --output <SQLGEN_MIGRATION_OUTPUT>` - Sets the output folder for migrations (required)
+  - `-d, --database <DATABASE_URL>` - Sets the database connection URL (required)
+
+### Example .env file
+
+Create a `.env` file in the project root directory with the following content:
+
+```
+DATABASE_URL=postgres://username:password@localhost/mydatabase
+SQLGEN_MODEL_OUTPUT_FOLDER=./src/models/
+SQLGEN_MODEL_FOLDER=./src/models/
+SQLGEN_MIGRATION_OUTPUT=./migrations
+```
+
+Make sure to replace the values with your actual database connection URL and desired folder paths for generated structs and migrations.
 
 ### Generate Structs and Queries
 
@@ -91,6 +126,28 @@ impl CustomerSet {
             .await
     }
 
+    pub async fn by_id<'e, E: PgExecutor<'e>>(executor: E, id: i64) -> Result<Customer> {
+        query_as::<_, Customer>("SELECT * FROM customer WHERE id = $1")
+            .fetch_one(executor)
+            .bind(id)
+            .await
+    }
+
+   pub async fn by_id_optional<'e, E: PgExecutor<'e>>(executor: E, id: i64) -> Result<Option<Customer>> {
+        query_as::<_, Option<Customer>>("SELECT * FROM customer WHERE id = $1")
+            .fetch_optional(executor)
+            .bind(id)
+            .await
+    }
+
+    // Not in this example, but any FKs will also generate "all_by_<fk_table>_<fk_id>" queries
+    // pub async fn all_by_purchases_id<'e, E: PgExecutor<'e>>(executor: E, purchase_id: uuid::Uuid) -> Result<Vec<Customer>> {
+    //     query_as::<_, Vec<Customer>>("SELECT * FROM customer WHERE purchase_id = $1")
+    //         .fetch_all(executor)
+    //         .bind(category)
+    //         .await
+    // }
+
     pub async fn update<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<(), Error> {
         query_as::<_, Customer>("UPDATE customer SET created_at = $2, email = $3 WHERE id = 1")
             .bind(categories.id)
@@ -129,7 +186,7 @@ These queries may need modifying or changing, but they can serve as a good start
 let customers = PostgresContext.customer.select_all(&pool).await?;
 ```
 
-The suggested way to add customer queries etc would be to add them somewhere like `db/customer_custom_queries.rs` so that they are not overwritten by codgen. If you `impl CustomerSet` and add functions it will extend it.
+The suggested way to add customer queries etc would be to add them somewhere like `db/customer_custom_queries.rs` so that they are not overwritten by codgen. If you `impl CustomerSet` and add functions it should extend it.
 
 ### Generate Migrations
 
@@ -177,12 +234,31 @@ For a complete list of available commands and options, you can use the `--help` 
 sqlgen --help
 ```
 
+### Environment Variables
+
+SQLGen also supports using environment variables instead of command-line flags. To use environment variables, follow these steps:
+
+1. Create a `.env` file in your project directory.
+2. Add the desired environment variables in the format `VARIABLE_NAME=VALUE`. For example:
+
+   ```plaintext
+   DATABASE_URL=postgresql://postgres:password@localhost/mydatabase
+   ```
+
+3. When running SQLGen, omit the command-line flags related to the environment variables. SQLGen will automatically read the values from the `.env` file.
+
+   **Example:**
+
+   ```shell
+   sqlgen generate --output db
+   ```
+
+   In this example, SQLGen will read the `DATABASE_URL` value from the `.env` file.
+
 ## Roadmap
 
 SQLGen is under active development, and future enhancements are planned. Here are some items on the roadmap:
 
-- environment variable support
-- support schemas other than public
 - Support for more data types in struct and query generation.
 - Integration with other database systems (MySQL, SQLite, etc.).
 - Advanced migration scenarios (renaming columns, table-level changes, etc.).

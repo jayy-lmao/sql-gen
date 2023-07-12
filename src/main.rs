@@ -122,19 +122,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let output_folder = matches.value_of("output").unwrap();
         let context = matches.value_of("context");
         let database_url = matches.value_of("database").unwrap();
-        let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
+        // let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
         // let schemas: Option<Vec<&str>> =
         //     matches.values_of("schema").map(|schemas| schemas.collect());
         let force = matches.is_present("force");
-        generate::generate(output_folder, database_url, context, force, tables, None).await?;
+        generate::generate(output_folder, database_url, context, force, None, None).await?;
     } else if let Some(matches) = matches.subcommand_matches("migrate") {
         let include_folder = matches.value_of("include").unwrap();
         let output_folder = matches.value_of("output").unwrap();
         let database_url = matches.value_of("database").unwrap();
-        let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
+        // let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
         // let schemas: Option<Vec<&str>> =
         //     matches.values_of("schema").map(|schemas| schemas.collect());
-        migrate::migrate(include_folder, output_folder, database_url, tables, None).await?;
+        migrate::migrate(include_folder, output_folder, database_url, None, None).await?;
     }
     Ok(())
 }
