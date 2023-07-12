@@ -1,6 +1,8 @@
-# SQLGen - Rust CLI Tool for PostgreSQL Database Operations Generation extending SQLX
+# SQL-Gen - Rust CLI Tool for PostgreSQL Database Operations Generation extending SQLX
 
-SQLGen is a command-line tool written in Rust that helps you generate Rust structs, queries, and SQL migrations based on an existing PostgreSQL database schema. It utilizes the `sqlx` and `clap` libraries to provide a user-friendly and efficient experience for working with your PostgreSQL database.
+PR's and Issues welcome! This is still early stages of devopment, though hopefully useful to some! 
+
+SQL-Gen is a command-line tool written in Rust that helps you generate Rust structs, queries, and SQL migrations based on an existing PostgreSQL database schema. It utilizes the `sqlx` and `clap` libraries to provide a user-friendly and efficient experience for working with your PostgreSQL database.
 
 This project draws inspiration from `rsdbgen` (GitHub: [brianhv/rsdbgen](https://github.com/brianhb/rsdbgen)) and we appreciate their contribution to the Rust database tooling ecosystem. Originally this was going to be extending `rsdbgen` but at a certain point of changes it seemed to have diverged.
 
@@ -14,12 +16,12 @@ This project draws inspiration from `rsdbgen` (GitHub: [brianhv/rsdbgen](https:/
 
 ## Installation
 
-To use SQLGen, make sure you have Rust and Cargo installed on your system. You can install them by following the instructions at [https://www.rust-lang.org/](https://www.rust-lang.org/).
+To use SQL-Gen, make sure you have Rust and Cargo installed on your system. You can install them by following the instructions at [https://www.rust-lang.org/](https://www.rust-lang.org/).
 
-Once you have Rust and Cargo installed, you can build SQLGen by running the following command:
+Once you have Rust and Cargo installed, you can build SQL-Gen by running the following command:
 
 ```shell
-cargo install sqlgen
+cargo install sql-gen
 ```
 
 Or for the latest github
@@ -27,12 +29,12 @@ Or for the latest github
 cargo install --git https://github.com/jayy-lmao/sql-codegen --branch main
 ```
 
-Replace `your-username` with your GitHub username. This will install SQLGen globally on your system, making it available as a command-line tool.
+Replace `your-username` with your GitHub username. This will install SQL-Gen globally on your system, making it available as a command-line tool.
 
 ## Usage
 
 ```
-sqlgen [SUBCOMMAND] [OPTIONS]
+sql-gen [SUBCOMMAND] [OPTIONS]
 ```
 
 ### Subcommands:
@@ -73,7 +75,7 @@ Make sure to replace the values with your actual database connection URL and des
 To generate Rust structs and queries for a PostgreSQL database, use the `generate` command:
 
 ```shell
-sqlgen generate --output db --database <DATABASE_URL>
+sql-gen generate --output db --database <DATABASE_URL>
 ```
 
 Replace `<DATABASE_URL>` with the URL of your PostgreSQL database. The generated code will be saved in the `db` folder.
@@ -93,7 +95,7 @@ CREATE TABLE customer (
 Running SQLGen with the `generate` command:
 
 ```shell
-sqlgen generate --output db --database postgresql://postgres:password@localhost/mydatabase
+sql-gen generate --output db --database postgresql://postgres:password@localhost/mydatabase
 ```
 
 This will generate the following Rust structs and queries:
@@ -198,7 +200,7 @@ The suggested way to add customer queries etc would be to add them somewhere lik
 To generate SQL migrations based on changes in the structs, use the `migrate generate` command:
 
 ```shell
-sqlgen migrate generate --database <DATABASE_URL> --include <FOLDER_PATH> --output migrations
+sql-gen migrate generate --database <DATABASE_URL> --include <FOLDER_PATH> --output migrations
 ```
 
 Replace `<DATABASE_URL>` with the URL of your PostgreSQL database, `<FOLDER_PATH>` with the folder containing the generated structs (`db` in the previous example), and `migrations` with the output folder for the SQL migrations.
@@ -208,7 +210,7 @@ Replace `<DATABASE_URL>` with the URL of your PostgreSQL database, `<FOLDER_PATH
 Running SQLGen with the `migrate generate` command:
 
 ```shell
-sqlgen migrate generate --database postgresql://postgres:password@localhost/mydatabase --include db --output migrations
+sql-gen migrate generate --database postgresql://postgres:password@localhost/mydatabase --include db --output migrations
 ```
 
 This will perform a dry run of the previous database generation, compare it with the existing structs in the `db` folder, and generate SQL migrations for any detected changes. The migrations will be saved in the `migrations` folder.
@@ -226,7 +228,7 @@ pub struct Customer {
 }
 ```
 
-Running SQLGen with the `migrate generate` command will generate the following migration:
+Running SQL-Gen with the `migrate generate` command will generate the following migration:
 
 ```sql
 -- Migration generated for struct: Customer
@@ -236,13 +238,13 @@ ALTER TABLE customer ADD COLUMN address TEXT;
 For a complete list of available commands and options, you can use the `--help` flag:
 
 ```shell
-sqlgen --help
+sql-gen --help
 ```
 
 
 ## Roadmap
 
-SQLGen is under active development, and future enhancements are planned. Here are some items on the roadmap:
+SQL-Gen is under active development, and future enhancements are planned. Here are some items on the roadmap:
 
 - Singularise/Pluralise correctly with inflection crate
 - A way to customise generated derives
