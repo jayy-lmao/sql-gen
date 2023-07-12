@@ -2,6 +2,8 @@
 name = "sqlgen"
 version = "0.1.0"
 edition = "2021"
+description = "A CLI tool for generating models based on a SQL Database using SQLx"
+license = "MIT"
 
 [dependencies]
 sqlx = { version = "0.7", features = ["postgres","runtime-tokio"] }
