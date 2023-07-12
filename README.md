@@ -37,8 +37,8 @@ sql-gen [SUBCOMMAND] [OPTIONS]
 
 ### Subcommands:
 
-- `generate` - Generate structs and queries for tables
-- `migrate` - Generate SQL migrations based on struct differences
+- `generate` - Generate structs and queries for tables in your db
+- `migrate` - Generate SQL migrations based on struct differences for structs that have a database table matching them
 
 ### Options:
 
@@ -46,12 +46,10 @@ sql-gen [SUBCOMMAND] [OPTIONS]
   - `-o, --output <SQLGEN_MODEL_OUTPUT_FOLDER>` - Sets the output folder for generated structs (required)
   - `-d, --database <DATABASE_URL>` - Sets the database connection URL (required)
   - `-c, --context <SQLGEN_CONTEXT_NAME>` - The name of the context for calling functions. Defaults to DB name
-  - `-t, --table <SQLGEN_TABLE>` - Specify the table name(s) (multiple values supported, use delimiter)
   - `-f, --force` - Overwrites existing files sharing names in that folder
 
 - `migrate` subcommand options:
   - `-i, --include <SQLGEN_MODEL_FOLDER>` - Sets the folder containing existing struct files (required)
-  - `-t, --table <SQLGEN_TABLE>` - Specify the table name(s) (multiple values supported, use delimiter)
   - `-o, --output <SQLGEN_MIGRATION_OUTPUT>` - Sets the output folder for migrations (required)
   - `-d, --database <DATABASE_URL>` - Sets the database connection URL (required)
 
