@@ -38,6 +38,12 @@ pub async fn migrate(
 
         // Read the struct code from the file
         let struct_code = fs::read_to_string(&file_path)?;
+        if !struct_code.contains("FromRow")
+            || struct_name.contains("set")
+            || struct_name.contains("Set")
+        {
+            continue;
+        }
 
         // Check if the struct fields differ from the database
         let migration_code =
