@@ -285,6 +285,7 @@ fn generate_update_query_code(table_name: &str, rows: &[TableColumn]) -> String 
         generate_value_list(table_name, rows)
     ));
     update_code.push_str(&format!("            .fetch_one(executor)\n"));
+    update_code.push_str(&format!("            .await\n"));
     update_code.push_str("    }\n");
     update_code
 }
