@@ -248,7 +248,7 @@ fn generate_insert_query_code(table_name: &str, rows: &[TableColumn]) -> String 
         struct_name
     ));
     insert_code.push_str(&format!(
-        "        query_as::<_, {}>(\"INSERT INTO {} ({}) VALUES ({})\")\n",
+        "        query_as::<_, {}>(\"INSERT INTO {} ({}) VALUES ({}) RETURNING *;\")\n",
         struct_name,
         table_name,
         generate_column_list(table_name, rows),
@@ -258,7 +258,7 @@ fn generate_insert_query_code(table_name: &str, rows: &[TableColumn]) -> String 
         "            {}\n",
         generate_value_list(table_name, rows)
     ));
-    insert_code.push_str("            .execute(executor)\n");
+    insert_code.push_str("            .fetch_one(executor)\n");
     insert_code.push_str("            .await\n");
     insert_code.push_str("    }\n");
     insert_code
@@ -268,10 +268,11 @@ fn generate_update_query_code(table_name: &str, rows: &[TableColumn]) -> String 
     let struct_name = to_pascal_case(table_name);
     let mut update_code = String::new();
     update_code.push_str(&format!(
-        "    pub async fn update<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<()> {{\n"
+        "    pub async fn update<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<{}> {{\n",
+        struct_name,
     ));
     update_code.push_str(&format!(
-        "        query_as::<_, {}>(\"UPDATE {} SET {} WHERE {}\")\n",
+        "        query_as::<_, {}>(\"UPDATE {} SET {} WHERE {} RETURNING *;\")\n",
         struct_name,
         table_name,
         generate_update_values(table_name, rows),
@@ -281,7 +282,7 @@ fn generate_update_query_code(table_name: &str, rows: &[TableColumn]) -> String 
         "            {}\n",
         generate_value_list(table_name, rows)
     ));
-    update_code.push_str(&format!("            .execute(executor)\n"));
+    update_code.push_str(&format!("            .fetch_one(executor)\n"));
     update_code.push_str("    }\n");
     update_code
 }
