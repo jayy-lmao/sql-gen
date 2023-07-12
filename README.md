@@ -138,7 +138,7 @@ impl CustomerSet {
             .await
     }
 
-    // Doesn't exist in this example, but foreign keys will generate a function like this, assuming customer has a fk field called category
+    // Doesn't exist in this example, but foreign keys will functions like this, assuming customer has a fk field called category
     // pub async fn all_by_categories_id<'e, E: PgExecutor<'e>>(executor: E, categories_id: i64) -> Result<Vec<Customer>> {
     //     query_as::<_, Customer>(r#"SELECT * FROM "customer" WHERE category = $1"#)
     //         .bind(categories_id)
