@@ -1,13 +1,13 @@
 use crate::{
     models::TableColumn,
-    utils::{to_pascal_case, to_snake_case},
+    utils::{convert_data_type, to_pascal_case, to_snake_case},
 };
 
 pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
     let struct_name = to_pascal_case(table_name);
     let mut query_code = String::new();
     query_code.push_str(&format!(
-        "use sqlx::{{PgExecutor, Postgres, query_as, query, Result, Error}};\n"
+        "use sqlx::{{PgExecutor, Postgres, query_as, query, Result}};\n"
     ));
     query_code.push_str(&format!("use super::{};\n\n", struct_name));
     query_code.push_str(&format!("pub struct {}Set;\n\n", struct_name));
@@ -15,6 +15,17 @@ pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
 
     // Generate query code for SELECT statements
     query_code.push_str(&generate_select_query_code(table_name, rows));
+    query_code.push('\n');
+
+    // Generate query code for SELECT BY PK statements
+    query_code.push_str(&generate_select_by_pk_query_code(table_name, rows));
+    query_code.push('\n');
+
+    // Generate query code for SELECT BY PK Optional statements
+    query_code.push_str(&generate_select_by_pk_query_code_optional(table_name, rows));
+    query_code.push('\n');
+
+    query_code.push_str(&generate_select_all_fk_queries(table_name, rows));
     query_code.push('\n');
 
     // Generate query code for INSERT statements
@@ -37,7 +48,7 @@ fn generate_select_query_code(table_name: &str, _rows: &[TableColumn]) -> String
     let struct_name = to_pascal_case(table_name);
     let mut select_code = String::new();
     select_code.push_str(&format!(
-        "    pub async fn select_all<'e, E: PgExecutor<'e>>(executor: E) -> Result<Vec<{}>, Error> {{\n",
+        "    pub async fn all<'e, E: PgExecutor<'e>>(executor: E) -> Result<Vec<{}>> {{\n",
         struct_name
     ));
     select_code.push_str(&format!(
@@ -50,11 +61,186 @@ fn generate_select_query_code(table_name: &str, _rows: &[TableColumn]) -> String
     select_code
 }
 
+fn generate_select_by_pk_query_code(table_name: &str, rows: &[TableColumn]) -> String {
+    let struct_name = to_pascal_case(table_name);
+    let mut select_code = String::new();
+    let pkey_name = rows
+        .iter()
+        .filter(|r| r.is_primary_key && r.table_name == table_name)
+        .map(|r| r.column_name.as_str())
+        .collect::<Vec<&str>>()
+        .join("_and_");
+
+    let fn_args = rows
+        .iter()
+        .filter(|r| r.is_primary_key && r.table_name == table_name)
+        .map(|r| {
+            format!(
+                "{}: {}",
+                r.column_name,
+                convert_data_type(r.udt_name.as_str())
+            )
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    select_code.push_str(&format!(
+        "    pub async fn by_{}<'e, E: PgExecutor<'e>>(executor: E, {}) -> Result<{}> {{\n",
+        pkey_name, fn_args, struct_name
+    ));
+
+    let condition = rows
+        .iter()
+        .filter(|r| r.is_primary_key && r.table_name == table_name)
+        .enumerate()
+        .map(|(idx, r)| format!("{} = ${}", r.column_name, idx + 1))
+        .collect::<Vec<String>>()
+        .join(" AND ");
+
+    let bind = rows
+        .iter()
+        .filter(|r| r.is_primary_key && r.table_name == table_name)
+        .map(|r| format!("            .bind({})\n", r.column_name))
+        .collect::<Vec<String>>()
+        .join("");
+
+    select_code.push_str(&format!(
+        "        query_as::<_, {}>(\"SELECT * FROM {} WHERE {}\")\n",
+        struct_name, table_name, condition
+    ));
+    select_code.push_str("            .fetch_one(executor)\n");
+    select_code.push_str(&bind);
+
+    select_code.push_str("            .await\n");
+    select_code.push_str("    }\n");
+    select_code
+}
+
+fn generate_select_by_pk_query_code_optional(table_name: &str, rows: &[TableColumn]) -> String {
+    let struct_name = to_pascal_case(table_name);
+    let mut select_code = String::new();
+    let pkey_name = rows
+        .iter()
+        .filter(|r| r.is_primary_key && r.table_name == table_name)
+        .map(|r| r.column_name.as_str())
+        .collect::<Vec<&str>>()
+        .join("_and_");
+
+    let fn_args = rows
+        .iter()
+        .filter(|r| r.is_primary_key && r.table_name == table_name)
+        .map(|r| {
+            format!(
+                "{}: {}",
+                r.column_name,
+                convert_data_type(r.udt_name.as_str())
+            )
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    select_code.push_str(&format!(
+        "    pub async fn by_{}_optional<'e, E: PgExecutor<'e>>(executor: E, {}) -> Result<Option<{}>> {{\n",
+        pkey_name,
+        fn_args,
+        struct_name
+    ));
+
+    let condition = rows
+        .iter()
+        .filter(|r| r.is_primary_key && r.table_name == table_name)
+        .enumerate()
+        .map(|(idx, r)| format!("{} = ${}", r.column_name, idx + 1))
+        .collect::<Vec<String>>()
+        .join(" AND ");
+
+    let bind = rows
+        .iter()
+        .filter(|r| r.is_primary_key && r.table_name == table_name)
+        .map(|r| format!("            .bind({})\n", r.column_name))
+        .collect::<Vec<String>>()
+        .join("");
+
+    select_code.push_str(&format!(
+        "        query_as::<_, Option<{}>>(\"SELECT * FROM {} WHERE {}\")\n",
+        struct_name, table_name, condition
+    ));
+    select_code.push_str("            .fetch_optional(executor)\n");
+    select_code.push_str(&bind);
+
+    select_code.push_str("            .await\n");
+    select_code.push_str("    }\n");
+    select_code
+}
+
+fn generate_select_all_fk_queries(table_name: &str, rows: &[TableColumn]) -> String {
+    let mut select_code = String::new();
+
+    for row in rows
+        .iter()
+        .filter(|r| r.foreign_key_table.is_some() && r.table_name == table_name)
+    {
+        if let (Some(row_foreign_table), Some(row_foreign_id)) =
+            (&row.foreign_key_table, &row.foreign_key_id)
+        {
+            let matching_row = rows
+                .iter()
+                .find(|r| &r.table_name == row_foreign_table && &r.column_name == row_foreign_id);
+
+            if let Some(foreign_row) = matching_row {
+                let fk_query = generate_select_by_fk_query_code(
+                    &table_name,
+                    &row.column_name,
+                    &foreign_row.table_name,
+                    &foreign_row.column_name,
+                    &foreign_row.udt_name,
+                );
+                select_code.push_str(&fk_query);
+            }
+        }
+    }
+
+    select_code
+}
+
+fn generate_select_by_fk_query_code(
+    table_name: &str,
+    column_name: &str,
+    foreign_row_table_name: &str,
+    foreign_row_column_name: &str,
+    foreign_udt_type: &str,
+) -> String {
+    let struct_name = to_pascal_case(table_name);
+    let mut select_code = String::new();
+    let data_type = convert_data_type(foreign_udt_type);
+
+    select_code.push_str(&format!(
+        "    pub async fn all_by_{}_{}<'e, E: PgExecutor<'e>>(executor: E, {}_{}: {}) -> Result<Vec<{}>> {{\n",
+        to_snake_case(foreign_row_table_name),
+        foreign_row_column_name,
+        to_snake_case(foreign_row_table_name),
+        foreign_row_column_name,
+        data_type,
+        struct_name
+    ));
+
+    select_code.push_str(&format!(
+        "        query_as::<_, Vec<{}>>(\"SELECT * FROM {} WHERE {} = $1\")\n",
+        struct_name, table_name, column_name
+    ));
+    select_code.push_str("            .fetch_all(executor)\n");
+    select_code.push_str(&format!("            .bind({})\n", column_name));
+
+    select_code.push_str("            .await\n");
+    select_code.push_str("    }\n");
+    select_code
+}
+
 fn generate_insert_query_code(table_name: &str, rows: &[TableColumn]) -> String {
     let struct_name = to_pascal_case(table_name);
     let mut insert_code = String::new();
     insert_code.push_str(&format!(
-        "    pub async fn insert<'e, E: PgExecutor<'e>>(&self, {}: {}, executor: E) -> Result<{}, Error> {{\n",
+        "    pub async fn insert<'e, E: PgExecutor<'e>>(&self, {}: {}, executor: E) -> Result<{}> {{\n",
         to_snake_case(table_name),
         struct_name,
         struct_name
@@ -80,7 +266,7 @@ fn generate_update_query_code(table_name: &str, rows: &[TableColumn]) -> String 
     let struct_name = to_pascal_case(table_name);
     let mut update_code = String::new();
     update_code.push_str(&format!(
-        "    pub async fn update<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<(), Error> {{\n"
+        "    pub async fn update<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<()> {{\n"
     ));
     update_code.push_str(&format!(
         "        query_as::<_, {}>(\"UPDATE {} SET {} WHERE {}\")\n",
@@ -101,7 +287,7 @@ fn generate_update_query_code(table_name: &str, rows: &[TableColumn]) -> String 
 fn generate_delete_query_code(table_name: &str, rows: &[TableColumn]) -> String {
     let mut delete_code = String::new();
     delete_code.push_str(&format!(
-        "    pub async fn delete<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<(), Error> {{\n"
+        "    pub async fn delete<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<()> {{\n"
     ));
     delete_code.push_str(&format!(
         "        query(\"DELETE FROM {} WHERE {}\")\n",

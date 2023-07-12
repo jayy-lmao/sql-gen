@@ -9,6 +9,7 @@ mod utils;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenv::dotenv().ok();
     let matches = App::new("SQL Gen")
         .subcommand(
             SubCommand::with_name("generate")
@@ -17,8 +18,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Arg::with_name("output")
                         .short('o')
                         .long("output")
-                        .value_name("FOLDER")
-                        .help("Sets the output folder")
+                        .value_name("SQLGEN_MODEL_OUTPUT_FOLDER")
+                        .help("Sets the output folder for generated structs")
                         .takes_value(true)
                         .required(true),
                 )
@@ -26,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Arg::with_name("database")
                         .short('d')
                         .long("database")
-                        .value_name("URL")
+                        .value_name("DATABASE_URL")
                         .help("Sets the database connection URL")
                         .takes_value(true)
                         .required(true),
@@ -35,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Arg::with_name("context")
                         .short('c')
                         .long("context")
-                        .value_name("Context name")
+                        .value_name("SQLGEN_CONTEXT_NAME")
                         .help("The name of the context for calling functions. Defaults to DB name")
                         .takes_value(true),
                 )
@@ -52,14 +53,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .short('t')
                         .long("table")
                         .takes_value(true)
+                        .value_name("SQLGEN_TABLE")
                         .multiple(true)
+                        .use_delimiter(true)
                         .help("Specify the table name(s)"),
                 )
                 .arg(
                     Arg::new("force")
                         .short('f')
                         .long("force")
-                        .value_name("Force overwrite")
+                        .value_name("SQLGEN_OVERWRITE")
                         .takes_value(false)
                         .required(false)
                         .help("Overwrites existing files sharing names in that folder"),
@@ -72,7 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Arg::with_name("include")
                         .short('i')
                         .long("include")
-                        .value_name("FOLDER")
+                        .value_name("SQLGEN_MODEL_FOLDER")
                         .help("Sets the folder containing existing struct files")
                         .takes_value(true)
                         .required(true),
@@ -81,6 +84,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Arg::with_name("table")
                         .short('t')
                         .long("table")
+                        .value_name("SQLGEN_TABLE")
                         .takes_value(true)
                         .multiple(true)
                         .help("Specify the table name(s)"),
@@ -97,7 +101,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Arg::with_name("output")
                         .short('o')
                         .long("output")
-                        .value_name("FOLDER")
+                        .value_name("SQLGEN_MIGRATION_OUTPUT")
                         .help("Sets the output folder for migrations")
                         .takes_value(true)
                         .required(true),
@@ -106,7 +110,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Arg::with_name("database")
                         .short('d')
                         .long("database")
-                        .value_name("URL")
+                        .value_name("DATABASE_URL")
                         .help("Sets the database connection URL")
                         .takes_value(true)
                         .required(true),
@@ -119,18 +123,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let context = matches.value_of("context");
         let database_url = matches.value_of("database").unwrap();
         let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
-        let schemas: Option<Vec<&str>> =
-            matches.values_of("schema").map(|schemas| schemas.collect());
+        // let schemas: Option<Vec<&str>> =
+        //     matches.values_of("schema").map(|schemas| schemas.collect());
         let force = matches.is_present("force");
-        generate::generate(output_folder, database_url, context, force, tables, schemas).await?;
+        generate::generate(output_folder, database_url, context, force, tables, None).await?;
     } else if let Some(matches) = matches.subcommand_matches("migrate") {
         let include_folder = matches.value_of("include").unwrap();
         let output_folder = matches.value_of("output").unwrap();
         let database_url = matches.value_of("database").unwrap();
         let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
-        let schemas: Option<Vec<&str>> =
-            matches.values_of("schema").map(|schemas| schemas.collect());
-        migrate::migrate(include_folder, output_folder, database_url, tables, schemas).await?;
+        // let schemas: Option<Vec<&str>> =
+        //     matches.values_of("schema").map(|schemas| schemas.collect());
+        migrate::migrate(include_folder, output_folder, database_url, tables, None).await?;
     }
     Ok(())
 }
