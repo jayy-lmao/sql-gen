@@ -242,7 +242,7 @@ fn generate_insert_query_code(table_name: &str, rows: &[TableColumn]) -> String 
     let struct_name = to_pascal_case(table_name);
     let mut insert_code = String::new();
     insert_code.push_str(&format!(
-        "    pub async fn insert<'e, E: PgExecutor<'e>>(&self, {}: {}, executor: E) -> Result<{}> {{\n",
+        "    pub async fn insert<'e, E: PgExecutor<'e>>(&self, executor: E, {}: {}) -> Result<{}> {{\n",
         to_snake_case(table_name),
         struct_name,
         struct_name
@@ -268,7 +268,7 @@ fn generate_update_query_code(table_name: &str, rows: &[TableColumn]) -> String 
     let struct_name = to_pascal_case(table_name);
     let mut update_code = String::new();
     update_code.push_str(&format!(
-        "    pub async fn update<'e, E: PgExecutor<'e>>(&self, {}: {}, executor: E) -> Result<{}> {{\n",
+        "    pub async fn update<'e, E: PgExecutor<'e>>(&self, executor: E, {}: {}) -> Result<{}> {{\n",
         to_snake_case(table_name),
         struct_name,
         struct_name,
