@@ -183,11 +183,11 @@ impl PostgresContext {
 
 }
 ```
-
+The name of the context will default to the name of your database, or can be set with the '--context' flag.
 These queries may need modifying or changing, but they can serve as a good start. You should be able to run commands like:
 
 ```rust
-let customers = PostgresContext.customer.all(&pool).await?;
+let customers = PostgresContext.customer().all(&pool).await?;
 ```
 
 The suggested way to add customer queries etc would be to add them somewhere like `db/customer_custom_queries.rs` so that they are not overwritten by codgen. If you `impl CustomerSet` and add functions it should extend it.
