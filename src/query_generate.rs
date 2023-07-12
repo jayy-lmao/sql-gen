@@ -230,7 +230,11 @@ fn generate_select_by_fk_query_code(
         "        query_as::<_, {}>(\"SELECT * FROM {} WHERE {} = $1\")\n",
         struct_name, table_name, column_name
     ));
-    select_code.push_str(&format!("            .bind({})\n", column_name));
+    select_code.push_str(&format!(
+        "            .bind({}_{})\n",
+        to_snake_case(foreign_row_table_name),
+        foreign_row_column_name,
+    ));
     select_code.push_str("            .fetch_all(executor)\n");
 
     select_code.push_str("            .await\n");
