@@ -298,6 +298,7 @@ fn generate_delete_query_code(table_name: &str, rows: &[TableColumn]) -> String 
         generate_delete_conditions(table_name, rows)
     ));
     delete_code.push_str(&format!("            .execute(executor)\n"));
+    delete_code.push_str(&format!("            .await\n"));
     delete_code.push_str(&format!("            .map(|_| ())\n"));
     delete_code.push_str("    }\n");
     delete_code
