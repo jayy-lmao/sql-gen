@@ -239,6 +239,7 @@ sqlgen --help
 
 SQLGen is under active development, and future enhancements are planned. Here are some items on the roadmap:
 
+- Singularise/Pluralise correctly with inflection crate
 - A way to customise generated derives
 - Clearer input types that allow for leaving out default fields
 - Tests
