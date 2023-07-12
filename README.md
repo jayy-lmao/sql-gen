@@ -2,7 +2,7 @@
 
 SQLGen is a command-line tool written in Rust that helps you generate Rust structs, queries, and SQL migrations based on an existing PostgreSQL database schema. It utilizes the `sqlx` and `clap` libraries to provide a user-friendly and efficient experience for working with your PostgreSQL database.
 
-This project draws inspiration from `rsdbgen` (GitHub: [brianhv/rsdbgen](https://github.com/brianhb/rsdbgen)), and we appreciate their contribution to the Rust database tooling ecosystem. Originally this was going to be extending `rsdbgen` but at a certain point of changes it seemed to have diverged.
+This project draws inspiration from `rsdbgen` (GitHub: [brianhv/rsdbgen](https://github.com/brianhb/rsdbgen)) and we appreciate their contribution to the Rust database tooling ecosystem. Originally this was going to be extending `rsdbgen` but at a certain point of changes it seemed to have diverged.
 
 ## Features
 
@@ -234,26 +234,6 @@ For a complete list of available commands and options, you can use the `--help` 
 sqlgen --help
 ```
 
-### Environment Variables
-
-SQLGen also supports using environment variables instead of command-line flags. To use environment variables, follow these steps:
-
-1. Create a `.env` file in your project directory.
-2. Add the desired environment variables in the format `VARIABLE_NAME=VALUE`. For example:
-
-   ```plaintext
-   DATABASE_URL=postgresql://postgres:password@localhost/mydatabase
-   ```
-
-3. When running SQLGen, omit the command-line flags related to the environment variables. SQLGen will automatically read the values from the `.env` file.
-
-   **Example:**
-
-   ```shell
-   sqlgen generate --output db
-   ```
-
-   In this example, SQLGen will read the `DATABASE_URL` value from the `.env` file.
 
 ## Roadmap
 
