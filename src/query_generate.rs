@@ -6,6 +6,8 @@ use crate::{
 pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
     let struct_name = to_pascal_case(table_name);
     let mut query_code = String::new();
+
+    query_code.push_str("//Generated with SQLGEN\n//https://github.com/jayy-lmao/sql-codegen\n\n");
     query_code.push_str(&format!(
         "use sqlx::{{PgExecutor, Postgres, query_as, query, Result}};\n"
     ));

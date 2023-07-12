@@ -259,11 +259,13 @@ SQLGen also supports using environment variables instead of command-line flags. 
 
 SQLGen is under active development, and future enhancements are planned. Here are some items on the roadmap:
 
+- Clearer input types that allow for leaving out default fields
+- Tests
+- Linting on output (rustfmt has proven tricky with derive macros)
+- Support for comments and annotations
 - Support for more data types in struct and query generation.
 - Integration with other database systems (MySQL, SQLite, etc.).
 - Advanced migration scenarios (renaming columns, table-level changes, etc.).
-- Customization options for code generation and formatting.
-- Improved error handling and validation.
 - Dry run mode for generating migration code without writing to files.
 
 Your contributions and feedback are highly appreciated! If you encounter any issues or have suggestions

@@ -22,7 +22,10 @@ pub(crate) fn to_snake_case(input: &str) -> String {
 
 pub fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String {
     let struct_name = to_pascal_case(table_name);
-    let mut struct_code = "#[derive(sqlx::FromRow)]\n".to_string();
+    let mut struct_code = String::new();
+
+    struct_code.push_str("//Generated with SQLGEN\n//https://github.com/jayy-lmao/sql-codegen\n\n");
+    struct_code.push_str("#[derive(sqlx::FromRow)]\n");
     struct_code.push_str(&format!("pub struct {} {{\n", struct_name));
 
     for row in rows {
