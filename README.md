@@ -19,7 +19,7 @@ To use SQLGen, make sure you have Rust and Cargo installed on your system. You c
 Once you have Rust and Cargo installed, you can build SQLGen by running the following command:
 
 ```shell
-cargo install --git https://github.com/your-username/sqlgen --branch main
+cargo install --git https://github.com/jayy-lmao/sql-codegen --branch main
 ```
 
 Replace `your-username` with your GitHub username. This will install SQLGen globally on your system, making it available as a command-line tool.
@@ -27,7 +27,7 @@ Replace `your-username` with your GitHub username. This will install SQLGen glob
 ## Usage
 
 ```
-sql-gen [SUBCOMMAND] [OPTIONS]
+sqlgen [SUBCOMMAND] [OPTIONS]
 ```
 
 ### Subcommands:
