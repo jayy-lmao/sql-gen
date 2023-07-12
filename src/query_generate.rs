@@ -110,8 +110,8 @@ fn generate_select_by_pk_query_code(table_name: &str, rows: &[TableColumn]) -> S
         "        query_as::<_, {}>(\"SELECT * FROM {} WHERE {}\")\n",
         struct_name, table_name, condition
     ));
-    select_code.push_str("            .fetch_one(executor)\n");
     select_code.push_str(&bind);
+    select_code.push_str("            .fetch_one(executor)\n");
 
     select_code.push_str("            .await\n");
     select_code.push_str("    }\n");
@@ -164,7 +164,7 @@ fn generate_select_by_pk_query_code_optional(table_name: &str, rows: &[TableColu
         .join("");
 
     select_code.push_str(&format!(
-        "        query_as::<_, Option<{}>>(\"SELECT * FROM {} WHERE {}\")\n",
+        "        query_as::<_, {}>(\"SELECT * FROM {} WHERE {}\")\n",
         struct_name, table_name, condition
     ));
     select_code.push_str("            .fetch_optional(executor)\n");
@@ -230,8 +230,8 @@ fn generate_select_by_fk_query_code(
         "        query_as::<_, Vec<{}>>(\"SELECT * FROM {} WHERE {} = $1\")\n",
         struct_name, table_name, column_name
     ));
-    select_code.push_str("            .fetch_all(executor)\n");
     select_code.push_str(&format!("            .bind({})\n", column_name));
+    select_code.push_str("            .fetch_all(executor)\n");
 
     select_code.push_str("            .await\n");
     select_code.push_str("    }\n");
