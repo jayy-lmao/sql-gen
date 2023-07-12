@@ -50,7 +50,7 @@ fn generate_select_query_code(table_name: &str, _rows: &[TableColumn]) -> String
     let struct_name = to_pascal_case(table_name);
     let mut select_code = String::new();
     select_code.push_str(&format!(
-        "    pub async fn all<'e, E: PgExecutor<'e>>(executor: E) -> Result<Vec<{}>> {{\n",
+        "    pub async fn all<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<Vec<{}>> {{\n",
         struct_name
     ));
     select_code.push_str(&format!(
@@ -87,7 +87,7 @@ fn generate_select_by_pk_query_code(table_name: &str, rows: &[TableColumn]) -> S
         .join(", ");
 
     select_code.push_str(&format!(
-        "    pub async fn by_{}<'e, E: PgExecutor<'e>>(executor: E, {}) -> Result<{}> {{\n",
+        "    pub async fn by_{}<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<{}> {{\n",
         pkey_name, fn_args, struct_name
     ));
 
@@ -142,7 +142,7 @@ fn generate_select_by_pk_query_code_optional(table_name: &str, rows: &[TableColu
         .join(", ");
 
     select_code.push_str(&format!(
-        "    pub async fn by_{}_optional<'e, E: PgExecutor<'e>>(executor: E, {}) -> Result<Option<{}>> {{\n",
+        "    pub async fn by_{}_optional<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<Option<{}>> {{\n",
         pkey_name,
         fn_args,
         struct_name
