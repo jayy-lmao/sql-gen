@@ -95,7 +95,7 @@ fn generate_select_by_pk_query_code(table_name: &str, rows: &[TableColumn]) -> S
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
         .enumerate()
-        .map(|(idx, r)| format!("{} = ${}", r.column_name, idx + 1))
+        .map(|(idx, r)| format!("\"{}\" = ${}", r.column_name, idx + 1))
         .collect::<Vec<String>>()
         .join(" AND ");
 
@@ -107,7 +107,7 @@ fn generate_select_by_pk_query_code(table_name: &str, rows: &[TableColumn]) -> S
         .join("");
 
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(\"SELECT * FROM {} WHERE {}\")\n",
+        "        query_as::<_, {}>(r#\"SELECT * FROM \"{}\" WHERE {}\"#)\n",
         struct_name, table_name, condition
     ));
     select_code.push_str(&bind);
@@ -152,7 +152,7 @@ fn generate_select_by_pk_query_code_optional(table_name: &str, rows: &[TableColu
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
         .enumerate()
-        .map(|(idx, r)| format!("{} = ${}", r.column_name, idx + 1))
+        .map(|(idx, r)| format!("\"{}\" = ${}", r.column_name, idx + 1))
         .collect::<Vec<String>>()
         .join(" AND ");
 
@@ -164,7 +164,7 @@ fn generate_select_by_pk_query_code_optional(table_name: &str, rows: &[TableColu
         .join("");
 
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(\"SELECT * FROM {} WHERE {}\")\n",
+        "        query_as::<_, {}>(r#\"SELECT * FROM \"{}\" WHERE {}\"#)\n",
         struct_name, table_name, condition
     ));
     select_code.push_str(&bind);
@@ -227,7 +227,7 @@ fn generate_select_by_fk_query_code(
     ));
 
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(\"SELECT * FROM {} WHERE {} = $1\")\n",
+        "        query_as::<_, {}>(r#\"SELECT * FROM \"{}\" WHERE {} = $1\"#)\n",
         struct_name, table_name, column_name
     ));
     select_code.push_str(&format!(
@@ -252,7 +252,7 @@ fn generate_insert_query_code(table_name: &str, rows: &[TableColumn]) -> String 
         struct_name
     ));
     insert_code.push_str(&format!(
-        "        query_as::<_, {}>(\"INSERT INTO {} ({}) VALUES ({}) RETURNING *;\")\n",
+        "        query_as::<_, {}>(r#\"INSERT INTO \"{}\" ({}) VALUES ({}) RETURNING *;\"#)\n",
         struct_name,
         table_name,
         generate_column_list(table_name, rows),
@@ -278,7 +278,7 @@ fn generate_update_query_code(table_name: &str, rows: &[TableColumn]) -> String 
         struct_name,
     ));
     update_code.push_str(&format!(
-        "        query_as::<_, {}>(\"UPDATE {} SET {} WHERE {} RETURNING *;\")\n",
+        "        query_as::<_, {}>(r#\"UPDATE \"{}\" SET {} WHERE {} RETURNING *;\"#)\n",
         struct_name,
         table_name,
         generate_update_values(table_name, rows),
@@ -300,7 +300,7 @@ fn generate_delete_query_code(table_name: &str, rows: &[TableColumn]) -> String 
         "    pub async fn delete<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<()> {{\n"
     ));
     delete_code.push_str(&format!(
-        "        query(\"DELETE FROM {} WHERE {}\")\n",
+        "        query(r#\"DELETE FROM \"{}\" WHERE {}\"#)\n",
         table_name,
         generate_delete_conditions(table_name, rows)
     ));
@@ -314,7 +314,7 @@ fn generate_delete_query_code(table_name: &str, rows: &[TableColumn]) -> String 
 fn generate_column_list(table_name: &str, rows: &[TableColumn]) -> String {
     rows.iter()
         .filter(|row| row.table_name == table_name)
-        .map(|row| format!("{}", row.column_name))
+        .map(|row| format!("\"{}\"", row.column_name))
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -349,7 +349,7 @@ fn generate_update_values(table_name: &str, rows: &[TableColumn]) -> String {
         .filter(|r| r.table_name == table_name)
         .enumerate()
         .filter(|(_idx, row)| !row.is_primary_key)
-        .map(|(idx, row)| format!("{} = ${}", row.column_name, idx + 1))
+        .map(|(idx, row)| format!("\"{}\" = ${}", row.column_name, idx + 1))
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -359,7 +359,7 @@ fn generate_update_conditions(table_name: &str, rows: &[TableColumn]) -> String 
         .filter(|r| r.table_name == table_name)
         .enumerate()
         .filter(|(_idx, row)| row.is_primary_key)
-        .map(|(idx, row)| format!("{} = {}", row.column_name, idx + 1))
+        .map(|(idx, row)| format!("\"{}\" = {}", row.column_name, idx + 1))
         .collect::<Vec<String>>()
         .join(" AND ")
 }
@@ -368,7 +368,7 @@ fn generate_select_by_conditions(table_name: &str, rows: &[TableColumn]) -> Stri
     rows.iter()
         .filter(|r| r.table_name == table_name && r.is_primary_key)
         .enumerate()
-        .map(|(idx, row)| format!("{} = {}", row.column_name, idx + 1))
+        .map(|(idx, row)| format!("\"{}\" = {}", row.column_name, idx + 1))
         .collect::<Vec<String>>()
         .join(" AND ")
 }
@@ -377,7 +377,7 @@ fn generate_delete_conditions(table_name: &str, rows: &[TableColumn]) -> String 
     rows.iter()
         .filter(|r| r.table_name == table_name && r.is_primary_key)
         .enumerate()
-        .map(|(idx, row)| format!("{} = {}", row.column_name, idx + 1))
+        .map(|(idx, row)| format!("\"{}\" = {}", row.column_name, idx + 1))
         .collect::<Vec<String>>()
         .join(" AND ")
 }
