@@ -9,7 +9,7 @@ pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
 
     query_code.push_str("//Generated with SQLGEN\n//https://github.com/jayy-lmao/sql-codegen\n\n");
     query_code.push_str(&format!(
-        "use sqlx::{{PgExecutor, Postgres, query_as, query, Result}};\n"
+        "use sqlx::{{query, query_as, PgExecutor, Result}};\n"
     ));
     query_code.push_str(&format!("use super::{};\n\n", struct_name));
     query_code.push_str(&format!("pub struct {}Set;\n\n", struct_name));
@@ -227,7 +227,7 @@ fn generate_select_by_fk_query_code(
     ));
 
     select_code.push_str(&format!(
-        "        query_as::<_, Vec<{}>>(\"SELECT * FROM {} WHERE {} = $1\")\n",
+        "        query_as::<_, {}>(\"SELECT * FROM {} WHERE {} = $1\")\n",
         struct_name, table_name, column_name
     ));
     select_code.push_str(&format!("            .bind({})\n", column_name));
