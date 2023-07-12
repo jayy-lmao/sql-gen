@@ -84,7 +84,8 @@ pub async fn generate(
 fn generate_db_context(database_name: &str, tables: &[String], _rows: &[TableColumn]) -> String {
     let mut db_context_code = String::new();
 
-    db_context_code.push_str("//Generated with SQLGEN\n//https://github.com/jayy-lmao/sql-codegen\n\n");
+    db_context_code
+        .push_str("//Generated with SQLGEN\n//https://github.com/jayy-lmao/sql-codegen\n\n");
     for table in tables {
         db_context_code.push_str(&format!("pub mod {};\n", to_snake_case(table)));
         db_context_code.push_str(&format!(
