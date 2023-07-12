@@ -117,15 +117,6 @@ impl CustomerSet {
             .await
     }
 
-    pub async fn insert<'e, E: PgExecutor<'e>>(&self, categories: Customer, executor: E) -> Result<Customer, Error> {
-        query_as::<_, Customer>("INSERT INTO customer (id, created_at, email) VALUES ($1, $2, $3)")
-            .bind(categories.id)
-            .bind(categories.created_at)
-            .bind(categories.email)
-            .execute(executor)
-            .await
-    }
-
     pub async fn by_id<'e, E: PgExecutor<'e>>(executor: E, id: i64) -> Result<Customer> {
         query_as::<_, Customer>("SELECT * FROM customer WHERE id = $1")
             .fetch_one(executor)
@@ -147,6 +138,15 @@ impl CustomerSet {
     //         .bind(category)
     //         .await
     // }
+
+    pub async fn insert<'e, E: PgExecutor<'e>>(&self, categories: Customer, executor: E) -> Result<Customer, Error> {
+        query_as::<_, Customer>("INSERT INTO customer (id, created_at, email) VALUES ($1, $2, $3)")
+            .bind(categories.id)
+            .bind(categories.created_at)
+            .bind(categories.email)
+            .execute(executor)
+            .await
+    }
 
     pub async fn update<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<(), Error> {
         query_as::<_, Customer>("UPDATE customer SET created_at = $2, email = $3 WHERE id = 1")
