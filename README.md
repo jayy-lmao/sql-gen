@@ -112,65 +112,66 @@ struct Customer {
 }
 
 // in db/customer_db_set.rs
-use sqlx::{PgExecutor, Postgres, query_as, query, Result, Error};
+use sqlx::{query, query_as, PgExecutor, Result};
 use super::Customer;
 
 pub struct CustomerSet;
 
 impl CustomerSet {
-    pub async fn all<'e, E: PgExecutor<'e>>(executor: E) -> Result<Vec<Customer>, Error> {
-        query_as::<_, Categories>("SELECT * FROM customer")
+    pub async fn all<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<Vec<Customer>> {
+        query_as::<_, Customer>(r#"SELECT * FROM "customer""#)
             .fetch_all(executor)
             .await
     }
 
-    pub async fn by_id<'e, E: PgExecutor<'e>>(executor: E, id: i64) -> Result<Customer> {
-        query_as::<_, Customer>("SELECT * FROM customer WHERE id = $1")
+    pub async fn by_id<'e, E: PgExecutor<'e>>(&self, executor: E, id: i64) -> Result<Customer> {
+        query_as::<_, Customer>(r#"SELECT * FROM "customer" WHERE "id" = $1"#)
+            .bind(id)
             .fetch_one(executor)
-            .bind(id)
             .await
     }
 
-   pub async fn by_id_optional<'e, E: PgExecutor<'e>>(executor: E, id: i64) -> Result<Option<Customer>> {
-        query_as::<_, Option<Customer>>("SELECT * FROM customer WHERE id = $1")
+    pub async fn by_id_optional<'e, E: PgExecutor<'e>>(&self, executor: E, id: i64) -> Result<Option<Customer>> {
+        query_as::<_, Customer>(r#"SELECT * FROM "customer" WHERE "id" = $1"#)
+            .bind(id)
             .fetch_optional(executor)
-            .bind(id)
             .await
     }
 
-    // Not in this example, but any FKs will also generate "all_by_<fk_table>_<fk_id>" queries
-    // pub async fn all_by_purchases_id<'e, E: PgExecutor<'e>>(executor: E, purchase_id: uuid::Uuid) -> Result<Vec<Customer>> {
-    //     query_as::<_, Vec<Customer>>("SELECT * FROM customer WHERE purchase_id = $1")
+    // Doesn't exist in this example, but foreign keys will generate a function like this, assuming customer has a fk field called category
+    // pub async fn all_by_categories_id<'e, E: PgExecutor<'e>>(executor: E, categories_id: i64) -> Result<Vec<Customer>> {
+    //     query_as::<_, Customer>(r#"SELECT * FROM "customer" WHERE category = $1"#)
+    //         .bind(categories_id)
     //         .fetch_all(executor)
-    //         .bind(category)
     //         .await
     // }
 
-    pub async fn insert<'e, E: PgExecutor<'e>>(&self, categories: Customer, executor: E) -> Result<Customer, Error> {
-        query_as::<_, Customer>("INSERT INTO customer (id, created_at, email) VALUES ($1, $2, $3)")
-            .bind(categories.id)
-            .bind(categories.created_at)
-            .bind(categories.email)
-            .execute(executor)
+    pub async fn insert<'e, E: PgExecutor<'e>>(&self, executor: E, products: Customer) -> Result<Customer> {
+        query_as::<_, Customer>(r#"INSERT INTO "customer" ("id", "created_at", "email", "category") VALUES ($1, $2, $3, $4) RETURNING *;"#)
+            .bind(products.id)
+            .bind(products.created_at)
+            .bind(products.email)
+            .fetch_one(executor)
             .await
     }
 
-    pub async fn update<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<(), Error> {
-        query_as::<_, Customer>("UPDATE customer SET created_at = $2, email = $3 WHERE id = 1")
-            .bind(categories.id)
-            .bind(categories.created_at)
-            .bind(categories.email)
-            .execute(executor)
+    pub async fn update<'e, E: PgExecutor<'e>>(&self, executor: E, products: Customer) -> Result<Customer> {
+        query_as::<_, Customer>(r#"UPDATE "customer" SET "created_at" = $2, "email" = $3 WHERE "id" = 1 RETURNING *;"#)
+            .bind(products.id)
+            .bind(products.created_at)
+            .bind(products.email)
+            .fetch_one(executor)
+            .await
     }
 
-    pub async fn delete<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<(), Error> {
-        query("DELETE FROM customer WHERE id = 1")
+    pub async fn delete<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<()> {
+        query(r#"DELETE FROM "customer" WHERE "id" = 1"#)
             .execute(executor)
+            .await
             .map(|_| ())
     }
 
 }
-
 
 
 // in db/mod.rs
