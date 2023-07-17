@@ -142,7 +142,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let mut embedded_db_uri: Option<String> = None;
 
-    println!("Migrations Input folder {:#?}", matches.value_of("migrations"));
+    println!("Migrations Input folder {:#?}", matches.value_of("fooey-migrations"));
     #[cfg(feature = "embedded")]
     if let Some(input_migrations_folder) = matches.value_of("migrations") {
     println!("Creating DB and applying migrations from {}", input_migrations_folder);
