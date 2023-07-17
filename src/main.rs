@@ -248,7 +248,7 @@ async fn migrate_to_temp_db(folder: &str) -> (String, pg_embed::postgres::PgEmbe
 
     // create a new database
     // to enable migrations view the [Usage] section for details
-    println!("Creating database");
+    println!("Creating Database");
     pg.create_database("postgres").await;
     let pg_db_uri: String = pg.full_db_uri("postgres");
     println!("Checking Database Exists");
@@ -256,7 +256,8 @@ async fn migrate_to_temp_db(folder: &str) -> (String, pg_embed::postgres::PgEmbe
 
     // run migration sql scripts
     // to enable migrations view [Usage] for details
-    pg.migrate("database_name").await;
+    println!("Migrating Database");
+    pg.migrate("postgres").await;
 
     // stop postgresql database
     (pg_db_uri, pg)

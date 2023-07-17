@@ -9,7 +9,11 @@ SQL-Gen is a command-line tool written in Rust that helps you generate Rust stru
 
 This project draws inspiration from `rsdbgen` (GitHub: [brianhv/rsdbgen](https://github.com/brianhv/rsdbgen)) and we appreciate their contribution to the Rust database tooling ecosystem. Originally this was going to be extending `rsdbgen` but at a certain point of changes it seemed to have diverged.
 
-## Features
+## Feature Flags
+
+- `embedded` allows you to pass in a folder of migrations and generate the models from applied migrations. In this case you won't need a `--database-url`, as an embedded postgres will be used to simulate applying all migrations and generating types.
+
+## Use Cases
 
 - Generate Rust structs and queries for PostgreSQL database tables.
 - Generate SQL migrations based on changes in the structs.
@@ -25,6 +29,11 @@ Once you have Rust and Cargo installed, you can build SQL-Gen by running the fol
 
 ```shell
 cargo install sql-gen
+```
+
+Or for embedded postgres (you can use a migrations folder instead of a `--database-url`)
+```shell
+cargo install sql-gen --features embedded
 ```
 
 Or for the latest github
