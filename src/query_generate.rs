@@ -38,6 +38,14 @@ pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
     ));
     query_code.push('\n');
 
+    // Generate query code for SELECT MANY BY PK statements
+    query_code.push_str(&generate_select_many_by_pks_query_code(
+        table_name,
+        schema_name,
+        rows,
+    ));
+    query_code.push('\n');
+
     // Generate query code for SELECT BY PK Optional statements
     query_code.push_str(&generate_select_by_pk_query_code_optional(
         table_name,
