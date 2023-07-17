@@ -144,7 +144,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     #[cfg(feature = "embedded")]
     if let Some(input_migrations_folder) = matches.value_of("input-migrations") {
+        println!("Creating DB and applying migrations from {}", input_migrations_folder);
         embedded_db_uri = Some(migrate_to_temp_db(input_migrations_folder).await);
+        println!("Done!")
     };
 
     if let Some(matches) = matches.subcommand_matches("generate") {
