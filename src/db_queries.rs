@@ -61,6 +61,7 @@ LEFT JOIN (
     c.column_name = f.column_name
 WHERE
     c.table_schema = ANY($1)
+    AND c.table_name != '_sqlx_migrations'
     AND
     ($2 IS NULL OR c.table_name = ANY($2))
 ORDER BY
