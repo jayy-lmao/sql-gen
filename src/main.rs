@@ -139,30 +139,46 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .subcommand(generate_subcommand)
         .subcommand(migrate_subcommand);
     let matches = matcher.get_matches();
-    
+
     let mut embedded_db_uri: Option<String> = None;
 
-    println!("Migrations Input folder {:#?}", matches.value_of("fooey-migrations"));
-    #[cfg(feature = "embedded")]
-    if let Some(input_migrations_folder) = matches.value_of("migrations") {
-    println!("Creating DB and applying migrations from {}", input_migrations_folder);
-        embedded_db_uri = Some(migrate_to_temp_db(input_migrations_folder).await);
-        println!("Done!")
-    };
-
     if let Some(matches) = matches.subcommand_matches("generate") {
+        #[cfg(feature = "embedded")]
+        if let Some(input_migrations_folder) = matches.value_of("migrations") {
+            println!(
+                "Creating DB and applying migrations from {}",
+                input_migrations_folder
+            );
+            embedded_db_uri = Some(migrate_to_temp_db(input_migrations_folder).await);
+            println!("Done!")
+        };
         let output_folder = matches.value_of("output").unwrap();
         let context = matches.value_of("context");
-        let database_url = matches.value_of("database").or(embedded_db_uri.as_deref()).expect("Must provide either a input migration folder or a database uri");
+        let database_url = matches
+            .value_of("database")
+            .or(embedded_db_uri.as_deref())
+            .expect("Must provide either a input migration folder or a database uri");
         // let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
         let schemas: Option<Vec<&str>> =
             matches.values_of("schema").map(|schemas| schemas.collect());
         let force = matches.is_present("force");
         generate::generate(output_folder, database_url, context, force, None, schemas).await?;
     } else if let Some(matches) = matches.subcommand_matches("migrate") {
+        #[cfg(feature = "embedded")]
+        if let Some(input_migrations_folder) = matches.value_of("migrations") {
+            println!(
+                "Creating DB and applying migrations from {}",
+                input_migrations_folder
+            );
+            embedded_db_uri = Some(migrate_to_temp_db(input_migrations_folder).await);
+            println!("Done!")
+        };
         let include_folder = matches.value_of("include").unwrap();
         let output_folder = matches.value_of("output").unwrap();
-        let database_url = matches.value_of("database").or(embedded_db_uri.as_deref()).expect("Must provide either a input migration folder or a database uri");
+        let database_url = matches
+            .value_of("database")
+            .or(embedded_db_uri.as_deref())
+            .expect("Must provide either a input migration folder or a database uri");
         // let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
         let schemas: Option<Vec<&str>> =
             matches.values_of("schema").map(|schemas| schemas.collect());
