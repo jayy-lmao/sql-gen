@@ -144,12 +144,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if let Some(matches) = matches.subcommand_matches("generate") {
         #[cfg(feature = "embedded")]
+        let mut pg_embed: Option<pg_embed::postgres::PgEmbed> = None;
+
+        #[cfg(feature = "embedded")]
         if let Some(input_migrations_folder) = matches.value_of("migrations") {
             println!(
                 "Creating DB and applying migrations from {}",
                 input_migrations_folder
             );
-            embedded_db_uri = Some(migrate_to_temp_db(input_migrations_folder).await);
+            let (uri, pg) = migrate_to_temp_db(input_migrations_folder).await;
+            embedded_db_uri = Some(uri);
+            pg_embed = Some(pg);
             println!("Done!")
         };
         let output_folder = matches.value_of("output").unwrap();
@@ -163,14 +168,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             matches.values_of("schema").map(|schemas| schemas.collect());
         let force = matches.is_present("force");
         generate::generate(output_folder, database_url, context, force, None, schemas).await?;
+
+        #[cfg(feature = "embedded")]
+        if let Some(mut pg) = pg_embed {
+            pg.stop_db().await;
+        }
     } else if let Some(matches) = matches.subcommand_matches("migrate") {
+        #[cfg(feature = "embedded")]
+        let mut pg_embed: Option<pg_embed::postgres::PgEmbed> = None;
         #[cfg(feature = "embedded")]
         if let Some(input_migrations_folder) = matches.value_of("migrations") {
             println!(
                 "Creating DB and applying migrations from {}",
                 input_migrations_folder
             );
-            embedded_db_uri = Some(migrate_to_temp_db(input_migrations_folder).await);
+            let (uri, pg) = migrate_to_temp_db(input_migrations_folder).await;
+            embedded_db_uri = Some(uri);
+            pg_embed = Some(pg);
             println!("Done!")
         };
         let include_folder = matches.value_of("include").unwrap();
@@ -183,18 +197,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let schemas: Option<Vec<&str>> =
             matches.values_of("schema").map(|schemas| schemas.collect());
         migrate::migrate(include_folder, output_folder, database_url, None, None).await?;
+
+        #[cfg(feature = "embedded")]
+        if let Some(mut pg) = pg_embed {
+            pg.stop_db().await;
+        }
     }
     Ok(())
 }
 
 #[cfg(feature = "embedded")]
-async fn migrate_to_temp_db(folder: &str) -> String {
+async fn migrate_to_temp_db(folder: &str) -> (String, pg_embed::postgres::PgEmbed) {
     use std::path::PathBuf;
 
     let pg_settings = pg_embed::postgres::PgSettings {
         // Where to store the postgresql database
         database_dir: PathBuf::from("data/db"),
-        port: 5432,
+        port: 5435,
         user: "postgres".to_string(),
         password: "password".to_string(),
         // authentication method
@@ -220,22 +239,25 @@ async fn migrate_to_temp_db(folder: &str) -> String {
         .unwrap();
 
     // Download, unpack, create password file and database cluster
+    println!("Setting up Postgres");
     pg.setup().await;
 
     // start postgresql database
+    println!("Starting Postgers");
     pg.start_db().await;
 
     // create a new database
     // to enable migrations view the [Usage] section for details
+    println!("Creating database");
     pg.create_database("postgres").await;
     let pg_db_uri: String = pg.full_db_uri("postgres");
-    pg.database_exists("database_name").await;
+    println!("Checking Database Exists");
+    pg.database_exists("postgres").await;
 
     // run migration sql scripts
     // to enable migrations view [Usage] for details
     pg.migrate("database_name").await;
 
     // stop postgresql database
-    pg.stop_db().await;
-    pg_db_uri
+    (pg_db_uri, pg)
 }
