@@ -118,17 +118,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     if is_embedded {
         generate_subcommand = generate_subcommand.arg(
-            Arg::with_name("input-migrations")
+            Arg::with_name("migrations")
                 .short('m')
-                .long("input-migrations")
+                .long("migrations")
                 .value_name("SQLGEN_MIGRATIONS_INPUT")
                 .help("The folder of migrations to apply")
                 .takes_value(true),
         );
         migrate_subcommand = migrate_subcommand.arg(
-            Arg::with_name("input-migrations")
+            Arg::with_name("migrations")
                 .short('m')
-                .long("input-migrations")
+                .long("migrations")
                 .value_name("SQLGEN_MIGRATIONS_INPUT")
                 .help("The folder of migrations to apply")
                 .takes_value(true),
@@ -142,9 +142,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let mut embedded_db_uri: Option<String> = None;
 
+    println!("Migrations Input folder {:#?}", matches.value_of("migrations"));
     #[cfg(feature = "embedded")]
-    if let Some(input_migrations_folder) = matches.value_of("input-migrations") {
-        println!("Creating DB and applying migrations from {}", input_migrations_folder);
+    if let Some(input_migrations_folder) = matches.value_of("migrations") {
+    println!("Creating DB and applying migrations from {}", input_migrations_folder);
         embedded_db_uri = Some(migrate_to_temp_db(input_migrations_folder).await);
         println!("Done!")
     };
