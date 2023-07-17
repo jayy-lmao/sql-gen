@@ -1,5 +1,8 @@
 # SQL-Gen - Rust CLI Tool for PostgreSQL Database Operations Generation extending SQLX
 
+![codegen_example](https://github.com/jayy-lmao/sql-codegen/assets/32926722/5308636d-3b5c-4fad-b250-109fb272d8b2)
+
+
 PR's and Issues welcome! This is still early stages of devopment, though hopefully useful to some! 
 
 SQL-Gen is a command-line tool written in Rust that helps you generate Rust structs, queries, and SQL migrations based on an existing PostgreSQL database schema. It utilizes the `sqlx` and `clap` libraries to provide a user-friendly and efficient experience for working with your PostgreSQL database.
