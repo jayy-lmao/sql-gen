@@ -171,7 +171,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         #[cfg(feature = "embedded")]
         if let Some(mut pg) = pg_embed {
-            pg.stop_db().await;
+            pg.stop_db().await.unwrap();
         }
     } else if let Some(matches) = matches.subcommand_matches("migrate") {
         #[cfg(feature = "embedded")]
@@ -200,7 +200,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         #[cfg(feature = "embedded")]
         if let Some(mut pg) = pg_embed {
-            pg.stop_db().await;
+            pg.stop_db().await.unwrap();
         }
     }
     Ok(())
@@ -212,7 +212,7 @@ async fn migrate_to_temp_db(folder: &str) -> (String, pg_embed::postgres::PgEmbe
 
     let pg_settings = pg_embed::postgres::PgSettings {
         // Where to store the postgresql database
-        database_dir: PathBuf::from("data/db"),
+        database_dir: PathBuf::from("pg_data"),
         port: 5435,
         user: "postgres".to_string(),
         password: "password".to_string(),
@@ -231,7 +231,7 @@ async fn migrate_to_temp_db(folder: &str) -> (String, pg_embed::postgres::PgEmbe
     };
 
     let fetch_settings = pg_embed::pg_fetch::PgFetchSettings {
-        version: pg_embed::pg_fetch::PG_V13,
+        version: pg_embed::pg_fetch::PG_V15,
         ..Default::default()
     };
     let mut pg = pg_embed::postgres::PgEmbed::new(pg_settings, fetch_settings)
