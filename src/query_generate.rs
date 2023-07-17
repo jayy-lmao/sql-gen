@@ -5,6 +5,17 @@ use crate::{
 
 pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
     let struct_name = to_pascal_case(table_name);
+    let schema_prefix = match rows
+        .iter()
+        .find(|&r| r.table_name == table_name)
+        .map(|r| r.table_schema.as_str())
+    {
+        None => "".to_string(),
+        Some("public") => "".to_string(), // Default Schema
+        Some(schema) => format!("\"{}\".", schema),
+    };
+    let schema_name = &schema_prefix;
+
     let mut query_code = String::new();
 
     query_code.push_str("//Generated with SQLGEN\n//https://github.com/jayy-lmao/sql-codegen\n\n");
@@ -16,37 +27,49 @@ pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
     query_code.push_str(&format!("impl {}Set {{\n", struct_name));
 
     // Generate query code for SELECT statements
-    query_code.push_str(&generate_select_query_code(table_name, rows));
+    query_code.push_str(&generate_select_query_code(table_name, schema_name, rows));
     query_code.push('\n');
 
     // Generate query code for SELECT BY PK statements
-    query_code.push_str(&generate_select_by_pk_query_code(table_name, rows));
+    query_code.push_str(&generate_select_by_pk_query_code(
+        table_name,
+        schema_name,
+        rows,
+    ));
     query_code.push('\n');
 
     // Generate query code for SELECT BY PK Optional statements
-    query_code.push_str(&generate_select_by_pk_query_code_optional(table_name, rows));
+    query_code.push_str(&generate_select_by_pk_query_code_optional(
+        table_name,
+        schema_name,
+        rows,
+    ));
     query_code.push('\n');
 
-    query_code.push_str(&generate_select_all_fk_queries(table_name, rows));
+    query_code.push_str(&generate_select_all_fk_queries(
+        table_name,
+        schema_name,
+        rows,
+    ));
     query_code.push('\n');
 
     // Generate query code for INSERT statements
-    query_code.push_str(&generate_insert_query_code(table_name, rows));
+    query_code.push_str(&generate_insert_query_code(table_name, schema_name, rows));
     query_code.push('\n');
 
     // Generate query code for UPDATE statements
-    query_code.push_str(&generate_update_query_code(table_name, rows));
+    query_code.push_str(&generate_update_query_code(table_name, schema_name, rows));
     query_code.push('\n');
 
     // Generate query code for DELETE statements
-    query_code.push_str(&generate_delete_query_code(table_name, rows));
+    query_code.push_str(&generate_delete_query_code(table_name, schema_name, rows));
     query_code.push('\n');
 
     query_code.push_str("}\n");
     query_code
 }
 
-fn generate_select_query_code(table_name: &str, _rows: &[TableColumn]) -> String {
+fn generate_select_query_code(table_name: &str, schema_name: &str, rows: &[TableColumn]) -> String {
     let struct_name = to_pascal_case(table_name);
     let mut select_code = String::new();
     select_code.push_str(&format!(
@@ -54,8 +77,8 @@ fn generate_select_query_code(table_name: &str, _rows: &[TableColumn]) -> String
         struct_name
     ));
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(r#\"SELECT * FROM \"{}\"\"#)\n",
-        struct_name, table_name
+        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\"\"#)\n",
+        struct_name, schema_name, table_name
     ));
     select_code.push_str("            .fetch_all(executor)\n");
     select_code.push_str("            .await\n");
@@ -63,7 +86,11 @@ fn generate_select_query_code(table_name: &str, _rows: &[TableColumn]) -> String
     select_code
 }
 
-fn generate_select_by_pk_query_code(table_name: &str, rows: &[TableColumn]) -> String {
+fn generate_select_by_pk_query_code(
+    table_name: &str,
+    schema_name: &str,
+    rows: &[TableColumn],
+) -> String {
     let struct_name = to_pascal_case(table_name);
     let mut select_code = String::new();
     let pkey_name = rows
@@ -107,8 +134,8 @@ fn generate_select_by_pk_query_code(table_name: &str, rows: &[TableColumn]) -> S
         .join("");
 
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(r#\"SELECT * FROM \"{}\" WHERE {}\"#)\n",
-        struct_name, table_name, condition
+        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\" WHERE {}\"#)\n",
+        struct_name, schema_name, table_name, condition
     ));
     select_code.push_str(&bind);
     select_code.push_str("            .fetch_one(executor)\n");
@@ -118,7 +145,70 @@ fn generate_select_by_pk_query_code(table_name: &str, rows: &[TableColumn]) -> S
     select_code
 }
 
-fn generate_select_by_pk_query_code_optional(table_name: &str, rows: &[TableColumn]) -> String {
+fn generate_select_many_by_pks_query_code(
+    table_name: &str,
+    schema_name: &str,
+    rows: &[TableColumn],
+) -> String {
+    let struct_name = to_pascal_case(table_name);
+    let mut select_code = String::new();
+    let pkey_name = rows
+        .iter()
+        .filter(|r| r.is_primary_key && r.table_name == table_name)
+        .map(|r| r.column_name.as_str())
+        .collect::<Vec<&str>>()
+        .join("_and_");
+
+    let fn_args = rows
+        .iter()
+        .filter(|r| r.is_primary_key && r.table_name == table_name)
+        .map(|r| {
+            format!(
+                "{}_list: Vec<{}>",
+                r.column_name,
+                convert_data_type(r.udt_name.as_str())
+            )
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    select_code.push_str(&format!(
+        "    pub async fn many_by_{}_list<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<Vec<{}>> {{\n",
+        pkey_name, fn_args, struct_name
+    ));
+
+    let condition = rows
+        .iter()
+        .filter(|r| r.is_primary_key && r.table_name == table_name)
+        .enumerate()
+        .map(|(idx, r)| format!("\"{}\" = ANY(${})", r.column_name, idx + 1))
+        .collect::<Vec<String>>()
+        .join(" AND ");
+
+    let bind = rows
+        .iter()
+        .filter(|r| r.is_primary_key && r.table_name == table_name)
+        .map(|r| format!("            .bind({}_list)\n", r.column_name))
+        .collect::<Vec<String>>()
+        .join("");
+
+    select_code.push_str(&format!(
+        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\" WHERE {}\"#)\n",
+        struct_name, schema_name, table_name, condition
+    ));
+    select_code.push_str(&bind);
+    select_code.push_str("            .fetch_all(executor)\n");
+
+    select_code.push_str("            .await\n");
+    select_code.push_str("    }\n");
+    select_code
+}
+
+fn generate_select_by_pk_query_code_optional(
+    table_name: &str,
+    schema_name: &str,
+    rows: &[TableColumn],
+) -> String {
     let struct_name = to_pascal_case(table_name);
     let mut select_code = String::new();
     let pkey_name = rows
@@ -164,8 +254,8 @@ fn generate_select_by_pk_query_code_optional(table_name: &str, rows: &[TableColu
         .join("");
 
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(r#\"SELECT * FROM \"{}\" WHERE {}\"#)\n",
-        struct_name, table_name, condition
+        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\" WHERE {}\"#)\n",
+        struct_name, schema_name, table_name, condition
     ));
     select_code.push_str(&bind);
     select_code.push_str("            .fetch_optional(executor)\n");
@@ -175,7 +265,11 @@ fn generate_select_by_pk_query_code_optional(table_name: &str, rows: &[TableColu
     select_code
 }
 
-fn generate_select_all_fk_queries(table_name: &str, rows: &[TableColumn]) -> String {
+fn generate_select_all_fk_queries(
+    table_name: &str,
+    schema_name: &str,
+    rows: &[TableColumn],
+) -> String {
     let mut select_code = String::new();
 
     for row in rows
@@ -193,6 +287,7 @@ fn generate_select_all_fk_queries(table_name: &str, rows: &[TableColumn]) -> Str
                 let fk_query = generate_select_by_fk_query_code(
                     &table_name,
                     &row.column_name,
+                    schema_name,
                     &foreign_row.table_name,
                     &foreign_row.column_name,
                     &foreign_row.udt_name,
@@ -208,6 +303,7 @@ fn generate_select_all_fk_queries(table_name: &str, rows: &[TableColumn]) -> Str
 fn generate_select_by_fk_query_code(
     table_name: &str,
     column_name: &str,
+    schema_name: &str,
     foreign_row_table_name: &str,
     foreign_row_column_name: &str,
     foreign_udt_type: &str,
@@ -227,8 +323,8 @@ fn generate_select_by_fk_query_code(
     ));
 
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(r#\"SELECT * FROM \"{}\" WHERE {} = $1\"#)\n",
-        struct_name, table_name, column_name
+        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\" WHERE {} = $1\"#)\n",
+        struct_name, schema_name, table_name, column_name
     ));
     select_code.push_str(&format!(
         "            .bind({}_{})\n",
@@ -242,7 +338,7 @@ fn generate_select_by_fk_query_code(
     select_code
 }
 
-fn generate_insert_query_code(table_name: &str, rows: &[TableColumn]) -> String {
+fn generate_insert_query_code(table_name: &str, schema_name: &str, rows: &[TableColumn]) -> String {
     let struct_name = to_pascal_case(table_name);
     let mut insert_code = String::new();
     insert_code.push_str(&format!(
@@ -268,7 +364,7 @@ fn generate_insert_query_code(table_name: &str, rows: &[TableColumn]) -> String 
     insert_code
 }
 
-fn generate_update_query_code(table_name: &str, rows: &[TableColumn]) -> String {
+fn generate_update_query_code(table_name: &str, schema_name: &str, rows: &[TableColumn]) -> String {
     let struct_name = to_pascal_case(table_name);
     let mut update_code = String::new();
     update_code.push_str(&format!(
@@ -294,13 +390,14 @@ fn generate_update_query_code(table_name: &str, rows: &[TableColumn]) -> String 
     update_code
 }
 
-fn generate_delete_query_code(table_name: &str, rows: &[TableColumn]) -> String {
+fn generate_delete_query_code(table_name: &str, schema_name: &str, rows: &[TableColumn]) -> String {
     let mut delete_code = String::new();
     delete_code.push_str(&format!(
         "    pub async fn delete<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<()> {{\n"
     ));
     delete_code.push_str(&format!(
-        "        query(r#\"DELETE FROM \"{}\" WHERE {}\"#)\n",
+        "        query(r#\"DELETE FROM {}\"{}\" WHERE {}\"#)\n",
+        schema_name,
         table_name,
         generate_delete_conditions(table_name, rows)
     ));

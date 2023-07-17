@@ -40,14 +40,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .help("The name of the context for calling functions. Defaults to DB name")
                         .takes_value(true),
                 )
-                // .arg(
-                //     Arg::with_name("schema")
-                //         .short('s')
-                //         .long("schema")
-                //         .takes_value(true)
-                //         .multiple(true)
-                //         .help("Specify the schema name(s)"),
-                // )
+                .arg(
+                    Arg::with_name("schema")
+                        .short('s')
+                        .long("schema")
+                        .takes_value(true)
+                        .multiple(true)
+                        .use_delimiter(true)
+                        .help("Specify the schema name(s)"),
+                )
                 .arg(
                     Arg::with_name("table")
                         .short('t')
@@ -89,14 +90,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .multiple(true)
                         .help("Specify the table name(s)"),
                 )
-                // .arg(
-                //     Arg::with_name("schema")
-                //         .short('s')
-                //         .long("schema")
-                //         .takes_value(true)
-                //         .multiple(true)
-                //         .help("Specify the schema name(s)"),
-                // )
+                .arg(
+                    Arg::with_name("schema")
+                        .short('s')
+                        .long("schema")
+                        .takes_value(true)
+                        .use_delimiter(true)
+                        .multiple(true)
+                        .help("Specify the schema name(s)"),
+                )
                 .arg(
                     Arg::with_name("output")
                         .short('o')
@@ -123,17 +125,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let context = matches.value_of("context");
         let database_url = matches.value_of("database").unwrap();
         // let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
-        // let schemas: Option<Vec<&str>> =
-        //     matches.values_of("schema").map(|schemas| schemas.collect());
+        let schemas: Option<Vec<&str>> =
+            matches.values_of("schema").map(|schemas| schemas.collect());
         let force = matches.is_present("force");
-        generate::generate(output_folder, database_url, context, force, None, None).await?;
+        generate::generate(output_folder, database_url, context, force, None, schemas).await?;
     } else if let Some(matches) = matches.subcommand_matches("migrate") {
         let include_folder = matches.value_of("include").unwrap();
         let output_folder = matches.value_of("output").unwrap();
         let database_url = matches.value_of("database").unwrap();
         // let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
-        // let schemas: Option<Vec<&str>> =
-        //     matches.values_of("schema").map(|schemas| schemas.collect());
+        let schemas: Option<Vec<&str>> =
+            matches.values_of("schema").map(|schemas| schemas.collect());
         migrate::migrate(include_folder, output_folder, database_url, None, None).await?;
     }
     Ok(())
