@@ -108,6 +108,11 @@ fn generate_select_by_pk_query_code(
         .collect::<Vec<&str>>()
         .join("_and_");
 
+    // There were no pk rows
+    if pkey_name.is_empty() {
+        return String::from("");
+    }
+
     let fn_args = rows
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
@@ -166,6 +171,11 @@ fn generate_select_many_by_pks_query_code(
         .map(|r| r.column_name.as_str())
         .collect::<Vec<&str>>()
         .join("_and_");
+
+    // There were no pk rows
+    if pkey_name.is_empty() {
+        return String::from("");
+    }
 
     let fn_args = rows
         .iter()
