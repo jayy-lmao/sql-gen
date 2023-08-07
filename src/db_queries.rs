@@ -9,7 +9,7 @@ pub async fn get_table_columns(
 ) -> sqlx::Result<Vec<TableColumn>> {
     // Get all tables from the database
     let query = "
-    SELECT
+SELECT
     c.table_name,
     c.column_name,
     c.udt_name,
@@ -19,6 +19,10 @@ pub async fn get_table_columns(
         WHEN k.column_name IS NOT NULL THEN TRUE
         ELSE FALSE
     END AS is_primary_key,
+    CASE
+        WHEN u.column_name IS NOT NULL THEN TRUE
+        ELSE FALSE
+    END AS is_unique,
     f.foreign_table_name AS foreign_key_table,
     f.foreign_column_name AS foreign_key_id
 FROM
@@ -36,6 +40,23 @@ LEFT JOIN
         WHERE
             constraint_type = 'PRIMARY KEY'
     )
+LEFT JOIN (
+    SELECT
+        tc.table_schema,
+        tc.table_name,
+        kcu.column_name
+    FROM
+        information_schema.table_constraints AS tc
+    JOIN
+        information_schema.key_column_usage AS kcu ON
+        tc.constraint_schema = kcu.constraint_schema AND
+        tc.constraint_name = kcu.constraint_name
+    WHERE
+        tc.constraint_type = 'UNIQUE'
+) AS u ON
+    c.table_schema = u.table_schema AND
+    c.table_name = u.table_name AND
+    c.column_name = u.column_name
 LEFT JOIN (
     SELECT
         tc.table_schema,
@@ -67,8 +88,7 @@ WHERE
 ORDER BY
     c.table_name,
     c.ordinal_position;
-
-    ";
+";
 
     let rows = sqlx::query_as::<_, TableColumn>(query)
         .bind(schemas)
