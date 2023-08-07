@@ -106,7 +106,7 @@ Running SQLGen with the `generate` command:
 sql-gen generate --output db --database postgresql://postgres:password@localhost/mydatabase
 ```
 
-This will generate the following Rust structs and queries:
+This will generate the following Rust structs and queries (based on primary key, foreign keys, and unique fields):
 
 
 ```rust
@@ -153,6 +153,28 @@ impl CustomerSet {
     //         .fetch_all(executor)
     //         .await
     // }
+
+    pub async fn by_email<'e, E: PgExecutor<'e>>(&self, executor: E, email: String) -> Result<Customer> {
+        query_as::<_, Customer>(r#"SELECT * FROM "customer" WHERE "email" = $1"#)
+            .bind(email)
+            .fetch_one(executor)
+            .await
+    }
+
+    pub async fn many_by_email_list<'e, E: PgExecutor<'e>>(&self, executor: E, email_list: Vec<String>) -> Result<Vec<Customer>> {
+        query_as::<_, Customer>(r#"SELECT * FROM "customer" WHERE "email" = ANY($1)"#)
+            .bind(email_list)
+            .fetch_all(executor)
+            .await
+    }
+
+    pub async fn by_email_optional<'e, E: PgExecutor<'e>>(&self, executor: E, email: String) -> Result<Option<Customer>> {
+        query_as::<_, Customer>(r#"SELECT * FROM "customer" WHERE "email" = $1"#)
+            .bind(email)
+            .fetch_optional(executor)
+            .await
+    }
+
 
     pub async fn insert<'e, E: PgExecutor<'e>>(&self, executor: E, products: Customer) -> Result<Customer> {
         query_as::<_, Customer>(r#"INSERT INTO "customer" ("id", "created_at", "email", "category") VALUES ($1, $2, $3, $4) RETURNING *;"#)
