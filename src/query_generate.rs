@@ -17,6 +17,7 @@ pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
     let schema_name = &schema_prefix;
 
     let mut query_code = String::new();
+    query_code.push_str("#![allow(dead_code)]");
 
     query_code
         .push_str("// Generated with SQLGEN\n// https://github.com/jayy-lmao/sql-codegen\n\n");
