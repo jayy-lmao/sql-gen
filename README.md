@@ -33,7 +33,7 @@ cargo install sql-gen
 
 Or for embedded postgres (you can use a migrations folder instead of a `--database-url`)
 ```shell
-cargo install sql-gen --features embedded
+cargo install --git https://github.com/jayy-lmao/sql-codegen --branch main --features embedded
 ```
 
 Or for the latest github
