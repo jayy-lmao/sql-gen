@@ -54,6 +54,9 @@ pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
     ));
     query_code.push('\n');
 
+    query_code.push_str(&generate_unique_query_code(table_name, schema_name, rows));
+    query_code.push('\n');
+
     query_code.push_str(&generate_select_all_fk_queries(
         table_name,
         schema_name,
@@ -290,6 +293,7 @@ fn generate_unique_query_code(table_name: &str, schema_name: &str, rows: &[Table
             generate_select_by_unique_query_code(&row.column_name, table_name, schema_name, rows)
                 .as_str(),
         );
+        code.push('\n');
         code.push_str(
             generate_select_many_by_uniques_query_code(
                 &row.column_name,
@@ -299,6 +303,7 @@ fn generate_unique_query_code(table_name: &str, schema_name: &str, rows: &[Table
             )
             .as_str(),
         );
+        code.push('\n');
         code.push_str(
             generate_select_by_unique_query_code_optional(
                 &row.column_name,
@@ -308,6 +313,7 @@ fn generate_unique_query_code(table_name: &str, schema_name: &str, rows: &[Table
             )
             .as_str(),
         );
+        code.push('\n');
     }
     code
 }
