@@ -86,7 +86,7 @@ fn generate_db_context(database_name: &str, tables: &[String], _rows: &[TableCol
 
     db_context_code.push_str("#![allow(dead_code)]\n");
     db_context_code
-        .push_str("// Generated with SQLGEN\n//https://github.com/jayy-lmao/sql-codegen\n\n");
+        .push_str("// Generated with sql-gen\n//https://github.com/jayy-lmao/sql-gen\n\n");
     for table in tables {
         db_context_code.push_str(&format!("pub mod {};\n", to_snake_case(table)));
         db_context_code.push_str(&format!(

@@ -25,8 +25,7 @@ pub fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String
     let mut struct_code = String::new();
 
     struct_code.push_str("#![allow(dead_code)]\n");
-    struct_code
-        .push_str("// Generated with SQLGEN\n// https://github.com/jayy-lmao/sql-codegen\n\n");
+    struct_code.push_str("// Generated with sql-gen\n// https://github.com/jayy-lmao/sql-gen\n\n");
     struct_code.push_str("#[derive(sqlx::FromRow, Debug)]\n");
     struct_code.push_str(&format!("pub struct {} {{\n", struct_name));
 

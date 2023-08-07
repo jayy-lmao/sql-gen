@@ -1,6 +1,6 @@
 # SQL-Gen - Rust CLI Tool for PostgreSQL Database Operations Generation extending SQLX
 
-![codegen_example](https://github.com/jayy-lmao/sql-codegen/assets/32926722/5308636d-3b5c-4fad-b250-109fb272d8b2)
+![codegen_example](https://github.com/jayy-lmao/sql-gen/assets/32926722/5308636d-3b5c-4fad-b250-109fb272d8b2)
 
 
 PR's and Issues welcome! This is still early stages of devopment, though hopefully useful to some! 
@@ -33,12 +33,12 @@ cargo install sql-gen
 
 Or for embedded postgres (you can use a migrations folder instead of a `--database-url`)
 ```shell
-cargo install --git https://github.com/jayy-lmao/sql-codegen --branch main --features embedded
+cargo install --git https://github.com/jayy-lmao/sql-gen --branch main --features embedded
 ```
 
 Or for the latest github
 ```shell
-cargo install --git https://github.com/jayy-lmao/sql-codegen --branch main
+cargo install --git https://github.com/jayy-lmao/sql-gen --branch main
 ```
 
 ## Usage
