@@ -18,7 +18,8 @@ pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
 
     let mut query_code = String::new();
 
-    query_code.push_str("//Generated with SQLGEN\n//https://github.com/jayy-lmao/sql-codegen\n\n");
+    query_code
+        .push_str("// Generated with SQLGEN\n// https://github.com/jayy-lmao/sql-codegen\n\n");
     query_code.push_str(&format!(
         "use sqlx::{{query, query_as, PgExecutor, Result}};\n"
     ));
