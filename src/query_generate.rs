@@ -283,6 +283,209 @@ fn generate_select_by_pk_query_code_optional(
     select_code
 }
 
+fn generate_unique_query_code(table_name: &str, schema_name: &str, rows: &[TableColumn]) -> String {
+    let mut code = String::new();
+    for row in rows.iter().filter(|r| r.is_unique) {
+        code.push_str(
+            generate_select_by_unique_query_code(&row.column_name, table_name, schema_name, rows)
+                .as_str(),
+        );
+        code.push_str(
+            generate_select_many_by_uniques_query_code(
+                &row.column_name,
+                table_name,
+                schema_name,
+                rows,
+            )
+            .as_str(),
+        );
+        code.push_str(
+            generate_select_by_unique_query_code_optional(
+                &row.column_name,
+                table_name,
+                schema_name,
+                rows,
+            )
+            .as_str(),
+        );
+    }
+    code
+}
+
+fn generate_select_by_unique_query_code(
+    unique_name: &str,
+    table_name: &str,
+    schema_name: &str,
+    rows: &[TableColumn],
+) -> String {
+    let struct_name = to_pascal_case(table_name);
+    let mut select_code = String::new();
+
+    // There were no unique rows
+    if unique_name.is_empty() {
+        return String::from("");
+    }
+
+    let fn_args = rows
+        .iter()
+        .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
+        .map(|r| {
+            format!(
+                "{}: {}",
+                r.column_name,
+                convert_data_type(r.udt_name.as_str())
+            )
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    select_code.push_str(&format!(
+        "    pub async fn by_{}<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<{}> {{\n",
+        unique_name, fn_args, struct_name
+    ));
+
+    let condition = rows
+        .iter()
+        .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
+        .enumerate()
+        .map(|(idx, r)| format!("\"{}\" = ${}", r.column_name, idx + 1))
+        .collect::<Vec<String>>()
+        .join(" AND ");
+
+    let bind = rows
+        .iter()
+        .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
+        .map(|r| format!("            .bind({})\n", r.column_name))
+        .collect::<Vec<String>>()
+        .join("");
+
+    select_code.push_str(&format!(
+        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\" WHERE {}\"#)\n",
+        struct_name, schema_name, table_name, condition
+    ));
+    select_code.push_str(&bind);
+    select_code.push_str("            .fetch_one(executor)\n");
+
+    select_code.push_str("            .await\n");
+    select_code.push_str("    }\n");
+    select_code
+}
+
+fn generate_select_many_by_uniques_query_code(
+    unique_name: &str,
+    table_name: &str,
+    schema_name: &str,
+    rows: &[TableColumn],
+) -> String {
+    let struct_name = to_pascal_case(table_name);
+    let mut select_code = String::new();
+
+    // There were no unique rows
+    if unique_name.is_empty() {
+        return String::from("");
+    }
+
+    let fn_args = rows
+        .iter()
+        .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
+        .map(|r| {
+            format!(
+                "{}_list: Vec<{}>",
+                r.column_name,
+                convert_data_type(r.udt_name.as_str())
+            )
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    select_code.push_str(&format!(
+        "    pub async fn many_by_{}_list<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<Vec<{}>> {{\n",
+        unique_name, fn_args, struct_name
+    ));
+
+    let condition = rows
+        .iter()
+        .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
+        .enumerate()
+        .map(|(idx, r)| format!("\"{}\" = ANY(${})", r.column_name, idx + 1))
+        .collect::<Vec<String>>()
+        .join(" AND ");
+
+    let bind = rows
+        .iter()
+        .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
+        .map(|r| format!("            .bind({}_list)\n", r.column_name))
+        .collect::<Vec<String>>()
+        .join("");
+
+    select_code.push_str(&format!(
+        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\" WHERE {}\"#)\n",
+        struct_name, schema_name, table_name, condition
+    ));
+    select_code.push_str(&bind);
+    select_code.push_str("            .fetch_all(executor)\n");
+
+    select_code.push_str("            .await\n");
+    select_code.push_str("    }\n");
+    select_code
+}
+
+fn generate_select_by_unique_query_code_optional(
+    unique_name: &str,
+    table_name: &str,
+    schema_name: &str,
+    rows: &[TableColumn],
+) -> String {
+    let struct_name = to_pascal_case(table_name);
+    let mut select_code = String::new();
+
+    let fn_args = rows
+        .iter()
+        .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
+        .map(|r| {
+            format!(
+                "{}: {}",
+                r.column_name,
+                convert_data_type(r.udt_name.as_str())
+            )
+        })
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    select_code.push_str(&format!(
+        "    pub async fn by_{}_optional<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<Option<{}>> {{\n",
+        unique_name,
+        fn_args,
+        struct_name
+    ));
+
+    let condition = rows
+        .iter()
+        .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
+        .enumerate()
+        .map(|(idx, r)| format!("\"{}\" = ${}", r.column_name, idx + 1))
+        .collect::<Vec<String>>()
+        .join(" AND ");
+
+    let bind = rows
+        .iter()
+        .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
+        .map(|r| format!("            .bind({})\n", r.column_name))
+        .collect::<Vec<String>>()
+        .join("");
+
+    select_code.push_str(&format!(
+        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\" WHERE {}\"#)\n",
+        struct_name, schema_name, table_name, condition
+    ));
+    select_code.push_str(&bind);
+    select_code.push_str("            .fetch_optional(executor)\n");
+
+    select_code.push_str("            .await\n");
+    select_code.push_str("    }\n");
+    select_code
+}
+
 fn generate_select_all_fk_queries(
     table_name: &str,
     schema_name: &str,
