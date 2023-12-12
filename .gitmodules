@@ -1,0 +1,3 @@
+[submodule "pg-embed"]
+	path = pg-embed
+	url = https://github.com/jayy-lmao/pg-embed.git
