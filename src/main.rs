@@ -20,8 +20,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .default_value("src/models/")
                 .value_name("SQLGEN_MODEL_OUTPUT_FOLDER")
                 .help("Sets the output folder for generated structs")
-                .takes_value(true)
-                .required(true),
+                .takes_value(true),
         )
         .arg(
             Arg::with_name("database")
@@ -81,7 +80,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .value_name("SQLGEN_MODEL_FOLDER")
                 .help("Sets the folder containing existing struct files")
                 .takes_value(true)
-                .required(true),
         )
         .arg(
             Arg::with_name("table")
@@ -109,7 +107,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .value_name("SQLGEN_MIGRATION_OUTPUT")
                 .help("Sets the output folder for migrations")
                 .takes_value(true)
-                .required(true),
         )
         .arg(
             Arg::with_name("database")
@@ -119,7 +116,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .value_name("DATABASE_URL")
                 .help("Sets the database connection URL. Or use -d=docker to spin up a test contianer")
                 .takes_value(true)
-                .required(true)
         );
     generate_subcommand = generate_subcommand.arg(
         Arg::with_name("migrations")
