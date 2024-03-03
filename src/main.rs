@@ -11,7 +11,7 @@ mod utils;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
 
-    let mut generate_subcommand = SubCommand::with_name("generate")
+    let generate_subcommand = SubCommand::with_name("generate")
         .about("Generate structs and queries for tables")
         .arg(
             Arg::with_name("models")
@@ -26,9 +26,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Arg::with_name("migrations")
                 .short('m')
                 .long("migrations")
-                .default_value("migrations")
                 .value_name("SQLGEN_MIGRATIONS_INPUT")
-                .help("The folder of migrations to apply")
+                .help("The folder of migrations to apply. Leave blank if you do not wish to apply migrations before generating.")
                 .takes_value(true),
         )
         .arg(
@@ -79,7 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .help("Overwrites existing files sharing names in that folder"),
         );
 
-    let mut migrate_subcommand = SubCommand::with_name("migrate")
+    let migrate_subcommand = SubCommand::with_name("migrate")
         .about("Generate SQL migrations based on struct differences")
         .arg(
             Arg::with_name("models")
@@ -145,27 +144,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(matches) = matches.subcommand_matches("generate") {
-        println!("Running generate");
-        let input_migrations_folder = matches
-            .value_of("migrations")
-            .expect("could not get input migrations folder");
+        let database_is_docker = matches.value_of("database") == Some("docker");
 
-        println!(
-            "Creating DB and applying migrations from {}",
-            input_migrations_folder
-        );
+        if let Some(input_migrations_folder) = matches.value_of("migrations").or_else(|| {
+            if database_is_docker {
+                Some("migrations")
+            } else {
+                None
+            }
+        }) {
+            println!(
+                "Creating DB and applying migrations from {}",
+                input_migrations_folder
+            );
 
-        let pool = sqlx::postgres::PgPoolOptions::new()
-            .max_connections(5)
-            .connect(test_container_db_uri.clone().expect("No db uri").as_str())
-            .await
-            .expect("could not create pool");
+            let pool = sqlx::postgres::PgPoolOptions::new()
+                .max_connections(5)
+                .connect(test_container_db_uri.clone().expect("No db uri").as_str())
+                .await
+                .expect("could not create pool");
 
-        let migrations_path = std::path::Path::new(input_migrations_folder);
-        let migrator = sqlx::migrate::Migrator::new(migrations_path)
-            .await
-            .expect("Could not create migrations folder");
-        migrator.run(&pool).await.expect("could not run migration");
+            let migrations_path = std::path::Path::new(input_migrations_folder);
+            let migrator = sqlx::migrate::Migrator::new(migrations_path)
+                .await
+                .expect("Could not create migrations folder");
+
+            migrator.run(&pool).await.expect("could not run migration");
+        }
 
         println!("Done!");
 
