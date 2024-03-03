@@ -167,6 +167,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "Creating DB and applying migrations from {}",
                 input_migrations_folder
             );
+
+            let pool = sqlx::postgres::PgPoolOptions::new()
+                .max_connections(5)
+                .connect(test_container_db_uri.clone().expect("No db uri").as_str())
+                .await
+                .expect("could not create pool");
+
+            let migrations_path = std::path::Path::new(input_migrations_folder);
+            let migrator = sqlx::migrate::Migrator::new(migrations_path)
+                .await
+                .expect("Could not create migrations folder");
+            migrator.run(&pool).await.expect("could not run migration");
+
             println!("Done!")
         };
         println!("getting output folder");
@@ -189,6 +202,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "Creating DB and applying migrations from {}",
                 input_migrations_folder
             );
+            let pool = sqlx::postgres::PgPoolOptions::new()
+                .max_connections(5)
+                .connect(test_container_db_uri.clone().expect("No db uri").as_str())
+                .await
+                .expect("could not create pool");
+
+            let migrations_path = std::path::Path::new(input_migrations_folder);
+            let migrator = sqlx::migrate::Migrator::new(migrations_path)
+                .await
+                .expect("Could not create migrations folder");
+            migrator.run(&pool).await.expect("could not run migration");
+
             println!("Done!")
         };
         let include_folder = matches.value_of("include").unwrap();
