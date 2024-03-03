@@ -49,21 +49,38 @@ sql-gen [SUBCOMMAND] [OPTIONS]
 
 ### Subcommands:
 
-- `generate` - Generate structs and queries for tables in your db
-- `migrate` - Generate SQL migrations based on struct differences for structs that have a database table matching them
+#### `generate` - Generate structs and queries for tables in your db
+
+
+
+
+https://github.com/jayy-lmao/sql-gen/assets/32926722/55f3391f-47e1-42dd-b24e-6903f96971d5
+
+
+
+#### `migrate` - Generate SQL migrations based on struct differences for structs that have a database table matching them
+
+
+
+https://github.com/jayy-lmao/sql-gen/assets/32926722/ea3b9739-be8f-43e5-b48d-83d130ffd1c5
+
+
+
+
 
 ### Options:
 
 - `generate` subcommand options:
-  - `-o, --output <SQLGEN_MODEL_OUTPUT_FOLDER>` - Sets the output folder for generated structs (required)
-  - `-d, --database <DATABASE_URL>` - Sets the database connection URL (required)
+  - `-o, --models <SQLGEN_MODEL_OUTPUT_FOLDER>` - Sets the output folder for generated structs (required)
+  - `-d, --database <DATABASE_URL>` - Sets the database connection URL (required). Can be set as docker to spin up a testcontainer instance for applying migrations.
   - `-c, --context <SQLGEN_CONTEXT_NAME>` - The name of the context for calling functions. Defaults to DB name
   - `-f, --force` - Overwrites existing files sharing names in that folder
+  - `-m, --migrations <SQLGEN_MIGRATION_INPUT>` - Sets the input folder for migrations (only if using docker as the database)
 
 - `migrate` subcommand options:
-  - `-i, --include <SQLGEN_MODEL_FOLDER>` - Sets the folder containing existing struct files (required)
-  - `-o, --output <SQLGEN_MIGRATION_OUTPUT>` - Sets the output folder for migrations (required)
-  - `-d, --database <DATABASE_URL>` - Sets the database connection URL (required)
+  - `-o, --models <SQLGEN_MODEL_FOLDER>` - Sets the folder containing existing struct files (required)
+  - `-m, --migrations <SQLGEN_MIGRATION_OUTPUT>` - Sets the output folder for migrations (required)
+  - `-d, --database <DATABASE_URL>` - Sets the database connection URL (required). Can be set as docker to spin up a testcontainer instance for applying migrations.
 
 ### Example .env file
 
