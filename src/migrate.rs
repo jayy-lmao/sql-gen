@@ -115,9 +115,11 @@ pub async fn generate_migration_code(
         if let Some(table_row) = matching_column {
             let existing_nullable = table_row.is_nullable;
             let existing_type = &table_row.udt_name;
+            if data_type != convert_data_type(existing_type) {
+                panic!("Data type {} does not match {}", data_type, existing_type);
+            }
             // Compare data types and nullability
-            if data_type != convert_data_type(existing_type) || is_nullable != &existing_nullable {
-                let column_definition = convert_data_type_from_pg(data_type);
+            if is_nullable != &existing_nullable {
                 let alter_table = format!("ALTER TABLE {}", table_name);
 
                 // Generate appropriate column definition
@@ -130,8 +132,8 @@ pub async fn generate_migration_code(
                 };
 
                 let migration_statement = format!(
-                    "{} ALTER COLUMN {} TYPE {}, {}",
-                    alter_table, column_name, column_definition, nullable_keyword
+                    "{} ALTER COLUMN {} {}",
+                    alter_table, column_name, nullable_keyword
                 );
 
                 migration_statements.push(migration_statement);
