@@ -10,7 +10,6 @@ mod utils;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
-    let using_test_containers = cfg!(feature = "test-containers");
 
     let mut generate_subcommand = SubCommand::with_name("generate")
         .about("Generate structs and queries for tables")
@@ -28,8 +27,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .short('d')
                 .long("database")
                 .value_name("DATABASE_URL")
-                .help("Sets the database connection URL")
-                .required(!using_test_containers)
+                .help(
+                    "Sets the database connection URL. Or write docker to spin up a testcontainer",
+                )
                 .takes_value(true),
         )
         .arg(
@@ -112,28 +112,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .short('d')
                 .long("database")
                 .value_name("DATABASE_URL")
-                .help("Sets the database connection URL")
+                .help("Sets the database connection URL. Or use -d=docker to spin up a test contianer")
                 .takes_value(true)
-                .required(!using_test_containers),
+                .required(true)
         );
-    if using_test_containers {
-        generate_subcommand = generate_subcommand.arg(
-            Arg::with_name("migrations")
-                .short('m')
-                .long("migrations")
-                .value_name("SQLGEN_MIGRATIONS_INPUT")
-                .help("The folder of migrations to apply")
-                .takes_value(true),
-        );
-        migrate_subcommand = migrate_subcommand.arg(
-            Arg::with_name("migrations")
-                .short('m')
-                .long("migrations")
-                .value_name("SQLGEN_MIGRATIONS_INPUT")
-                .help("The folder of migrations to apply")
-                .takes_value(true),
-        )
-    };
+    generate_subcommand = generate_subcommand.arg(
+        Arg::with_name("migrations")
+            .short('m')
+            .long("migrations")
+            .value_name("SQLGEN_MIGRATIONS_INPUT")
+            .help("The folder of migrations to apply")
+            .takes_value(true),
+    );
+    migrate_subcommand = migrate_subcommand.arg(
+        Arg::with_name("migrations")
+            .short('m')
+            .long("migrations")
+            .value_name("SQLGEN_MIGRATIONS_INPUT")
+            .help("The folder of migrations to apply")
+            .takes_value(true),
+    );
 
     let matcher = App::new("SQL Gen")
         .subcommand(generate_subcommand)
