@@ -153,7 +153,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if let Some(matches) = matches.subcommand_matches("generate") {
         println!("Running generate");
-        let input_migrations_folder = matches.value_of("migrations").unwrap_or("./migrations");
+        let input_migrations_folder = matches
+            .value_of("migrations")
+            .expect("could not get input migrations folder");
 
         println!(
             "Creating DB and applying migrations from {}",
@@ -176,7 +178,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         println!("getting output folder");
 
-        let output_folder = matches.value_of("output").unwrap_or("src/models/");
+        let output_folder = matches
+            .value_of("models")
+            .expect("Could not get output modles folder");
 
         let context = matches.value_of("context");
 

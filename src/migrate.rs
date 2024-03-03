@@ -140,7 +140,7 @@ pub async fn generate_migration_code(
             let alter_table = format!("ALTER TABLE {}", table_name);
             let column_definition = convert_data_type_from_pg(data_type);
 
-            let nullable_keyword = if *is_nullable { "NULL" } else { "NOT NULL" };
+            let nullable_keyword = if *is_nullable { "" } else { "NOT NULL" };
             let migration_statement = format!(
                 "{} ADD COLUMN {} {} {}",
                 alter_table, column_name, column_definition, nullable_keyword
