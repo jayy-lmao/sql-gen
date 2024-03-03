@@ -55,11 +55,14 @@ pub fn convert_data_type(data_type: &str) -> &str {
         "varchar" => "String",
         "jsonb" => "sqlx::Json",
         "timestamptz" => "chrono::DateTime<chrono::Utc>",
+        "timestamp" => "chrono::NaiveDateTime",
+        "time" => "chrono::NaiveTime",
         "date" => "chrono::NaiveDate",
         "float4" => "f32",
         "float8" => "f64",
         "uuid" => "uuid::Uuid",
         "boolean" => "bool",
+        "bool" => "bool",
         "bytea" => "Vec<u8>", // is this right?
         _ => panic!("Unknown type: {}", data_type),
     }
@@ -73,6 +76,7 @@ pub fn convert_data_type_from_pg(data_type: &str) -> &str {
         "String" => "text",
         "sqlx::Json" => "jsonb",
         "chrono::DateTime<chrono::Utc>" => "timestamptz",
+        "chrono::NaiveDateTime" => "timestamp",
         "DateTime<Utc>" => "timestamptz",
         "chrono::NaiveDate" => "date",
         "f32" => "float4",

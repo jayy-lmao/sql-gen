@@ -10,26 +10,36 @@ mod utils;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
-    let is_embedded = cfg!(feature = "embedded");
 
     let mut generate_subcommand = SubCommand::with_name("generate")
         .about("Generate structs and queries for tables")
         .arg(
-            Arg::with_name("output")
+            Arg::with_name("models")
                 .short('o')
-                .long("output")
+                .long("models")
+                .default_value("src/models/")
                 .value_name("SQLGEN_MODEL_OUTPUT_FOLDER")
                 .help("Sets the output folder for generated structs")
-                .takes_value(true)
-                .required(true),
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("migrations")
+                .short('m')
+                .long("migrations")
+                .default_value("migrations")
+                .value_name("SQLGEN_MIGRATIONS_INPUT")
+                .help("The folder of migrations to apply")
+                .takes_value(true),
         )
         .arg(
             Arg::with_name("database")
                 .short('d')
                 .long("database")
+                .default_value("docker")
                 .value_name("DATABASE_URL")
-                .help("Sets the database connection URL")
-                .required(!is_embedded)
+                .help(
+                    "Sets the database connection URL. Or write docker to spin up a testcontainer",
+                )
                 .takes_value(true),
         )
         .arg(
@@ -72,13 +82,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut migrate_subcommand = SubCommand::with_name("migrate")
         .about("Generate SQL migrations based on struct differences")
         .arg(
-            Arg::with_name("include")
-                .short('i')
-                .long("include")
+            Arg::with_name("models")
+                .short('o')
+                .long("models")
+                .default_value("migrations")
                 .value_name("SQLGEN_MODEL_FOLDER")
                 .help("Sets the folder containing existing struct files")
                 .takes_value(true)
-                .required(true),
         )
         .arg(
             Arg::with_name("table")
@@ -99,166 +109,132 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .help("Specify the schema name(s)"),
         )
         .arg(
-            Arg::with_name("output")
-                .short('o')
-                .long("output")
+            Arg::with_name("migrations")
+                .short('m')
+                .long("migrations")
+                .default_value("migrations")
                 .value_name("SQLGEN_MIGRATION_OUTPUT")
                 .help("Sets the output folder for migrations")
                 .takes_value(true)
-                .required(true),
         )
         .arg(
             Arg::with_name("database")
                 .short('d')
                 .long("database")
+                .default_value("docker")
                 .value_name("DATABASE_URL")
-                .help("Sets the database connection URL")
+                .help("Sets the database connection URL. Or use -d=docker to spin up a test contianer")
                 .takes_value(true)
-                .required(!is_embedded),
         );
-    if is_embedded {
-        generate_subcommand = generate_subcommand.arg(
-            Arg::with_name("migrations")
-                .short('m')
-                .long("migrations")
-                .value_name("SQLGEN_MIGRATIONS_INPUT")
-                .help("The folder of migrations to apply")
-                .takes_value(true),
-        );
-        migrate_subcommand = migrate_subcommand.arg(
-            Arg::with_name("migrations")
-                .short('m')
-                .long("migrations")
-                .value_name("SQLGEN_MIGRATIONS_INPUT")
-                .help("The folder of migrations to apply")
-                .takes_value(true),
-        )
-    };
 
     let matcher = App::new("SQL Gen")
         .subcommand(generate_subcommand)
         .subcommand(migrate_subcommand);
     let matches = matcher.get_matches();
 
-    let mut embedded_db_uri: Option<String> = None;
+    let mut test_container_db_uri: Option<String> = None;
+
+    let docker = testcontainers::clients::Cli::default();
+    let container = docker.run(testcontainers_modules::postgres::Postgres::default());
+    let connection_string = &format!(
+        "postgres://postgres:postgres@127.0.0.1:{}/postgres",
+        container.get_host_port_ipv4(5432)
+    );
+    {
+        test_container_db_uri = Some(connection_string.to_string());
+    }
 
     if let Some(matches) = matches.subcommand_matches("generate") {
-        #[cfg(feature = "embedded")]
-        let mut pg_embed: Option<pg_embed::postgres::PgEmbed> = None;
+        println!("Running generate");
+        let input_migrations_folder = matches
+            .value_of("migrations")
+            .expect("could not get input migrations folder");
 
-        #[cfg(feature = "embedded")]
-        if let Some(input_migrations_folder) = matches.value_of("migrations") {
-            println!(
-                "Creating DB and applying migrations from {}",
-                input_migrations_folder
-            );
-            let (uri, pg) = migrate_to_temp_db(input_migrations_folder).await;
-            embedded_db_uri = Some(uri);
-            pg_embed = Some(pg);
-            println!("Done!")
-        };
-        let output_folder = matches.value_of("output").unwrap();
+        println!(
+            "Creating DB and applying migrations from {}",
+            input_migrations_folder
+        );
+
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(5)
+            .connect(test_container_db_uri.clone().expect("No db uri").as_str())
+            .await
+            .expect("could not create pool");
+
+        let migrations_path = std::path::Path::new(input_migrations_folder);
+        let migrator = sqlx::migrate::Migrator::new(migrations_path)
+            .await
+            .expect("Could not create migrations folder");
+        migrator.run(&pool).await.expect("could not run migration");
+
+        println!("Done!");
+
+        println!("getting output folder");
+
+        let output_folder = matches
+            .value_of("models")
+            .expect("Could not get output modles folder");
+
         let context = matches.value_of("context");
-        let database_url = matches
+
+        let mut database_url = matches
             .value_of("database")
-            .or(embedded_db_uri.as_deref())
             .expect("Must provide either a input migration folder or a database uri");
-        // let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
+
+        if database_url == "docker" {
+            database_url = test_container_db_uri
+                .as_deref()
+                .expect("No docker database url");
+        }
+
         let schemas: Option<Vec<&str>> =
             matches.values_of("schema").map(|schemas| schemas.collect());
         let force = matches.is_present("force");
         generate::generate(output_folder, database_url, context, force, None, schemas).await?;
-
-        #[cfg(feature = "embedded")]
-        if let Some(mut pg) = pg_embed {
-            pg.stop_db().await.unwrap();
-        }
     } else if let Some(matches) = matches.subcommand_matches("migrate") {
-        #[cfg(feature = "embedded")]
-        let mut pg_embed: Option<pg_embed::postgres::PgEmbed> = None;
-        #[cfg(feature = "embedded")]
-        if let Some(input_migrations_folder) = matches.value_of("migrations") {
-            println!(
-                "Creating DB and applying migrations from {}",
-                input_migrations_folder
-            );
-            let (uri, pg) = migrate_to_temp_db(input_migrations_folder).await;
-            embedded_db_uri = Some(uri);
-            pg_embed = Some(pg);
-            println!("Done!")
-        };
-        let include_folder = matches.value_of("include").unwrap();
-        let output_folder = matches.value_of("output").unwrap();
-        let database_url = matches
+        let input_migrations_folder = matches.value_of("migrations").unwrap_or("./migrations");
+        println!(
+            "Creating DB and applying migrations from {}",
+            input_migrations_folder
+        );
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(5)
+            .connect(test_container_db_uri.clone().expect("No db uri").as_str())
+            .await
+            .expect("could not create pool");
+
+        let migrations_path = std::path::Path::new(input_migrations_folder);
+        let migrator = sqlx::migrate::Migrator::new(migrations_path)
+            .await
+            .expect("Could not create migrations folder");
+        migrator.run(&pool).await.expect("could not run migration");
+
+        println!("Done!");
+
+        let include_folder = matches
+            .value_of("models")
+            .expect("no models folder to include");
+        let output_folder = matches
+            .value_of("migrations")
+            .expect("no migrations output");
+
+        let mut database_url = matches
             .value_of("database")
-            .or(embedded_db_uri.as_deref())
             .expect("Must provide either a input migration folder or a database uri");
+
+        if database_url == "docker" {
+            database_url = test_container_db_uri
+                .as_deref()
+                .expect("No docker database url");
+        }
+
         // let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
         let schemas: Option<Vec<&str>> =
             matches.values_of("schema").map(|schemas| schemas.collect());
+
+        println!("Finding new migration differences");
         migrate::migrate(include_folder, output_folder, database_url, None, None).await?;
-
-        #[cfg(feature = "embedded")]
-        if let Some(mut pg) = pg_embed {
-            pg.stop_db().await.unwrap();
-        }
     }
+
     Ok(())
-}
-
-#[cfg(feature = "embedded")]
-async fn migrate_to_temp_db(folder: &str) -> (String, pg_embed::postgres::PgEmbed) {
-    use std::path::PathBuf;
-
-    let pg_settings = pg_embed::postgres::PgSettings {
-        // Where to store the postgresql database
-        database_dir: PathBuf::from("pg_data"),
-        port: 5435,
-        user: "postgres".to_string(),
-        password: "password".to_string(),
-        // authentication method
-        auth_method: pg_embed::pg_enums::PgAuthMethod::Plain,
-        // If persistent is false clean up files and directories on drop, otherwise keep them
-        persistent: false,
-        // duration to wait before terminating process execution
-        // pg_ctl start/stop and initdb timeout
-        // if set to None the process will not be terminated
-        timeout: Some(std::time::Duration::from_secs(15)),
-        // If migration sql scripts need to be run, the directory containing those scripts can be
-        // specified here with `Some(PathBuf(path_to_dir)), otherwise `None` to run no migrations.
-        // To enable migrations view the **Usage** section for details
-        migration_dir: Some(PathBuf::from(folder)),
-    };
-
-    let fetch_settings = pg_embed::pg_fetch::PgFetchSettings {
-        version: pg_embed::pg_fetch::PG_V15,
-        ..Default::default()
-    };
-    let mut pg = pg_embed::postgres::PgEmbed::new(pg_settings, fetch_settings)
-        .await
-        .unwrap();
-
-    // Download, unpack, create password file and database cluster
-    println!("Setting up Postgres");
-    pg.setup().await.unwrap();
-
-    // start postgresql database
-    println!("Starting Postgers");
-    pg.start_db().await.unwrap();
-
-    // create a new database
-    // to enable migrations view the [Usage] section for details
-    println!("Creating Database");
-    pg.create_database("postgres").await;
-    let pg_db_uri: String = pg.full_db_uri("postgres");
-    println!("Checking Database Exists");
-    pg.database_exists("postgres").await.unwrap();
-
-    // run migration sql scripts
-    // to enable migrations view [Usage] for details
-    println!("Migrating Database");
-    pg.migrate("postgres").await.unwrap();
-
-    // stop postgresql database
-    (pg_db_uri, pg)
 }

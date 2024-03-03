@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use crate::{
     db_queries::get_table_columns,
     models::TableColumn,
-    utils::{convert_data_type_from_pg, parse_struct_fields, to_pascal_case},
+    utils::{convert_data_type, convert_data_type_from_pg, parse_struct_fields, to_pascal_case},
 };
 
 pub async fn migrate(
@@ -115,9 +115,11 @@ pub async fn generate_migration_code(
         if let Some(table_row) = matching_column {
             let existing_nullable = table_row.is_nullable;
             let existing_type = &table_row.udt_name;
+            if data_type != convert_data_type(existing_type) {
+                panic!("Data type {} does not match {}", data_type, existing_type);
+            }
             // Compare data types and nullability
-            let column_definition = convert_data_type_from_pg(data_type);
-            if column_definition != existing_type || is_nullable != &existing_nullable {
+            if is_nullable != &existing_nullable {
                 let alter_table = format!("ALTER TABLE {}", table_name);
 
                 // Generate appropriate column definition
@@ -130,8 +132,8 @@ pub async fn generate_migration_code(
                 };
 
                 let migration_statement = format!(
-                    "{} ALTER COLUMN {} TYPE {}, {}",
-                    alter_table, column_name, column_definition, nullable_keyword
+                    "{} ALTER COLUMN {} {}",
+                    alter_table, column_name, nullable_keyword
                 );
 
                 migration_statements.push(migration_statement);
@@ -140,9 +142,9 @@ pub async fn generate_migration_code(
             let alter_table = format!("ALTER TABLE {}", table_name);
             let column_definition = convert_data_type_from_pg(data_type);
 
-            let nullable_keyword = if *is_nullable { "NULL" } else { "NOT NULL" };
+            let nullable_keyword = if *is_nullable { "" } else { "NOT NULL" };
             let migration_statement = format!(
-                "{} ADD COLUMN {} {} {}",
+                "{} ADD COLUMN {} {} {};",
                 alter_table, column_name, column_definition, nullable_keyword
             );
             migration_statements.push(migration_statement);
