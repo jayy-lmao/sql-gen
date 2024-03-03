@@ -55,6 +55,8 @@ pub fn convert_data_type(data_type: &str) -> &str {
         "varchar" => "String",
         "jsonb" => "sqlx::Json",
         "timestamptz" => "chrono::DateTime<chrono::Utc>",
+        "timestamp" => "chrono::NaiveDateTime",
+        "time" => "chrono::NaiveTime",
         "date" => "chrono::NaiveDate",
         "float4" => "f32",
         "float8" => "f64",
