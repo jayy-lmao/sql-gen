@@ -214,8 +214,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         println!("Done!");
 
-        let include_folder = matches.value_of("include").expect("no folder to include");
-        let output_folder = matches.value_of("output").expect("no output");
+        let include_folder = matches
+            .value_of("models")
+            .expect("no models folder to include");
+        let output_folder = matches
+            .value_of("migrations")
+            .expect("no migrations output");
 
         let mut database_url = matches
             .value_of("database")
