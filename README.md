@@ -93,10 +93,10 @@ Make sure to replace the values with your actual database connection URL and des
 To generate Rust structs and queries for a PostgreSQL database, use the `generate` command:
 
 ```shell
-sql-gen generate --output db --database <DATABASE_URL>
+sql-gen generate --output src/db --database <DATABASE_URL>
 ```
 
-Replace `<DATABASE_URL>` with the URL of your PostgreSQL database. The generated code will be saved in the `db` folder.
+Replace `<DATABASE_URL>` with the URL of your PostgreSQL database. The generated code will be saved in the `src/db` folder.
 
 **Example:**
 
@@ -113,14 +113,14 @@ CREATE TABLE customer (
 Running SQLGen with the `generate` command:
 
 ```shell
-sql-gen generate --output db --database postgresql://postgres:password@localhost/mydatabase
+sql-gen generate --output src/db --database postgresql://postgres:password@localhost/mydatabase
 ```
 
 This will generate the following Rust structs and queries (based on primary key, foreign keys, and unique fields):
 
 
 ```rust
-// in db/customer.rs
+// in src/db/customer.rs
 
 #[derive(sqlx::FromRow, Debug)]
 struct Customer {
@@ -129,7 +129,7 @@ struct Customer {
     pub email: Option<String>,
 }
 
-// in db/customer_db_set.rs
+// in src/db/customer_db_set.rs
 use sqlx::{query, query_as, PgExecutor, Result};
 use super::Customer;
 
@@ -214,7 +214,7 @@ impl CustomerSet {
 }
 
 
-// in db/mod.rs
+// in src/db/mod.rs
 pub mod customer;
 pub use customer::Customer;
 pub mod customer_db_set;
@@ -241,20 +241,11 @@ The suggested way to add customer queries etc would be to add them somewhere lik
 To generate SQL migrations based on changes in the structs, use the `migrate generate` command:
 
 ```shell
-sql-gen migrate generate --database <DATABASE_URL> --include <FOLDER_PATH> --output migrations
+sql-gen migrate generate --database <DATABASE_URL> --models <FOLDER_PATH> --migrations migrations
 ```
 
-Replace `<DATABASE_URL>` with the URL of your PostgreSQL database, `<FOLDER_PATH>` with the folder containing the generated structs (`db` in the previous example), and `migrations` with the output folder for the SQL migrations.
+Replace `<DATABASE_URL>` with the URL of your PostgreSQL database, `<FOLDER_PATH>` with the folder containing the generated structs (`src/db` in the previous example), and `migrations` with the output folder for the SQL migrations.
 
-**Example:**
-
-Running SQLGen with the `migrate generate` command:
-
-```shell
-sql-gen migrate generate --database postgresql://postgres:password@localhost/mydatabase --include db --output migrations
-```
-
-This will perform a dry run of the previous database generation, compare it with the existing structs in the `db` folder, and generate SQL migrations for any detected changes. The migrations will be saved in the `migrations` folder.
 
 **Example Migration:**
 
