@@ -11,8 +11,8 @@ This project draws inspiration from `rsdbgen` (GitHub: [brianhv/rsdbgen](https:/
 
 ## Use Cases
 
-- Generate Rust structs and queries for PostgreSQL database tables.
-- Generate SQL migrations based on changes in the structs.
+- Generate Rust structs and queries for PostgreSQL database tables or from migrations via a Postgres test container
+- Generate SQL migrations based on changes in the structs vs a database or migration via a Postgres test container
 - Handle nullable/optional fields in the generated code.
 - Optional `--force` flag to overwrite existing files.
 - Use environment variables instead of clap flags (optional).
