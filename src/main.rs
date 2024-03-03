@@ -141,6 +141,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = matcher.get_matches();
 
     let mut test_container_db_uri: Option<String> = None;
+    #[cfg(feature = "test-containers")]
+    let docker = testcontainers::clients::Cli::default();
+    #[cfg(feature = "test-containers")]
+    let container = docker.run(testcontainers_modules::postgres::Postgres::default());
+    #[cfg(feature = "test-containers")]
+    let connection_string = &format!(
+        "postgres://postgres:postgres@127.0.0.1:{}/postgres",
+        container.get_host_port_ipv4(5432)
+    );
+
+    #[cfg(feature = "test-containers")]
+    {
+        test_container_db_uri = Some(connection_string.to_string());
+    }
 
     if let Some(matches) = matches.subcommand_matches("generate") {
         #[cfg(feature = "test-containers")]
@@ -149,8 +163,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "Creating DB and applying migrations from {}",
                 input_migrations_folder
             );
-            let uri = migrate_to_temp_db(input_migrations_folder).await;
-            test_container_db_uri = Some(uri);
             println!("Done!")
         };
         let output_folder = matches.value_of("output").unwrap();
@@ -164,23 +176,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             matches.values_of("schema").map(|schemas| schemas.collect());
         let force = matches.is_present("force");
         generate::generate(output_folder, database_url, context, force, None, schemas).await?;
-
-        #[cfg(feature = "embedded")]
-        if let Some(mut pg) = pg_embed {
-            pg.stop_db().await.unwrap();
-        }
     } else if let Some(matches) = matches.subcommand_matches("migrate") {
-        #[cfg(feature = "embedded")]
-        let mut pg_embed: Option<pg_embed::postgres::PgEmbed> = None;
-        #[cfg(feature = "embedded")]
+        #[cfg(feature = "test-containers")]
         if let Some(input_migrations_folder) = matches.value_of("migrations") {
             println!(
                 "Creating DB and applying migrations from {}",
                 input_migrations_folder
             );
-            let (uri, pg) = migrate_to_temp_db(input_migrations_folder).await;
-            test_container_db_uri = Some(uri);
-            pg_embed = Some(pg);
             println!("Done!")
         };
         let include_folder = matches.value_of("include").unwrap();
@@ -193,42 +195,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let schemas: Option<Vec<&str>> =
             matches.values_of("schema").map(|schemas| schemas.collect());
         migrate::migrate(include_folder, output_folder, database_url, None, None).await?;
-
-        #[cfg(feature = "embedded")]
-        if let Some(mut pg) = pg_embed {
-            pg.stop_db().await.unwrap();
-        }
     }
+
     Ok(())
-}
-
-#[cfg(feature = "test-containers")]
-async fn migrate_to_temp_db(folder: &str) -> String {
-    // use testcontainers_modules::{postgres::Postgres, testcontainers::clients::Cli};
-
-    let docker = testcontainers::clients::Cli::default();
-    let node = docker.run(testcontainers_modules::postgres::Postgres::default());
-
-    // prepare connection string
-    let connection_string = &format!(
-        "postgres://postgres:postgres@127.0.0.1:{}/postgres",
-        node.get_host_port_ipv4(5432)
-    );
-    // container is up, you can use it
-    // let mut conn = postgres::Client::connect(connection_string, postgres::NoTls).unwrap();
-    let pool = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(5)
-        .connect(connection_string)
-        .await
-        .unwrap();
-
-    let rows = sqlx::query("SELECT 1 + 1").fetch_all(&pool).await.unwrap();
-    assert_eq!(rows.len(), 1);
-
-    let first_row = &rows[0];
-    let first_column: i32 = sqlx::Row::get(first_row, 0);
-    assert_eq!(first_column, 2);
-
-    // stop postgresql database
-    connection_string.to_string()
 }
