@@ -82,6 +82,8 @@ DATABASE_URL=postgres://username:password@localhost/mydatabase
 SQLGEN_MODEL_OUTPUT_FOLDER=./src/models/
 SQLGEN_MODEL_FOLDER=./src/models/
 SQLGEN_MIGRATION_OUTPUT=./migrations
+SQLGEN_MIGRATION_INPUT=./migrations
+
 ```
 
 Make sure to replace the values with your actual database connection URL and desired folder paths for generated structs and migrations.
