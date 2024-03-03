@@ -76,6 +76,7 @@ pub fn convert_data_type_from_pg(data_type: &str) -> &str {
         "String" => "text",
         "sqlx::Json" => "jsonb",
         "chrono::DateTime<chrono::Utc>" => "timestamptz",
+        "chrono::NaiveDateTime" => "timestamp",
         "DateTime<Utc>" => "timestamptz",
         "chrono::NaiveDate" => "date",
         "f32" => "float4",

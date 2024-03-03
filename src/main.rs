@@ -76,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Arg::with_name("include")
                 .short('i')
                 .long("include")
-                .default_value("./migrations")
+                .default_value("migrations")
                 .value_name("SQLGEN_MODEL_FOLDER")
                 .help("Sets the folder containing existing struct files")
                 .takes_value(true)
@@ -117,22 +117,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .help("Sets the database connection URL. Or use -d=docker to spin up a test contianer")
                 .takes_value(true)
         );
-    generate_subcommand = generate_subcommand.arg(
-        Arg::with_name("migrations")
-            .short('m')
-            .long("migrations")
-            .value_name("SQLGEN_MIGRATIONS_INPUT")
-            .help("The folder of migrations to apply")
-            .takes_value(true),
-    );
-    migrate_subcommand = migrate_subcommand.arg(
-        Arg::with_name("migrations")
-            .short('m')
-            .long("migrations")
-            .value_name("SQLGEN_MIGRATIONS_INPUT")
-            .help("The folder of migrations to apply")
-            .takes_value(true),
-    );
+    // generate_subcommand = generate_subcommand.arg(
+    //     Arg::with_name("migrations")
+    //         .short('m')
+    //         .long("migrations")
+    //         .value_name("SQLGEN_MIGRATIONS_INPUT")
+    //         .help("The folder of migrations to apply")
+    //         .takes_value(true),
+    // );
+    // migrate_subcommand = migrate_subcommand.arg(
+    //     Arg::with_name("migrations")
+    //         .short('m')
+    //         .long("migrations")
+    //         .value_name("SQLGEN_MIGRATIONS_INPUT")
+    //         .help("The folder of migrations to apply")
+    //         .takes_value(true),
+    // );
 
     let matcher = App::new("SQL Gen")
         .subcommand(generate_subcommand)
@@ -214,8 +214,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         println!("Done!");
 
-        let include_folder = matches.value_of("include").unwrap();
-        let output_folder = matches.value_of("output").unwrap_or("src/models.rs");
+        let include_folder = matches.value_of("include").expect("no folder to include");
+        let output_folder = matches.value_of("output").expect("no output");
 
         let mut database_url = matches
             .value_of("database")
@@ -230,6 +230,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
         let schemas: Option<Vec<&str>> =
             matches.values_of("schema").map(|schemas| schemas.collect());
+
+        println!("Finding new migration differences");
         migrate::migrate(include_folder, output_folder, database_url, None, None).await?;
     }
 
