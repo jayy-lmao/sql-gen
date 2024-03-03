@@ -17,6 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Arg::with_name("output")
                 .short('o')
                 .long("output")
+                .default_value("src/models/")
                 .value_name("SQLGEN_MODEL_OUTPUT_FOLDER")
                 .help("Sets the output folder for generated structs")
                 .takes_value(true)
@@ -26,6 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Arg::with_name("database")
                 .short('d')
                 .long("database")
+                .default_value("docker")
                 .value_name("DATABASE_URL")
                 .help(
                     "Sets the database connection URL. Or write docker to spin up a testcontainer",
@@ -75,6 +77,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Arg::with_name("include")
                 .short('i')
                 .long("include")
+                .default_value("./migrations")
                 .value_name("SQLGEN_MODEL_FOLDER")
                 .help("Sets the folder containing existing struct files")
                 .takes_value(true)
@@ -102,6 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Arg::with_name("output")
                 .short('o')
                 .long("output")
+                .default_value("src/models/")
                 .value_name("SQLGEN_MIGRATION_OUTPUT")
                 .help("Sets the output folder for migrations")
                 .takes_value(true)
@@ -111,6 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Arg::with_name("database")
                 .short('d')
                 .long("database")
+                .default_value("docker")
                 .value_name("DATABASE_URL")
                 .help("Sets the database connection URL. Or use -d=docker to spin up a test contianer")
                 .takes_value(true)
@@ -140,86 +145,92 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut test_container_db_uri: Option<String> = None;
 
-    println!("Starting docker");
-    #[cfg(feature = "test-containers")]
     let docker = testcontainers::clients::Cli::default();
-    println!("Running container");
-    #[cfg(feature = "test-containers")]
     let container = docker.run(testcontainers_modules::postgres::Postgres::default());
-    #[cfg(feature = "test-containers")]
     let connection_string = &format!(
         "postgres://postgres:postgres@127.0.0.1:{}/postgres",
         container.get_host_port_ipv4(5432)
     );
-
-    #[cfg(feature = "test-containers")]
     {
         test_container_db_uri = Some(connection_string.to_string());
     }
 
     if let Some(matches) = matches.subcommand_matches("generate") {
         println!("Running generate");
-        #[cfg(feature = "test-containers")]
-        if let Some(input_migrations_folder) = matches.value_of("migrations") {
-            println!(
-                "Creating DB and applying migrations from {}",
-                input_migrations_folder
-            );
+        let input_migrations_folder = matches.value_of("migrations").unwrap_or("./migrations");
 
-            let pool = sqlx::postgres::PgPoolOptions::new()
-                .max_connections(5)
-                .connect(test_container_db_uri.clone().expect("No db uri").as_str())
-                .await
-                .expect("could not create pool");
+        println!(
+            "Creating DB and applying migrations from {}",
+            input_migrations_folder
+        );
 
-            let migrations_path = std::path::Path::new(input_migrations_folder);
-            let migrator = sqlx::migrate::Migrator::new(migrations_path)
-                .await
-                .expect("Could not create migrations folder");
-            migrator.run(&pool).await.expect("could not run migration");
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(5)
+            .connect(test_container_db_uri.clone().expect("No db uri").as_str())
+            .await
+            .expect("could not create pool");
 
-            println!("Done!")
-        };
+        let migrations_path = std::path::Path::new(input_migrations_folder);
+        let migrator = sqlx::migrate::Migrator::new(migrations_path)
+            .await
+            .expect("Could not create migrations folder");
+        migrator.run(&pool).await.expect("could not run migration");
+
+        println!("Done!");
+
         println!("getting output folder");
 
-        let output_folder = matches.value_of("output").unwrap();
+        let output_folder = matches.value_of("output").unwrap_or("src/models/");
+
         let context = matches.value_of("context");
-        let database_url = matches
+
+        let mut database_url = matches
             .value_of("database")
-            .or(test_container_db_uri.as_deref())
             .expect("Must provide either a input migration folder or a database uri");
+
+        if database_url == "docker" {
+            database_url = test_container_db_uri
+                .as_deref()
+                .expect("No docker database url");
+        }
 
         let schemas: Option<Vec<&str>> =
             matches.values_of("schema").map(|schemas| schemas.collect());
         let force = matches.is_present("force");
         generate::generate(output_folder, database_url, context, force, None, schemas).await?;
     } else if let Some(matches) = matches.subcommand_matches("migrate") {
-        #[cfg(feature = "test-containers")]
-        if let Some(input_migrations_folder) = matches.value_of("migrations") {
-            println!(
-                "Creating DB and applying migrations from {}",
-                input_migrations_folder
-            );
-            let pool = sqlx::postgres::PgPoolOptions::new()
-                .max_connections(5)
-                .connect(test_container_db_uri.clone().expect("No db uri").as_str())
-                .await
-                .expect("could not create pool");
+        let input_migrations_folder = matches.value_of("migrations").unwrap_or("./migrations");
+        println!(
+            "Creating DB and applying migrations from {}",
+            input_migrations_folder
+        );
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(5)
+            .connect(test_container_db_uri.clone().expect("No db uri").as_str())
+            .await
+            .expect("could not create pool");
 
-            let migrations_path = std::path::Path::new(input_migrations_folder);
-            let migrator = sqlx::migrate::Migrator::new(migrations_path)
-                .await
-                .expect("Could not create migrations folder");
-            migrator.run(&pool).await.expect("could not run migration");
+        let migrations_path = std::path::Path::new(input_migrations_folder);
+        let migrator = sqlx::migrate::Migrator::new(migrations_path)
+            .await
+            .expect("Could not create migrations folder");
+        migrator.run(&pool).await.expect("could not run migration");
 
-            println!("Done!")
-        };
+        println!("Done!");
+
         let include_folder = matches.value_of("include").unwrap();
-        let output_folder = matches.value_of("output").unwrap();
-        let database_url = matches
+        let output_folder = matches.value_of("output").unwrap_or("src/models.rs");
+
+        let mut database_url = matches
             .value_of("database")
-            .or(test_container_db_uri.as_deref())
             .expect("Must provide either a input migration folder or a database uri");
+
+        if database_url == "docker" {
+            database_url = test_container_db_uri
+                .as_deref()
+                .expect("No docker database url");
+        }
+
         // let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
         let schemas: Option<Vec<&str>> =
             matches.values_of("schema").map(|schemas| schemas.collect());
