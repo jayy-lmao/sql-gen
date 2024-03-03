@@ -63,15 +63,15 @@ https://github.com/jayy-lmao/sql-gen/assets/32926722/ea3b9739-be8f-43e5-b48d-83d
 
 - `generate` subcommand options:
   - `-o, --models <SQLGEN_MODEL_OUTPUT_FOLDER>` - Sets the output folder for generated structs (required)
-  - `-d, --database <DATABASE_URL>` - Sets the database connection URL (required). Can be set as docker to spin up a testcontainer instance for applying migrations.
+  - `-d, --database <DATABASE_URL>` - Sets the database connection URL (required). Will default to docker to spin up a testcontainer instance for applying migrations (this will require docker CLI installed).
   - `-c, --context <SQLGEN_CONTEXT_NAME>` - The name of the context for calling functions. Defaults to DB name
   - `-f, --force` - Overwrites existing files sharing names in that folder
-  - `-m, --migrations <SQLGEN_MIGRATION_INPUT>` - Sets the input folder for migrations (only if using docker as the database)
+  - `-m, --migrations <SQLGEN_MIGRATION_INPUT>` - Sets the input folder for migrations (required only if using docker as the database, otherwise this will determine whether to bother running migrations before generating models and queries)
 
 - `migrate` subcommand options:
   - `-o, --models <SQLGEN_MODEL_FOLDER>` - Sets the folder containing existing struct files (required)
   - `-m, --migrations <SQLGEN_MIGRATION_OUTPUT>` - Sets the output folder for migrations (required)
-  - `-d, --database <DATABASE_URL>` - Sets the database connection URL (required). Can be set as docker to spin up a testcontainer instance for applying migrations.
+  - `-d, --database <DATABASE_URL>` - Sets the database connection URL (required). Will default to docker to spin up a testcontainer instance for applying migrations (this will require docker CLI installed).
 
 ### Example .env file
 
