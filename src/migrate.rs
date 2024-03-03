@@ -144,7 +144,7 @@ pub async fn generate_migration_code(
 
             let nullable_keyword = if *is_nullable { "" } else { "NOT NULL" };
             let migration_statement = format!(
-                "{} ADD COLUMN {} {} {}",
+                "{} ADD COLUMN {} {} {};",
                 alter_table, column_name, column_definition, nullable_keyword
             );
             migration_statements.push(migration_statement);
