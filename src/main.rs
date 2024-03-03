@@ -141,8 +141,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = matcher.get_matches();
 
     let mut test_container_db_uri: Option<String> = None;
+
+    println!("Starting docker");
     #[cfg(feature = "test-containers")]
     let docker = testcontainers::clients::Cli::default();
+    println!("Running container");
     #[cfg(feature = "test-containers")]
     let container = docker.run(testcontainers_modules::postgres::Postgres::default());
     #[cfg(feature = "test-containers")]
@@ -157,6 +160,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(matches) = matches.subcommand_matches("generate") {
+        println!("Running generate");
         #[cfg(feature = "test-containers")]
         if let Some(input_migrations_folder) = matches.value_of("migrations") {
             println!(
@@ -165,13 +169,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
             println!("Done!")
         };
+        println!("getting output folder");
+
         let output_folder = matches.value_of("output").unwrap();
         let context = matches.value_of("context");
         let database_url = matches
             .value_of("database")
             .or(test_container_db_uri.as_deref())
             .expect("Must provide either a input migration folder or a database uri");
-        // let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
+
         let schemas: Option<Vec<&str>> =
             matches.values_of("schema").map(|schemas| schemas.collect());
         let force = matches.is_present("force");
