@@ -117,22 +117,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .help("Sets the database connection URL. Or use -d=docker to spin up a test contianer")
                 .takes_value(true)
         );
-    // generate_subcommand = generate_subcommand.arg(
-    //     Arg::with_name("migrations")
-    //         .short('m')
-    //         .long("migrations")
-    //         .value_name("SQLGEN_MIGRATIONS_INPUT")
-    //         .help("The folder of migrations to apply")
-    //         .takes_value(true),
-    // );
-    // migrate_subcommand = migrate_subcommand.arg(
-    //     Arg::with_name("migrations")
-    //         .short('m')
-    //         .long("migrations")
-    //         .value_name("SQLGEN_MIGRATIONS_INPUT")
-    //         .help("The folder of migrations to apply")
-    //         .takes_value(true),
-    // );
+    generate_subcommand = generate_subcommand.arg(
+        Arg::with_name("migrations")
+            .short('m')
+            .long("migrations")
+            .value_name("SQLGEN_MIGRATIONS_INPUT")
+            .help("The folder of migrations to apply")
+            .takes_value(true),
+    );
 
     let matcher = App::new("SQL Gen")
         .subcommand(generate_subcommand)
