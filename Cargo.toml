@@ -13,7 +13,7 @@ chrono = "0.4"
 # regex = "1.5"
 tokio = { version = "1", features = ["full"] }
 dotenv = "0.15.0"
-pg-embed = { path = "pg-embed", optional = true}
-# rustfmt-nightly = "1.0"
+testcontainers = { version ="0.15.0", optional = true }
+testcontainers-modules = { version = "0.3.5", optional = true, features = ["postgres"] }
 [features]
-embedded = ["pg-embed"]
+test-containers = ["testcontainers", "testcontainers-modules"] 

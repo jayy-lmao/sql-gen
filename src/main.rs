@@ -10,7 +10,7 @@ mod utils;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
-    let is_embedded = cfg!(feature = "embedded");
+    let using_test_containers = cfg!(feature = "test-containers");
 
     let mut generate_subcommand = SubCommand::with_name("generate")
         .about("Generate structs and queries for tables")
@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .long("database")
                 .value_name("DATABASE_URL")
                 .help("Sets the database connection URL")
-                .required(!is_embedded)
+                .required(!using_test_containers)
                 .takes_value(true),
         )
         .arg(
@@ -114,9 +114,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .value_name("DATABASE_URL")
                 .help("Sets the database connection URL")
                 .takes_value(true)
-                .required(!is_embedded),
+                .required(!using_test_containers),
         );
-    if is_embedded {
+    if using_test_containers {
         generate_subcommand = generate_subcommand.arg(
             Arg::with_name("migrations")
                 .short('m')
@@ -140,28 +140,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .subcommand(migrate_subcommand);
     let matches = matcher.get_matches();
 
-    let mut embedded_db_uri: Option<String> = None;
+    let mut test_container_db_uri: Option<String> = None;
 
     if let Some(matches) = matches.subcommand_matches("generate") {
-        #[cfg(feature = "embedded")]
-        let mut pg_embed: Option<pg_embed::postgres::PgEmbed> = None;
-
-        #[cfg(feature = "embedded")]
+        #[cfg(feature = "test-containers")]
         if let Some(input_migrations_folder) = matches.value_of("migrations") {
             println!(
                 "Creating DB and applying migrations from {}",
                 input_migrations_folder
             );
-            let (uri, pg) = migrate_to_temp_db(input_migrations_folder).await;
-            embedded_db_uri = Some(uri);
-            pg_embed = Some(pg);
+            let uri = migrate_to_temp_db(input_migrations_folder).await;
+            test_container_db_uri = Some(uri);
             println!("Done!")
         };
         let output_folder = matches.value_of("output").unwrap();
         let context = matches.value_of("context");
         let database_url = matches
             .value_of("database")
-            .or(embedded_db_uri.as_deref())
+            .or(test_container_db_uri.as_deref())
             .expect("Must provide either a input migration folder or a database uri");
         // let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
         let schemas: Option<Vec<&str>> =
@@ -183,7 +179,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 input_migrations_folder
             );
             let (uri, pg) = migrate_to_temp_db(input_migrations_folder).await;
-            embedded_db_uri = Some(uri);
+            test_container_db_uri = Some(uri);
             pg_embed = Some(pg);
             println!("Done!")
         };
@@ -191,7 +187,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let output_folder = matches.value_of("output").unwrap();
         let database_url = matches
             .value_of("database")
-            .or(embedded_db_uri.as_deref())
+            .or(test_container_db_uri.as_deref())
             .expect("Must provide either a input migration folder or a database uri");
         // let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
         let schemas: Option<Vec<&str>> =
@@ -206,59 +202,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[cfg(feature = "embedded")]
-async fn migrate_to_temp_db(folder: &str) -> (String, pg_embed::postgres::PgEmbed) {
-    use std::path::PathBuf;
+#[cfg(feature = "test-containers")]
+async fn migrate_to_temp_db(folder: &str) -> String {
+    // use testcontainers_modules::{postgres::Postgres, testcontainers::clients::Cli};
 
-    let pg_settings = pg_embed::postgres::PgSettings {
-        // Where to store the postgresql database
-        database_dir: PathBuf::from("pg_data"),
-        port: 5435,
-        user: "postgres".to_string(),
-        password: "password".to_string(),
-        // authentication method
-        auth_method: pg_embed::pg_enums::PgAuthMethod::Plain,
-        // If persistent is false clean up files and directories on drop, otherwise keep them
-        persistent: false,
-        // duration to wait before terminating process execution
-        // pg_ctl start/stop and initdb timeout
-        // if set to None the process will not be terminated
-        timeout: Some(std::time::Duration::from_secs(15)),
-        // If migration sql scripts need to be run, the directory containing those scripts can be
-        // specified here with `Some(PathBuf(path_to_dir)), otherwise `None` to run no migrations.
-        // To enable migrations view the **Usage** section for details
-        migration_dir: Some(PathBuf::from(folder)),
-    };
+    let docker = testcontainers::clients::Cli::default();
+    let node = docker.run(testcontainers_modules::postgres::Postgres::default());
 
-    let fetch_settings = pg_embed::pg_fetch::PgFetchSettings {
-        version: pg_embed::pg_fetch::PG_V15,
-        ..Default::default()
-    };
-    let mut pg = pg_embed::postgres::PgEmbed::new(pg_settings, fetch_settings)
+    // prepare connection string
+    let connection_string = &format!(
+        "postgres://postgres:postgres@127.0.0.1:{}/postgres",
+        node.get_host_port_ipv4(5432)
+    );
+    // container is up, you can use it
+    // let mut conn = postgres::Client::connect(connection_string, postgres::NoTls).unwrap();
+    let pool = sqlx::postgres::PgPoolOptions::new()
+        .max_connections(5)
+        .connect(connection_string)
         .await
         .unwrap();
 
-    // Download, unpack, create password file and database cluster
-    println!("Setting up Postgres");
-    pg.setup().await.unwrap();
+    let rows = sqlx::query("SELECT 1 + 1").fetch_all(&pool).await.unwrap();
+    assert_eq!(rows.len(), 1);
 
-    // start postgresql database
-    println!("Starting Postgers");
-    pg.start_db().await.unwrap();
-
-    // create a new database
-    // to enable migrations view the [Usage] section for details
-    println!("Creating Database");
-    pg.create_database("postgres").await;
-    let pg_db_uri: String = pg.full_db_uri("postgres");
-    println!("Checking Database Exists");
-    pg.database_exists("postgres").await.unwrap();
-
-    // run migration sql scripts
-    // to enable migrations view [Usage] for details
-    println!("Migrating Database");
-    pg.migrate("postgres").await.unwrap();
+    let first_row = &rows[0];
+    let first_column: i32 = sqlx::Row::get(first_row, 0);
+    assert_eq!(first_column, 2);
 
     // stop postgresql database
-    (pg_db_uri, pg)
+    connection_string.to_string()
 }
