@@ -60,6 +60,7 @@ pub fn convert_data_type(data_type: &str) -> &str {
         "float8" => "f64",
         "uuid" => "uuid::Uuid",
         "boolean" => "bool",
+        "bool" => "bool",
         "bytea" => "Vec<u8>", // is this right?
         _ => panic!("Unknown type: {}", data_type),
     }
