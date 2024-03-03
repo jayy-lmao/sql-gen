@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use crate::{
     db_queries::get_table_columns,
     models::TableColumn,
-    utils::{convert_data_type_from_pg, parse_struct_fields, to_pascal_case},
+    utils::{convert_data_type, convert_data_type_from_pg, parse_struct_fields, to_pascal_case},
 };
 
 pub async fn migrate(
@@ -116,8 +116,8 @@ pub async fn generate_migration_code(
             let existing_nullable = table_row.is_nullable;
             let existing_type = &table_row.udt_name;
             // Compare data types and nullability
-            let column_definition = convert_data_type_from_pg(data_type);
-            if column_definition != existing_type || is_nullable != &existing_nullable {
+            if data_type != convert_data_type(existing_type) || is_nullable != &existing_nullable {
+                let column_definition = convert_data_type_from_pg(data_type);
                 let alter_table = format!("ALTER TABLE {}", table_name);
 
                 // Generate appropriate column definition
