@@ -47,34 +47,41 @@ pub fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String
 }
 
 pub fn convert_data_type(data_type: &str) -> &str {
+    if data_type.to_lowercase().contains("char(") {
+        return "String";
+    }
+
     match data_type {
-        "int8" => "i64",
-        "int4" => "i32",
-        "int2" => "i16",
-        "text" => "String",
-        "varchar" => "String",
-        "jsonb" => "sqlx::Json",
-        "timestamptz" => "chrono::DateTime<chrono::Utc>",
-        "timestamp" => "chrono::NaiveDateTime",
-        "time" => "chrono::NaiveTime",
-        "date" => "chrono::NaiveDate",
-        "float4" => "f32",
-        "float8" => "f64",
-        "uuid" => "uuid::Uuid",
-        "boolean" => "bool",
-        "bool" => "bool",
+        "bool" | "boolean" => "bool",
         "bytea" => "Vec<u8>", // is this right?
+        "char" => "i8",
+        "date" => "chrono::NaiveDate",
+        "float4" | "real" => "f32",
+        "float8" | "double precision" => "f64",
+        "int2" | "smallint" | "smallserial" => "i16",
+        "int4" | "int" | "serial" => "i32",
+        "int8" | "bigint" | "bigserial" => "i64",
+        "void" => "()",
+        "jsonb" | "json" => "serde_json::Value",
+        "text" | "varchar" | "name" | "citext" => "String",
+        "time" => "chrono::NaiveTime",
+        "timestamp" => "chrono::NaiveDateTime",
+        "timestamptz" => "chrono::DateTime<chrono::Utc>",
+        "uuid" => "uuid::Uuid",
         _ => panic!("Unknown type: {}", data_type),
     }
 }
 
 pub fn convert_data_type_from_pg(data_type: &str) -> &str {
+    if data_type.contains("Json<") {
+        return "jsonb";
+    }
     match data_type {
         "i64" => "int8",
         "i32" => "int4",
         "i16" => "int2",
         "String" => "text",
-        "sqlx::Json" => "jsonb",
+        "serde_json::Value" => "jsonb",
         "chrono::DateTime<chrono::Utc>" => "timestamptz",
         "chrono::NaiveDateTime" => "timestamp",
         "DateTime<Utc>" => "timestamptz",
