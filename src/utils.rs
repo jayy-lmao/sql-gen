@@ -50,8 +50,8 @@ pub fn convert_data_type(data_type: &str) -> String {
     if data_type.to_lowercase().contains("char(") {
         return "String".to_string();
     }
-    if data_type.ends_with("[]") {
-        let array_of_type = convert_data_type(&data_type[..data_type.len() - 2]);
+    if data_type.starts_with("_") {
+        let array_of_type = convert_data_type(&data_type[1..]);
         let vec_type = format!("Vec<{}>", array_of_type);
         return vec_type;
     }
