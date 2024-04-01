@@ -59,7 +59,7 @@ pub fn convert_data_type(data_type: &str) -> String {
     match data_type {
         "bool" | "boolean" => "bool",
         "bytea" => "Vec<u8>", // is this right?
-        "char" | "bpchar" | "character" => "String",
+        "char" | "bpchar" | "character" => "char",
         "date" => "chrono::NaiveDate",
         "float4" | "real" => "f32",
         "float8" | "double precision" => "f64",
