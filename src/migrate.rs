@@ -115,7 +115,7 @@ pub async fn generate_migration_code(
         if let Some(table_row) = matching_column {
             let existing_nullable = table_row.is_nullable;
             let existing_type = &table_row.udt_name;
-            if data_type != convert_data_type(existing_type) {
+            if data_type != &convert_data_type(existing_type) {
                 panic!("Data type {} does not match {}", data_type, existing_type);
             }
             // Compare data types and nullability

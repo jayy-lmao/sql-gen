@@ -35,7 +35,7 @@ pub fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String
             let mut data_type = convert_data_type(&row.udt_name);
             let optional_type = format!("Option<{}>", data_type);
             if row.is_nullable {
-                data_type = optional_type.as_str();
+                data_type = optional_type;
             }
 
             struct_code.push_str(&format!("  pub {}: {},\n", column_name, data_type));
@@ -46,9 +46,14 @@ pub fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String
     struct_code
 }
 
-pub fn convert_data_type(data_type: &str) -> &str {
+pub fn convert_data_type(data_type: &str) -> String {
     if data_type.to_lowercase().contains("char(") {
-        return "String";
+        return "String".to_string();
+    }
+    if data_type.ends_with("[]") {
+        let array_of_type = convert_data_type(&data_type[..data_type.len() - 2]);
+        let vec_type = format!("Vec<{}>", array_of_type);
+        return vec_type;
     }
 
     match data_type {
@@ -70,6 +75,7 @@ pub fn convert_data_type(data_type: &str) -> &str {
         "uuid" => "uuid::Uuid",
         _ => panic!("Unknown type: {}", data_type),
     }
+    .to_string()
 }
 
 pub fn convert_data_type_from_pg(data_type: &str) -> &str {
