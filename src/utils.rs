@@ -35,7 +35,7 @@ pub fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String
             let mut data_type = convert_data_type(&row.udt_name);
             let optional_type = format!("Option<{}>", data_type);
             if row.is_nullable {
-                data_type = optional_type.as_str();
+                data_type = optional_type;
             }
 
             struct_code.push_str(&format!("  pub {}: {},\n", column_name, data_type));
@@ -46,35 +46,52 @@ pub fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String
     struct_code
 }
 
-pub fn convert_data_type(data_type: &str) -> &str {
+pub fn convert_data_type(data_type: &str) -> String {
+    if data_type.to_lowercase().contains("char(") {
+        return "String".to_string();
+    }
+    if data_type.starts_with("_") {
+        let array_of_type = convert_data_type(&data_type[1..]);
+        let vec_type = format!("Vec<{}>", array_of_type);
+        return vec_type;
+    }
+
     match data_type {
-        "int8" => "i64",
-        "int4" => "i32",
-        "int2" => "i16",
-        "text" => "String",
-        "varchar" => "String",
-        "jsonb" => "sqlx::Json",
-        "timestamptz" => "chrono::DateTime<chrono::Utc>",
-        "timestamp" => "chrono::NaiveDateTime",
-        "time" => "chrono::NaiveTime",
-        "date" => "chrono::NaiveDate",
-        "float4" => "f32",
-        "float8" => "f64",
-        "uuid" => "uuid::Uuid",
-        "boolean" => "bool",
-        "bool" => "bool",
+        "bool" | "boolean" => "bool",
         "bytea" => "Vec<u8>", // is this right?
+        "char" => "i8",
+        "date" => "chrono::NaiveDate",
+        "float4" | "real" => "f32",
+        "float8" | "double precision" => "f64",
+        "int2" | "smallint" | "smallserial" => "i16",
+        "int4" | "int" | "serial" => "i32",
+        "int8" | "bigint" | "bigserial" => "i64",
+        "void" => "()",
+        "jsonb" | "json" => "serde_json::Value",
+        "text" | "varchar" | "name" | "citext" => "String",
+        "time" => "chrono::NaiveTime",
+        "timestamp" => "chrono::NaiveDateTime",
+        "timestamptz" => "chrono::DateTime<chrono::Utc>",
+        "uuid" => "uuid::Uuid",
         _ => panic!("Unknown type: {}", data_type),
     }
+    .to_string()
 }
 
-pub fn convert_data_type_from_pg(data_type: &str) -> &str {
+pub fn convert_data_type_from_pg(data_type: &str) -> String {
+    if data_type.contains("Json<") {
+        return "jsonb".to_string();
+    }
+    if data_type.contains("Vec<") {
+        let array_type = convert_data_type_from_pg(&data_type[4..data_type.len() - 1]);
+        return format!("{}[]", array_type);
+    }
     match data_type {
         "i64" => "int8",
         "i32" => "int4",
         "i16" => "int2",
         "String" => "text",
-        "sqlx::Json" => "jsonb",
+        "serde_json::Value" => "jsonb",
         "chrono::DateTime<chrono::Utc>" => "timestamptz",
         "chrono::NaiveDateTime" => "timestamp",
         "DateTime<Utc>" => "timestamptz",
@@ -86,6 +103,7 @@ pub fn convert_data_type_from_pg(data_type: &str) -> &str {
         "Vec<u8>" => "bytea", // is this right ?
         _ => panic!("Unknown type: {}", data_type),
     }
+    .to_string()
 }
 
 fn generate_query_code(_row: &TableColumn) -> String {
