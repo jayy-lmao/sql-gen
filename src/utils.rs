@@ -78,9 +78,13 @@ pub fn convert_data_type(data_type: &str) -> String {
     .to_string()
 }
 
-pub fn convert_data_type_from_pg(data_type: &str) -> &str {
+pub fn convert_data_type_from_pg(data_type: &str) -> String {
     if data_type.contains("Json<") {
-        return "jsonb";
+        return "jsonb".to_string();
+    }
+    if data_type.contains("Vec<") {
+        let array_type = convert_data_type_from_pg(&data_type[4..data_type.len() - 1]);
+        return format!("{}[]", array_type);
     }
     match data_type {
         "i64" => "int8",
@@ -99,6 +103,7 @@ pub fn convert_data_type_from_pg(data_type: &str) -> &str {
         "Vec<u8>" => "bytea", // is this right ?
         _ => panic!("Unknown type: {}", data_type),
     }
+    .to_string()
 }
 
 fn generate_query_code(_row: &TableColumn) -> String {
