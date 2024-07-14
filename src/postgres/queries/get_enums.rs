@@ -5,7 +5,7 @@ use sqlx::PgPool;
 use crate::{core::models::CustomEnum, postgres::models::postgres_enum::PostgresEnumRow};
 
 pub async fn get_postgres_enums(pool: &PgPool) -> Result<Vec<CustomEnum>, sqlx::Error> {
-    let query = r#"
+    let query = r"
         SELECT
             n.nspname AS schema,
             t.typname AS enum_type,
@@ -18,7 +18,7 @@ pub async fn get_postgres_enums(pool: &PgPool) -> Result<Vec<CustomEnum>, sqlx::
             n.nspname NOT IN ('pg_catalog', 'information_schema')
         ORDER BY
             schema, enum_type, e.enumsortorder;
-    "#;
+    ";
 
     let rows: Vec<PostgresEnumRow> = sqlx::query_as::<_, PostgresEnumRow>(query)
         .fetch_all(pool)

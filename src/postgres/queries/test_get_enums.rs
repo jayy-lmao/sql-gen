@@ -1,7 +1,6 @@
 use std::error::Error;
 
 use sqlx::postgres::PgPoolOptions;
-use testcontainers::{clients::Cli, core::WaitFor, GenericImage};
 
 use crate::{core::models::CustomEnum, postgres::queries::get_enums::get_postgres_enums};
 
@@ -44,33 +43,33 @@ async fn test_get_postgres_enums() -> Result<(), Box<dyn Error>> {
 
     // Initialize the database with enum types
     sqlx::query(
-        r#"
+        r"
         DROP TYPE IF EXISTS mood CASCADE;
-    "#,
+    ",
     )
     .execute(&pool)
     .await?;
 
     sqlx::query(
-        r#"
+        r"
         CREATE TYPE mood AS ENUM ('sad', 'ok', 'happy');
-    "#,
+    ",
     )
     .execute(&pool)
     .await?;
 
     sqlx::query(
-        r#"
+        r"
         DROP TYPE IF EXISTS weather CASCADE;
-    "#,
+    ",
     )
     .execute(&pool)
     .await?;
     sqlx::query(
-        r#"
+        r"
         CREATE TYPE weather AS ENUM ('sunny', 'rainy', 'cloudy');
 
-    "#,
+    ",
     )
     .execute(&pool)
     .await?;
