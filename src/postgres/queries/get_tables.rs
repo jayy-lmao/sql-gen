@@ -116,20 +116,21 @@ ORDER BY
         .bind(table_names)
         .fetch_all(pool)
         .await?;
-    let mut table_map: HashMap<String, Vec<TableColumn>> = HashMap::new();
+    let mut table_map: HashMap<(String, String), Vec<TableColumn>> = HashMap::new();
 
     for row in rows {
         table_map
-            .entry(row.table_name.clone())
+            .entry((row.table_name.clone(), row.table_schema.clone()))
             .or_default()
             .push(TableColumn::from(row));
     }
 
     let mut tables: Vec<Table> = Vec::new();
 
-    for (table_name, columns) in table_map {
+    for ((table_name, table_schema), columns) in table_map {
         tables.push(Table {
             table_name,
+            table_schema,
             columns,
         });
     }

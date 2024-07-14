@@ -1,11 +1,77 @@
 use std::error::Error;
 
-use sqlx::postgres::PgPoolOptions;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 
 use crate::{
-    core::models::{Table, TableColumn},
+    core::models::{Table, TableColumn, TableColumnBuilder},
     postgres::queries::get_tables::get_tables,
 };
+
+fn unique(
+    column_name: impl ToString,
+    udt_name: impl ToString,
+    data_type: impl ToString,
+) -> TableColumn {
+    TableColumn {
+        column_name: column_name.to_string(),
+        udt_name: udt_name.to_string(),
+        data_type: data_type.to_string(),
+        is_nullable: false,
+        is_unique: true,
+        is_primary_key: true,
+        foreign_key_table: None,
+        foreign_key_id: None,
+    }
+}
+
+fn nullable(
+    column_name: impl ToString,
+    udt_name: impl ToString,
+    data_type: impl ToString,
+) -> TableColumn {
+    TableColumn {
+        column_name: column_name.to_string(),
+        udt_name: udt_name.to_string(),
+        data_type: data_type.to_string(),
+        is_nullable: true,
+        is_unique: false,
+        is_primary_key: true,
+        foreign_key_table: None,
+        foreign_key_id: None,
+    }
+}
+
+fn non_nullable(
+    column_name: impl ToString,
+    udt_name: impl ToString,
+    data_type: impl ToString,
+) -> TableColumn {
+    TableColumn {
+        column_name: column_name.to_string(),
+        udt_name: udt_name.to_string(),
+        data_type: data_type.to_string(),
+        is_nullable: false,
+        is_unique: false,
+        is_primary_key: true,
+        foreign_key_table: None,
+        foreign_key_id: None,
+    }
+}
+
+async fn test_table(
+    pool: &PgPool,
+    statement: &str,
+    expected: Vec<Table>,
+) -> Result<(), Box<dyn Error>> {
+    sqlx::query(statement).execute(pool).await?;
+
+    let schemas = vec!["public"];
+    let table_names = None;
+    let tables = get_tables(pool, schemas, table_names).await?;
+
+    assert_eq!(tables, expected);
+    Ok(())
+}
 
 #[tokio::test]
 async fn test_get_postgres_tables() -> Result<(), Box<dyn Error>> {
@@ -26,82 +92,32 @@ async fn test_get_postgres_tables() -> Result<(), Box<dyn Error>> {
         .connect(&test_container_db_uri.expect("Did not create postgres string"))
         .await?;
 
-    sqlx::query(
-        r#"
-            CREATE SCHEMA test_schema;
-        "#,
+    let _ = test_table(
+        &pool,
+        "CREATE TABLE test_table (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE, description TEXT, parent_id INTEGER REFERENCES test_table (id));",
+        vec![Table {
+            table_name: "test_table".to_string(),
+            table_schema: "public".to_string(),
+            columns: vec![
+                TableColumnBuilder::new("id", "int4", "integer")
+                    .is_primary_key()
+                    .build(),
+                TableColumnBuilder::new("name", "varchar", "character varying")
+                    .is_unique()
+                    .is_nullable()
+                    .build(),
+                TableColumnBuilder::new("description", "text", "text")
+                    .is_nullable()
+                    .build(),
+                TableColumnBuilder::new("parent_id", "int4", "integer")
+                    .is_nullable()
+                    .foreign_key_table("test_table")
+                    .foreign_key_id("id")
+                    .build(),
+            ],
+        }],
     )
-    .execute(&pool)
-    .await?;
-
-    sqlx::query(
-        r#"
-            CREATE TABLE test_schema.test_table (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(255) UNIQUE,
-                description TEXT,
-                parent_id INTEGER REFERENCES test_schema.test_table (id)
-            );
-        "#,
-    )
-    .execute(&pool)
-    .await?;
-
-    let schemas = vec!["test_schema"];
-    let table_names = None;
-    let tables = get_tables(&pool, schemas, table_names).await?;
-
-    let expected = vec![Table {
-        table_name: "test_table".to_string(),
-        columns: vec![
-            TableColumn {
-                column_name: "id".to_string(),
-                udt_name: "int4".to_string(),
-                data_type: "integer".to_string(),
-                is_nullable: false,
-                is_unique: false,
-                is_primary_key: true,
-                foreign_key_table: None,
-                foreign_key_id: None,
-                table_schema: "test_schema".to_string(),
-            },
-            TableColumn {
-                column_name: "name".to_string(),
-                udt_name: "varchar".to_string(),
-                data_type: "character varying".to_string(),
-                is_nullable: true,
-                is_unique: true,
-                is_primary_key: false,
-                foreign_key_table: None,
-                foreign_key_id: None,
-                table_schema: "test_schema".to_string(),
-            },
-            TableColumn {
-                column_name: "description".to_string(),
-                udt_name: "text".to_string(),
-                data_type: "text".to_string(),
-                is_nullable: true,
-                is_unique: false,
-                is_primary_key: false,
-                foreign_key_table: None,
-                foreign_key_id: None,
-                table_schema: "test_schema".to_string(),
-            },
-            TableColumn {
-                column_name: "parent_id".to_string(),
-                udt_name: "int4".to_string(),
-                data_type: "integer".to_string(),
-                is_nullable: true,
-                is_unique: false,
-                is_primary_key: false,
-                foreign_key_table: Some("test_table".to_string()),
-                foreign_key_id: Some("id".to_string()),
-                table_schema: "test_schema".to_string(),
-            },
-        ],
-    }];
-
-    assert_eq!(tables, expected);
+    .await;
 
     Ok(())
 }

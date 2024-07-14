@@ -27,7 +27,6 @@ impl From<PostgresTableColumn> for TableColumn {
             is_primary_key: value.is_primary_key,
             foreign_key_table: value.foreign_key_table,
             foreign_key_id: value.foreign_key_id,
-            table_schema: value.table_schema,
         }
     }
 }
