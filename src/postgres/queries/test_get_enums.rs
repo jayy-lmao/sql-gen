@@ -9,11 +9,11 @@ use crate::{
 async fn test_get_postgres_enums() -> Result<(), Box<dyn Error>> {
     let pool = get_test_pool().await;
 
-    sqlx::query(" DROP TYPE IF EXISTS mood CASCADE;")
+    sqlx::query("DROP TYPE IF EXISTS mood CASCADE;")
         .execute(&pool)
         .await?;
 
-    sqlx::query(" CREATE TYPE mood AS ENUM ('sad', 'ok', 'happy');")
+    sqlx::query("CREATE TYPE mood AS ENUM ('sad', 'ok', 'happy');")
         .execute(&pool)
         .await?;
 
