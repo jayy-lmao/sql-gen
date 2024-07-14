@@ -69,7 +69,7 @@ async fn test_get_postgres_tables() -> Result<(), Box<dyn Error>> {
                 column_name: "name".to_string(),
                 udt_name: "varchar".to_string(),
                 data_type: "character varying".to_string(),
-                is_nullable: false,
+                is_nullable: true,
                 is_unique: true,
                 is_primary_key: false,
                 foreign_key_table: None,

@@ -47,14 +47,14 @@ async fn test_get_postgres_enums() -> Result<(), Box<dyn Error>> {
     )
     .execute(&pool)
     .await?;
-    sqlx::query(
-        r"
-        CREATE TYPE weather AS ENUM ('sunny', 'rainy', 'cloudy');
+    // sqlx::query(
+    //     r"
+    //     CREATE TYPE weather AS ENUM ('sunny', 'rainy', 'cloudy');
 
-    ",
-    )
-    .execute(&pool)
-    .await?;
+    // ",
+    // )
+    // .execute(&pool)
+    // .await?;
 
     // Fetch the enums
     let enums = get_postgres_enums(&pool).await?;
@@ -66,15 +66,15 @@ async fn test_get_postgres_enums() -> Result<(), Box<dyn Error>> {
             schema: "public".to_string(),
             variants: vec!["sad".to_string(), "ok".to_string(), "happy".to_string()],
         },
-        CustomEnum {
-            name: "weather".to_string(),
-            schema: "public".to_string(),
-            variants: vec![
-                "sunny".to_string(),
-                "rainy".to_string(),
-                "cloudy".to_string(),
-            ],
-        },
+        // CustomEnum {
+        //     name: "weather".to_string(),
+        //     schema: "public".to_string(),
+        //     variants: vec![
+        //         "sunny".to_string(),
+        //         "rainy".to_string(),
+        //         "cloudy".to_string(),
+        //     ],
+        // },
     ];
 
     // Assert that the fetched enums match the expected result

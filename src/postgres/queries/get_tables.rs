@@ -14,86 +14,101 @@ pub async fn get_tables(
 ) -> sqlx::Result<Vec<Table>> {
     // get all tables from the database
     let query = "
-select
+SELECT
     c.table_name,
     c.column_name,
     c.udt_name,
     c.data_type,
     c.table_schema,
-    c.is_nullable = 'yes' as is_nullable,
-    case
-        when k.column_name is not null then true
-        else false
-    end as is_primary_key,
-    case
-        when u.column_name is not null then true
-        else false
-    end as is_unique,
-    f.foreign_table_name as foreign_key_table,
-    f.foreign_column_name as foreign_key_id
-from
+    c.is_nullable = 'YES' AS is_nullable,
+    CASE
+        WHEN kcu.column_name IS NOT NULL THEN TRUE
+        ELSE FALSE
+    END AS is_primary_key,
+    CASE
+        WHEN u.column_name IS NOT NULL THEN TRUE
+        ELSE FALSE
+    END AS is_unique,
+    f.foreign_table_name AS foreign_key_table,
+    f.foreign_column_name AS foreign_key_id
+FROM
     information_schema.columns c
-left join
-    information_schema.key_column_usage k on
-    c.table_schema = k.table_schema and
-    c.table_name = k.table_name and
-    c.column_name = k.column_name and
-    k.constraint_name in (
-        select
-            constraint_name
-        from
-            information_schema.table_constraints
-        where
-            constraint_type = 'primary key'
-    )
-left join (
-    select
-        tc.table_schema,
-        tc.table_name,
-        kcu.column_name
-    from
-        information_schema.table_constraints as tc
-    join
-        information_schema.key_column_usage as kcu on
-        tc.constraint_schema = kcu.constraint_schema and
-        tc.constraint_name = kcu.constraint_name
-    where
-        tc.constraint_type = 'unique'
-) as u on
-    c.table_schema = u.table_schema and
-    c.table_name = u.table_name and
-    c.column_name = u.column_name
-left join (
-    select
-        tc.table_schema,
-        tc.table_name,
-        kcu.column_name,
-        ccu.table_name as foreign_table_name,
-        ccu.column_name as foreign_column_name
-    from
-        information_schema.table_constraints as tc
-    join
-        information_schema.key_column_usage as kcu on
-        tc.constraint_schema = kcu.constraint_schema and
-        tc.constraint_name = kcu.constraint_name
-    join
-        information_schema.constraint_column_usage as ccu on
-        ccu.constraint_schema = tc.constraint_schema and
-        ccu.constraint_name = tc.constraint_name
-    where
-        tc.constraint_type = 'foreign key'
-) as f on
-    c.table_schema = f.table_schema and
-    c.table_name = f.table_name and
-    c.column_name = f.column_name
-where
-    c.table_schema = any($1)
-    and c.table_name != '_sqlx_migrations'
-    and
-    ($2 is null or c.table_name = any($2))
-order by
+LEFT JOIN
+    (
+        SELECT
+            tc.table_schema,
+            tc.table_name,
+            kcu.column_name
+        FROM
+            information_schema.table_constraints AS tc
+        JOIN
+            information_schema.key_column_usage AS kcu
+        ON
+            tc.constraint_schema = kcu.constraint_schema
+            AND tc.constraint_name = kcu.constraint_name
+        WHERE
+            tc.constraint_type = 'PRIMARY KEY'
+    ) AS kcu
+ON
+    c.table_schema = kcu.table_schema
+    AND c.table_name = kcu.table_name
+    AND c.column_name = kcu.column_name
+LEFT JOIN
+    (
+        SELECT
+            tc.table_schema,
+            tc.table_name,
+            kcu.column_name
+        FROM
+            information_schema.table_constraints AS tc
+        JOIN
+            information_schema.key_column_usage AS kcu
+        ON
+            tc.constraint_schema = kcu.constraint_schema
+            AND tc.constraint_name = kcu.constraint_name
+        WHERE
+            tc.constraint_type = 'UNIQUE'
+    ) AS u
+ON
+    c.table_schema = u.table_schema
+    AND c.table_name = u.table_name
+    AND c.column_name = u.column_name
+LEFT JOIN
+    (
+        SELECT
+            tc.table_schema,
+            tc.table_name,
+            kcu.column_name,
+            ccu.table_name AS foreign_table_name,
+            ccu.column_name AS foreign_column_name
+        FROM
+            information_schema.table_constraints AS tc
+        JOIN
+            information_schema.key_column_usage AS kcu
+        ON
+            tc.constraint_schema = kcu.constraint_schema
+            AND tc.constraint_name = kcu.constraint_name
+        JOIN
+            information_schema.constraint_column_usage AS ccu
+        ON
+            ccu.constraint_schema = tc.constraint_schema
+            AND ccu.constraint_name = tc.constraint_name
+        WHERE
+            tc.constraint_type = 'FOREIGN KEY'
+    ) AS f
+ON
+    c.table_schema = f.table_schema
+    AND c.table_name = f.table_name
+    AND c.column_name = f.column_name
+WHERE
+    c.table_schema = ANY($1)
+    AND c.table_name != '_sqlx_migrations'
+    AND
+    ($2 IS NULL OR c.table_name = ANY($2))
+ORDER BY
     c.table_name,
     c.ordinal_position;
+
 ";
 
     let rows = sqlx::query_as::<_, PostgresTableColumn>(query)
