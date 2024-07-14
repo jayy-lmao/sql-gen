@@ -6,18 +6,6 @@ use crate::{core::models::CustomEnum, postgres::queries::get_enums::get_postgres
 
 #[tokio::test]
 async fn test_get_postgres_enums() -> Result<(), Box<dyn Error>> {
-    // Set up the testcontainers client
-    // let docker = Cli::default();
-
-    // // Set up the PostgreSQL container
-    // let postgres_image = GenericImage::new("postgres", "13-alpine")
-    //     .with_env_var("POSTGRES_USER", "test")
-    //     .with_env_var("POSTGRES_PASSWORD", "test")
-    //     .with_env_var("POSTGRES_DB", "test")
-    //     .with_wait_for(WaitFor::message_on_stdout(
-    //         "database system is ready to accept connections",
-    //     ));
-    // let container = docker.run(postgres_image);
     let mut test_container_db_uri: Option<String> = None;
 
     let docker = testcontainers::clients::Cli::default();
@@ -29,12 +17,6 @@ async fn test_get_postgres_enums() -> Result<(), Box<dyn Error>> {
     {
         test_container_db_uri = Some(connection_string.to_string());
     }
-
-    // Create a connection pool
-    // let db_url = format!(
-    //     "postgres://test:test@localhost:{}/test",
-    //     container.get_host_port_ipv4(5432)
-    // );
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
