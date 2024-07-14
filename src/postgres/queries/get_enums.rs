@@ -4,7 +4,7 @@ use sqlx::PgPool;
 
 use crate::{core::models::CustomEnum, postgres::models::postgres_enum::PostgresEnumRow};
 
-async fn get_enums(pool: &PgPool) -> Result<Vec<CustomEnum>, sqlx::Error> {
+pub async fn get_postgres_enums(pool: &PgPool) -> Result<Vec<CustomEnum>, sqlx::Error> {
     let query = r#"
         SELECT
             n.nspname AS schema,
@@ -45,4 +45,3 @@ async fn get_enums(pool: &PgPool) -> Result<Vec<CustomEnum>, sqlx::Error> {
 
     Ok(enums)
 }
-

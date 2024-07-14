@@ -13,7 +13,7 @@ pub struct TableColumn {
     pub(crate) table_schema: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct CustomEnum {
     pub(crate) name: String,
     pub(crate) schema: String,
