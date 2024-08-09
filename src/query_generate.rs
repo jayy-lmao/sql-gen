@@ -28,14 +28,14 @@ pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
     query_code.push_str(&format!("impl {}Set {{\n", struct_name));
 
     // Generate query code for SELECT statements
-    query_code.push_str(&generate_select_query_code(table_name, schema_name, rows));
+    query_code.push_str(&generate_select_query_code(table_name, schema_name, &rows));
     query_code.push('\n');
 
     // Generate query code for SELECT BY PK statements
     query_code.push_str(&generate_select_by_pk_query_code(
         table_name,
         schema_name,
-        rows,
+        &rows,
     ));
     query_code.push('\n');
 
@@ -43,7 +43,7 @@ pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
     query_code.push_str(&generate_select_many_by_pks_query_code(
         table_name,
         schema_name,
-        rows,
+        &rows,
     ));
     query_code.push('\n');
 
@@ -51,30 +51,30 @@ pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
     query_code.push_str(&generate_select_by_pk_query_code_optional(
         table_name,
         schema_name,
-        rows,
+        &rows,
     ));
     query_code.push('\n');
 
-    query_code.push_str(&generate_unique_query_code(table_name, schema_name, rows));
-    query_code.push('\n');
+    // query_code.push_str(&generate_unique_query_code(table_name, schema_name, &rows));
+    // query_code.push('\n');
 
     query_code.push_str(&generate_select_all_fk_queries(
         table_name,
         schema_name,
-        rows,
+        &rows,
     ));
     query_code.push('\n');
 
     // Generate query code for INSERT statements
-    query_code.push_str(&generate_insert_query_code(table_name, schema_name, rows));
+    query_code.push_str(&generate_insert_query_code(table_name, schema_name, &rows));
     query_code.push('\n');
 
     // Generate query code for UPDATE statements
-    query_code.push_str(&generate_update_query_code(table_name, schema_name, rows));
+    query_code.push_str(&generate_update_query_code(table_name, schema_name, &rows));
     query_code.push('\n');
 
     // Generate query code for DELETE statements
-    query_code.push_str(&generate_delete_query_code(table_name, schema_name, rows));
+    query_code.push_str(&generate_delete_query_code(table_name, schema_name, &rows));
     query_code.push('\n');
 
     query_code.push_str("}\n");
@@ -121,9 +121,14 @@ fn generate_select_by_pk_query_code(
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
         .map(|r| {
+            let column_name = if r.column_name.as_str() == "type" {
+                "r#type"
+            } else {
+                &r.column_name
+            };
             format!(
                 "{}: {}",
-                r.column_name,
+                column_name,
                 convert_data_type(r.udt_name.as_str())
             )
         })
@@ -146,7 +151,14 @@ fn generate_select_by_pk_query_code(
     let bind = rows
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
-        .map(|r| format!("            .bind({})\n", r.column_name))
+        .map(|r| {
+            let column_name = if r.column_name.as_str() == "type" {
+                "r#type"
+            } else {
+                &r.column_name
+            };
+            format!("            .bind({})\n", column_name)
+        })
         .collect::<Vec<String>>()
         .join("");
 
@@ -185,9 +197,14 @@ fn generate_select_many_by_pks_query_code(
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
         .map(|r| {
+            let column_name = if r.column_name.as_str() == "type" {
+                "r#type"
+            } else {
+                &r.column_name
+            };
             format!(
                 "{}_list: Vec<{}>",
-                r.column_name,
+                column_name,
                 convert_data_type(r.udt_name.as_str())
             )
         })
@@ -210,7 +227,14 @@ fn generate_select_many_by_pks_query_code(
     let bind = rows
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
-        .map(|r| format!("            .bind({}_list)\n", r.column_name))
+        .map(|r| {
+            let column_name = if r.column_name.as_str() == "type" {
+                "r#type"
+            } else {
+                &r.column_name
+            };
+            format!("            .bind({}_list)\n", column_name)
+        })
         .collect::<Vec<String>>()
         .join("");
 
@@ -244,9 +268,14 @@ fn generate_select_by_pk_query_code_optional(
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
         .map(|r| {
+            let column_name = if r.column_name.as_str() == "type" {
+                "r#type"
+            } else {
+                &r.column_name
+            };
             format!(
                 "{}: {}",
-                r.column_name,
+                column_name,
                 convert_data_type(r.udt_name.as_str())
             )
         })
@@ -271,7 +300,14 @@ fn generate_select_by_pk_query_code_optional(
     let bind = rows
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
-        .map(|r| format!("            .bind({})\n", r.column_name))
+        .map(|r| {
+            let column_name = if r.column_name.as_str() == "type" {
+                "r#type"
+            } else {
+                &r.column_name
+            };
+            format!("            .bind({})\n", column_name)
+        })
         .collect::<Vec<String>>()
         .join("");
 
@@ -337,9 +373,14 @@ fn generate_select_by_unique_query_code(
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
         .map(|r| {
+            let column_name = if r.column_name.as_str() == "type" {
+                "r#type"
+            } else {
+                &r.column_name
+            };
             format!(
                 "{}: {}",
-                r.column_name,
+                column_name,
                 convert_data_type(r.udt_name.as_str())
             )
         })
@@ -347,7 +388,7 @@ fn generate_select_by_unique_query_code(
         .join(", ");
 
     select_code.push_str(&format!(
-        "    pub async fn by_{}<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<{}> {{\n",
+        "    pub async fn unique_by_{}<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<{}> {{\n",
         unique_name, fn_args, struct_name
     ));
 
@@ -362,7 +403,14 @@ fn generate_select_by_unique_query_code(
     let bind = rows
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
-        .map(|r| format!("            .bind({})\n", r.column_name))
+        .map(|r| {
+            let column_name = if r.column_name.as_str() == "type" {
+                "r#type"
+            } else {
+                &r.column_name
+            };
+            format!("            .bind({})\n", column_name)
+        })
         .collect::<Vec<String>>()
         .join("");
 
@@ -396,9 +444,14 @@ fn generate_select_many_by_uniques_query_code(
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
         .map(|r| {
+            let column_name = if r.column_name.as_str() == "type" {
+                "r#type"
+            } else {
+                &r.column_name
+            };
             format!(
                 "{}_list: Vec<{}>",
-                r.column_name,
+                column_name,
                 convert_data_type(r.udt_name.as_str())
             )
         })
@@ -406,7 +459,7 @@ fn generate_select_many_by_uniques_query_code(
         .join(", ");
 
     select_code.push_str(&format!(
-        "    pub async fn many_by_{}_list<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<Vec<{}>> {{\n",
+        "    pub async fn unique_many_by_{}_list<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<Vec<{}>> {{\n",
         unique_name, fn_args, struct_name
     ));
 
@@ -421,7 +474,14 @@ fn generate_select_many_by_uniques_query_code(
     let bind = rows
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
-        .map(|r| format!("            .bind({}_list)\n", r.column_name))
+        .map(|r| {
+            let column_name = if r.column_name.as_str() == "type" {
+                "r#type"
+            } else {
+                &r.column_name
+            };
+            format!("            .bind({}_list)\n", column_name)
+        })
         .collect::<Vec<String>>()
         .join("");
 
@@ -450,9 +510,14 @@ fn generate_select_by_unique_query_code_optional(
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
         .map(|r| {
+            let column_name = if r.column_name.as_str() == "type" {
+                "r#type"
+            } else {
+                &r.column_name
+            };
             format!(
                 "{}: {}",
-                r.column_name,
+                column_name,
                 convert_data_type(r.udt_name.as_str())
             )
         })
@@ -460,7 +525,7 @@ fn generate_select_by_unique_query_code_optional(
         .join(", ");
 
     select_code.push_str(&format!(
-        "    pub async fn by_{}_optional<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<Option<{}>> {{\n",
+        "    pub async fn unique_by_{}_optional<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<Option<{}>> {{\n",
         unique_name,
         fn_args,
         struct_name
@@ -477,7 +542,14 @@ fn generate_select_by_unique_query_code_optional(
     let bind = rows
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
-        .map(|r| format!("            .bind({})\n", r.column_name))
+        .map(|r| {
+            let column_name = if r.column_name.as_str() == "type" {
+                "r#type"
+            } else {
+                &r.column_name
+            };
+            format!("            .bind({})\n", column_name)
+        })
         .collect::<Vec<String>>()
         .join("");
 
@@ -543,7 +615,7 @@ fn generate_select_by_fk_query_code(
     select_code.push_str(&format!(
         "    pub async fn all_by_{}_{}<'e, E: PgExecutor<'e>>(executor: E, {}_{}: {}) -> Result<Vec<{}>> {{\n",
         to_snake_case(foreign_row_table_name),
-        foreign_row_column_name,
+        to_snake_case(column_name),
         to_snake_case(foreign_row_table_name),
         foreign_row_column_name,
         data_type,
@@ -569,6 +641,7 @@ fn generate_select_by_fk_query_code(
 fn generate_insert_query_code(table_name: &str, schema_name: &str, rows: &[TableColumn]) -> String {
     let struct_name = to_pascal_case(table_name);
     let mut insert_code = String::new();
+
     insert_code.push_str(&format!(
         "    pub async fn insert<'e, E: PgExecutor<'e>>(&self, executor: E, {}: {}) -> Result<{}> {{\n",
         to_snake_case(table_name),
@@ -659,10 +732,15 @@ fn generate_value_list(table_name: &str, rows: &[TableColumn]) -> String {
     rows.iter()
         .filter(|row| row.table_name == table_name)
         .map(|row| {
+            let column_name = if row.column_name.as_str() == "type" {
+                "r#type"
+            } else {
+                &row.column_name
+            };
             format!(
                 ".bind({}.{})",
                 to_snake_case(&row.table_name),
-                to_snake_case(&row.column_name)
+                to_snake_case(column_name)
             )
         })
         .collect::<Vec<_>>()

@@ -15,6 +15,7 @@ pub async fn generate(
     context: Option<&str>,
     force: bool,
     include_tables: Option<Vec<&str>>,
+    exclude_tables: Vec<String>,
     schemas: Option<Vec<&str>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Connect to the Postgres database
@@ -36,7 +37,12 @@ pub async fn generate(
     for row in &rows {
         unique.insert(row.table_name.clone());
     }
-    let tables: Vec<String> = unique.into_iter().collect::<Vec<String>>();
+    let tables: Vec<String> = unique
+        .into_iter()
+        .collect::<Vec<String>>()
+        .into_iter()
+        .filter(|e| !exclude_tables.contains(e))
+        .collect();
 
     println!("Outputting tables: {:?}", tables);
 

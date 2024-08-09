@@ -31,11 +31,14 @@ pub fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String
 
     for row in rows {
         if row.table_name == table_name {
-            let column_name = to_snake_case(&row.column_name);
+            let mut column_name = to_snake_case(&row.column_name);
             let mut data_type = convert_data_type(&row.udt_name);
             let optional_type = format!("Option<{}>", data_type);
             if row.is_nullable {
                 data_type = optional_type;
+            }
+            if column_name.as_str() == "type" {
+                column_name = String::from("r#type");
             }
 
             struct_code.push_str(&format!("  pub {}: {},\n", column_name, data_type));
@@ -60,18 +63,19 @@ pub fn convert_data_type(data_type: &str) -> String {
         "bool" | "boolean" => "bool",
         "bytea" => "Vec<u8>", // is this right?
         "char" | "bpchar" | "character" => "String",
-        "date" => "chrono::NaiveDate",
+        "date" => "time::Date",
         "float4" | "real" => "f32",
-        "float8" | "double precision" => "f64",
+        "float8" | "double precision" | "numeric" => "f64",
         "int2" | "smallint" | "smallserial" => "i16",
         "int4" | "int" | "serial" => "i32",
         "int8" | "bigint" | "bigserial" => "i64",
         "void" => "()",
         "jsonb" | "json" => "serde_json::Value",
-        "text" | "varchar" | "name" | "citext" => "String",
-        "time" => "chrono::NaiveTime",
-        "timestamp" => "chrono::NaiveDateTime",
-        "timestamptz" => "chrono::DateTime<chrono::Utc>",
+        "text" | "_text" | "varchar" | "name" | "citext" => "String",
+        "time" => "time::Time",
+        "timestamp" => "time::OffsetDateTime",
+        "timestamptz" => "time::OffsetDateTime",
+        "interval" => "sqlx::postgres::types::PgInterval",
         "uuid" => "uuid::Uuid",
         _ => panic!("Unknown type: {}", data_type),
     }

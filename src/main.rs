@@ -69,6 +69,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .help("Specify the table name(s)"),
         )
         .arg(
+            Arg::with_name("exclude")
+                .short('e')
+                .long("exclude")
+                .takes_value(true)
+                .value_name("SQLGEN_EXCLUDE")
+                .multiple(true)
+                .use_delimiter(true)
+                .help("Specify the excluded table name(s)"),
+        )
+        .arg(
             Arg::new("force")
                 .short('f')
                 .long("force")
@@ -195,7 +205,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let schemas: Option<Vec<&str>> =
             matches.values_of("schema").map(|schemas| schemas.collect());
         let force = matches.is_present("force");
-        generate::generate(output_folder, database_url, context, force, None, schemas).await?;
+        let include_tables = matches.values_of("table").map(|v| v.collect::<Vec<&str>>());
+        let exclude_tables = matches
+            .values_of("exclude")
+            .map(|v| {
+                v.into_iter()
+                    .map(|e| e.to_string())
+                    .collect::<Vec<String>>()
+            })
+            .unwrap_or(vec![]);
+
+        if !exclude_tables.is_empty() {
+            println!("Excluding tables: {:?}", exclude_tables);
+        }
+
+        generate::generate(
+            output_folder,
+            database_url,
+            context,
+            force,
+            include_tables,
+            exclude_tables,
+            schemas,
+        )
+        .await?;
     } else if let Some(matches) = matches.subcommand_matches("migrate") {
         let input_migrations_folder = matches.value_of("migrations").unwrap_or("./migrations");
         println!(
