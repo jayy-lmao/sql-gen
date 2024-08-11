@@ -10,6 +10,7 @@ use crate::utils::{generate_struct_code, to_pascal_case, to_snake_case};
 use crate::query_generate::generate_query_code;
 
 pub async fn generate(
+    enable_serde: bool,
     output_folder: &str,
     database_url: &str,
     context: Option<&str>,
@@ -54,7 +55,7 @@ pub async fn generate(
             }
         }
         // Generate the struct code based on the row
-        let struct_code = generate_struct_code(&table, &rows);
+        let struct_code = generate_struct_code(&table, &rows, enable_serde);
 
         // Generate the query code based on the row
         let query_code = generate_query_code(&table, &rows);

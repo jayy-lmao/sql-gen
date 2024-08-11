@@ -23,6 +23,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("serde")
+                .long("serde")
+                .default_value("true")
+                .value_name("SQLGEN_ENABLE_SERDE")
+                .help("Adds Serde derices to created structs")
+                .takes_value(false),
+        )
+        .arg(
             Arg::with_name("migrations")
                 .short('m')
                 .long("migrations")
@@ -219,7 +227,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("Excluding tables: {:?}", exclude_tables);
         }
 
+        let enable_serde = matches.is_present("serde");
+
         generate::generate(
+            enable_serde,
             output_folder,
             database_url,
             context,
