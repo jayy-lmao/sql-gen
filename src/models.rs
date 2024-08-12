@@ -12,3 +12,9 @@ pub struct TableColumn {
     // #todo
     pub(crate) table_schema: String,
 }
+
+#[derive(sqlx::FromRow, Clone)]
+pub struct UserDefinedEnums {
+    pub(crate) enum_name: String,
+    pub(crate) enum_value: String,
+}

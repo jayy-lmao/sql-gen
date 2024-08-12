@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 
-use crate::models::TableColumn;
+use crate::models::{TableColumn, UserDefinedEnums};
 
 pub async fn get_table_columns(
     pool: &PgPool,
@@ -86,7 +86,6 @@ WHERE
     AND c.table_name != '_sqlx_migrations'
     AND
     ($2 IS NULL OR c.table_name = ANY($2))
-    AND c.data_type != 'USER-DEFINED'
 ORDER BY
     c.table_name,
     c.ordinal_position;
@@ -95,6 +94,31 @@ ORDER BY
     let rows = sqlx::query_as::<_, TableColumn>(query)
         .bind(schemas)
         .bind(table_names)
+        .fetch_all(pool)
+        .await?;
+    Ok(rows)
+}
+
+pub async fn get_user_defined_enums(
+    udt_names: &Vec<String>,
+    pool: &PgPool,
+) -> sqlx::Result<Vec<UserDefinedEnums>> {
+    let query = "
+        SELECT
+            t.typname AS enum_name,
+            e.enumlabel AS enum_value
+        FROM
+            pg_type t
+            JOIN pg_enum e ON t.oid = e.enumtypid
+        WHERE
+            t.typname = ANY($1)
+        ORDER BY
+            t.typname,
+            e.enumsortorder;
+            ";
+
+    let rows = sqlx::query_as::<_, UserDefinedEnums>(query)
+        .bind(udt_names)
         .fetch_all(pool)
         .await?;
     Ok(rows)

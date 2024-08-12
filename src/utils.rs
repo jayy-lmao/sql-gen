@@ -1,4 +1,4 @@
-use crate::models::TableColumn;
+use crate::models::{TableColumn, UserDefinedEnums};
 
 pub(crate) fn to_snake_case(input: &str) -> String {
     let mut output = String::new();
@@ -18,6 +18,38 @@ pub(crate) fn to_snake_case(input: &str) -> String {
     }
 
     output
+}
+
+pub fn generate_enum_code(
+    enum_name: &str,
+    enum_rows: &Vec<UserDefinedEnums>,
+    enable_serde: bool,
+) -> String {
+    let rs_enum_name = to_pascal_case(enum_name);
+    let mut enum_code = String::new();
+
+    let serde_derives = if enable_serde {
+        ", serde::Serialize, serde::Deserialize"
+    } else {
+        ""
+    };
+    enum_code.push_str(&format!(
+        "#[derive(sqlx::Type, Debug, Clone, Eq, PartialEq{})]\n",
+        serde_derives
+    ));
+    enum_code.push_str(&format!(r#"#[sqlx(type_name = "{}")]"#, enum_name));
+    enum_code.push_str("\n");
+    enum_code.push_str(&format!("pub enum {} {{\n", rs_enum_name));
+
+    for row in enum_rows.iter().filter(|e| &e.enum_name == enum_name) {
+        enum_code.push_str(&format!(r#"  #[sqlx(rename = "{}")]"#, row.enum_value));
+        enum_code.push_str("\n");
+        enum_code.push_str(&format!("  {},\n", to_pascal_case(&row.enum_value)))
+    }
+
+    enum_code.push_str("}\n");
+
+    enum_code
 }
 
 pub fn generate_struct_code(
@@ -72,6 +104,8 @@ pub fn convert_data_type(data_type: &str) -> String {
         return vec_type;
     }
 
+    let if_else = format!("crate::{}", to_pascal_case(data_type));
+
     match data_type {
         "bool" | "boolean" => "bool",
         "bytea" => "Vec<u8>", // is this right?
@@ -84,13 +118,13 @@ pub fn convert_data_type(data_type: &str) -> String {
         "int8" | "bigint" | "bigserial" => "i64",
         "void" => "()",
         "jsonb" | "json" => "serde_json::Value",
-        "text" | "_text" | "varchar" | "name" | "citext" => "String",
+        "text" | "_text" | "varchar" | "name" | "citext" | "geometry" => "String",
         "time" => "time::Time",
         "timestamp" => "time::OffsetDateTime",
         "timestamptz" => "time::OffsetDateTime",
         "interval" => "sqlx::postgres::types::PgInterval",
         "uuid" => "uuid::Uuid",
-        _ => panic!("Unknown type: {}", data_type),
+        _ => if_else.as_str(),
     }
     .to_string()
 }

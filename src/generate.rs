@@ -3,9 +3,9 @@ use sqlx::PgPool;
 use std::fs;
 use std::path::Path;
 
-use crate::db_queries::get_table_columns;
+use crate::db_queries::{get_table_columns, get_user_defined_enums};
 use crate::models::TableColumn;
-use crate::utils::{generate_struct_code, to_pascal_case, to_snake_case};
+use crate::utils::{generate_enum_code, generate_struct_code, to_pascal_case, to_snake_case};
 
 use crate::query_generate::generate_query_code;
 
@@ -30,7 +30,23 @@ pub async fn generate(
 
     let default_schema = "public";
     let rows = get_table_columns(&pool, schemas.unwrap_or(vec![default_schema]), None).await?;
+    let user_defined = rows
+        .iter()
+        .filter_map(|e| {
+            if e.data_type.as_str() == "USER-DEFINED" && e.udt_name.as_str() != "geometry" {
+                Some(e.udt_name.clone())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<String>>();
 
+    let enum_rows = get_user_defined_enums(&user_defined, &pool).await?;
+    let mut unique_enums = std::collections::BTreeSet::new();
+    for row in &enum_rows {
+        unique_enums.insert(row.enum_name.clone());
+    }
+    let enums = unique_enums.into_iter().collect::<Vec<String>>();
     // Create the output folder if it doesn't exist
     fs::create_dir_all(output_folder)?;
 
@@ -45,7 +61,17 @@ pub async fn generate(
         .filter(|e| !exclude_tables.contains(e))
         .collect();
 
+    if !enums.is_empty() {
+        println!("Outputting user defined enums: {:?}", enums);
+    }
     println!("Outputting tables: {:?}", tables);
+
+    let mut rs_enums = Vec::new();
+
+    for user_enum in enums {
+        let enum_code = generate_enum_code(&user_enum, &enum_rows, enable_serde);
+        rs_enums.push(enum_code);
+    }
 
     // Generate structs and queries for each table
     for table in &tables {
@@ -82,18 +108,28 @@ pub async fn generate(
         }
     }
 
-    let context_code = generate_db_context(context.unwrap_or(&database_name), &tables, &rows);
+    let context_code =
+        generate_db_context(context.unwrap_or(&database_name), &rs_enums, &tables, &rows);
     let context_file_path = format!("{}/mod.rs", output_folder);
     fs::write(context_file_path, context_code)?;
     Ok(())
 }
 
-fn generate_db_context(database_name: &str, tables: &[String], _rows: &[TableColumn]) -> String {
+fn generate_db_context(
+    database_name: &str,
+    enums: &[String],
+    tables: &[String],
+    _rows: &[TableColumn],
+) -> String {
     let mut db_context_code = String::new();
 
     db_context_code.push_str("#![allow(dead_code)]\n");
     db_context_code
         .push_str("// Generated with sql-gen\n//https://github.com/jayy-lmao/sql-gen\n\n");
+    for enum_item in enums {
+        db_context_code.push_str(enum_item);
+        db_context_code.push_str("\n\n");
+    }
     for table in tables {
         db_context_code.push_str(&format!("pub mod {};\n", to_snake_case(table)));
         db_context_code.push_str(&format!(
