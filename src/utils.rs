@@ -1,4 +1,56 @@
-use crate::models::{TableColumn, UserDefinedEnums};
+use crate::{
+    models::{TableColumn, UserDefinedEnums},
+    STATE,
+};
+
+#[derive(Debug)]
+pub(crate) enum DateTimeLib {
+    Time,
+    Chrono,
+}
+
+impl DateTimeLib {
+    pub(crate) fn date_type(&self) -> &str {
+        match self {
+            DateTimeLib::Time => "time::Date",
+            DateTimeLib::Chrono => "chrono::NaiveDate",
+        }
+    }
+    pub(crate) fn time_type(&self) -> &str {
+        match self {
+            DateTimeLib::Time => "time::Time",
+            DateTimeLib::Chrono => "chrono::NaiveTime",
+        }
+    }
+    pub(crate) fn timestamp_type(&self) -> &str {
+        match self {
+            DateTimeLib::Time => "time::OffsetDateTime",
+            DateTimeLib::Chrono => "chrono::NaiveDateTime",
+        }
+    }
+    pub(crate) fn timestampz_type(&self) -> &str {
+        match self {
+            DateTimeLib::Time => "time::OffsetDateTime",
+            DateTimeLib::Chrono => "chrono::DateTime<chrono::Utc>",
+        }
+    }
+}
+
+impl From<String> for DateTimeLib {
+    fn from(value: String) -> Self {
+        if value == "chrono" {
+            DateTimeLib::Chrono
+        } else {
+            DateTimeLib::Time
+        }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct SqlGenState {
+    pub user_defined: Vec<String>,
+    pub date_time_lib: DateTimeLib,
+}
 
 pub(crate) fn to_snake_case(input: &str) -> String {
     let mut output = String::new();
@@ -76,17 +128,16 @@ pub fn generate_struct_code(
 
     for row in rows {
         if row.table_name == table_name {
-            let mut column_name = to_snake_case(&row.column_name);
+            let column_name = to_snake_case(&row.column_name);
             let mut data_type = convert_data_type(&row.udt_name);
-            let optional_type = format!("Option<{}>", data_type);
             if row.is_nullable {
-                data_type = optional_type;
+                data_type = format!("Option<{}>", data_type);
             }
-            if column_name.as_str() == "type" {
-                column_name = String::from("r#type");
-            }
-
-            struct_code.push_str(&format!("  pub {}: {},\n", column_name, data_type));
+            struct_code.push_str(&format!(
+                "  pub {}: {},\n",
+                rust_type_fix(column_name.as_str()),
+                data_type
+            ));
         }
     }
     struct_code.push_str("}\n");
@@ -103,14 +154,13 @@ pub fn convert_data_type(data_type: &str) -> String {
         let vec_type = format!("Vec<{}>", array_of_type);
         return vec_type;
     }
-
-    let if_else = format!("crate::{}", to_pascal_case(data_type));
+    let state = STATE.get().unwrap();
 
     match data_type {
         "bool" | "boolean" => "bool",
         "bytea" => "Vec<u8>", // is this right?
         "char" | "bpchar" | "character" => "String",
-        "date" => "time::Date",
+        "date" => state.date_time_lib.date_type(),
         "float4" | "real" => "f32",
         "float8" | "double precision" | "numeric" => "f64",
         "int2" | "smallint" | "smallserial" => "i16",
@@ -118,13 +168,20 @@ pub fn convert_data_type(data_type: &str) -> String {
         "int8" | "bigint" | "bigserial" => "i64",
         "void" => "()",
         "jsonb" | "json" => "serde_json::Value",
-        "text" | "_text" | "varchar" | "name" | "citext" | "geometry" => "String",
-        "time" => "time::Time",
-        "timestamp" => "time::OffsetDateTime",
-        "timestamptz" => "time::OffsetDateTime",
+        "text" | "_text" | "varchar" | "name" | "citext" => "String",
+        "geometry" => "String", // when sqlx supports geo types we could change this
+        "time" => state.date_time_lib.time_type(),
+        "timestamp" => state.date_time_lib.timestamp_type(),
+        "timestamptz" => state.date_time_lib.timestampz_type(),
         "interval" => "sqlx::postgres::types::PgInterval",
         "uuid" => "uuid::Uuid",
-        _ => if_else.as_str(),
+        _ => {
+            if state.user_defined.contains(&data_type.to_string()) {
+                return format!("crate::{}", to_pascal_case(data_type));
+            } else {
+                panic!("Unknown type: {}", data_type)
+            }
+        }
     }
     .to_string()
 }
@@ -221,4 +278,12 @@ pub fn to_pascal_case(input: &str) -> String {
     }
 
     output
+}
+
+pub(crate) fn rust_type_fix(column_name: &str) -> String {
+    if column_name == "type" {
+        String::from("r#type")
+    } else {
+        column_name.to_string()
+    }
 }

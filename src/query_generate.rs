@@ -1,6 +1,6 @@
 use crate::{
     models::TableColumn,
-    utils::{convert_data_type, to_pascal_case, to_snake_case},
+    utils::{convert_data_type, rust_type_fix, to_pascal_case, to_snake_case},
 };
 
 pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
@@ -121,14 +121,9 @@ fn generate_select_by_pk_query_code(
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
         .map(|r| {
-            let column_name = if r.column_name.as_str() == "type" {
-                "r#type"
-            } else {
-                &r.column_name
-            };
             format!(
                 "{}: {}",
-                column_name,
+                rust_type_fix(r.column_name.as_str()),
                 convert_data_type(r.udt_name.as_str())
             )
         })
@@ -152,12 +147,10 @@ fn generate_select_by_pk_query_code(
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
         .map(|r| {
-            let column_name = if r.column_name.as_str() == "type" {
-                "r#type"
-            } else {
-                &r.column_name
-            };
-            format!("            .bind({})\n", column_name)
+            format!(
+                "            .bind({})\n",
+                rust_type_fix(r.column_name.as_str())
+            )
         })
         .collect::<Vec<String>>()
         .join("");
@@ -197,14 +190,9 @@ fn generate_select_many_by_pks_query_code(
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
         .map(|r| {
-            let column_name = if r.column_name.as_str() == "type" {
-                "r#type"
-            } else {
-                &r.column_name
-            };
             format!(
                 "{}_list: Vec<{}>",
-                column_name,
+                rust_type_fix(r.column_name.as_str()),
                 convert_data_type(r.udt_name.as_str())
             )
         })
@@ -228,12 +216,10 @@ fn generate_select_many_by_pks_query_code(
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
         .map(|r| {
-            let column_name = if r.column_name.as_str() == "type" {
-                "r#type"
-            } else {
-                &r.column_name
-            };
-            format!("            .bind({}_list)\n", column_name)
+            format!(
+                "            .bind({}_list)\n",
+                rust_type_fix(r.column_name.as_str())
+            )
         })
         .collect::<Vec<String>>()
         .join("");
@@ -268,14 +254,9 @@ fn generate_select_by_pk_query_code_optional(
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
         .map(|r| {
-            let column_name = if r.column_name.as_str() == "type" {
-                "r#type"
-            } else {
-                &r.column_name
-            };
             format!(
                 "{}: {}",
-                column_name,
+                rust_type_fix(r.column_name.as_str()),
                 convert_data_type(r.udt_name.as_str())
             )
         })
@@ -301,12 +282,10 @@ fn generate_select_by_pk_query_code_optional(
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
         .map(|r| {
-            let column_name = if r.column_name.as_str() == "type" {
-                "r#type"
-            } else {
-                &r.column_name
-            };
-            format!("            .bind({})\n", column_name)
+            format!(
+                "            .bind({})\n",
+                rust_type_fix(r.column_name.as_str())
+            )
         })
         .collect::<Vec<String>>()
         .join("");
@@ -373,14 +352,9 @@ fn generate_select_by_unique_query_code(
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
         .map(|r| {
-            let column_name = if r.column_name.as_str() == "type" {
-                "r#type"
-            } else {
-                &r.column_name
-            };
             format!(
                 "{}: {}",
-                column_name,
+                rust_type_fix(r.column_name.as_str()),
                 convert_data_type(r.udt_name.as_str())
             )
         })
@@ -404,12 +378,10 @@ fn generate_select_by_unique_query_code(
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
         .map(|r| {
-            let column_name = if r.column_name.as_str() == "type" {
-                "r#type"
-            } else {
-                &r.column_name
-            };
-            format!("            .bind({})\n", column_name)
+            format!(
+                "            .bind({})\n",
+                rust_type_fix(r.column_name.as_str())
+            )
         })
         .collect::<Vec<String>>()
         .join("");
@@ -444,14 +416,9 @@ fn generate_select_many_by_uniques_query_code(
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
         .map(|r| {
-            let column_name = if r.column_name.as_str() == "type" {
-                "r#type"
-            } else {
-                &r.column_name
-            };
             format!(
                 "{}_list: Vec<{}>",
-                column_name,
+                rust_type_fix(r.column_name.as_str()),
                 convert_data_type(r.udt_name.as_str())
             )
         })
@@ -475,12 +442,10 @@ fn generate_select_many_by_uniques_query_code(
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
         .map(|r| {
-            let column_name = if r.column_name.as_str() == "type" {
-                "r#type"
-            } else {
-                &r.column_name
-            };
-            format!("            .bind({}_list)\n", column_name)
+            format!(
+                "            .bind({}_list)\n",
+                rust_type_fix(r.column_name.as_str())
+            )
         })
         .collect::<Vec<String>>()
         .join("");
@@ -510,14 +475,9 @@ fn generate_select_by_unique_query_code_optional(
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
         .map(|r| {
-            let column_name = if r.column_name.as_str() == "type" {
-                "r#type"
-            } else {
-                &r.column_name
-            };
             format!(
                 "{}: {}",
-                column_name,
+                rust_type_fix(r.column_name.as_str()),
                 convert_data_type(r.udt_name.as_str())
             )
         })
@@ -543,12 +503,10 @@ fn generate_select_by_unique_query_code_optional(
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
         .map(|r| {
-            let column_name = if r.column_name.as_str() == "type" {
-                "r#type"
-            } else {
-                &r.column_name
-            };
-            format!("            .bind({})\n", column_name)
+            format!(
+                "            .bind({})\n",
+                rust_type_fix(r.column_name.as_str())
+            )
         })
         .collect::<Vec<String>>()
         .join("");
@@ -732,15 +690,11 @@ fn generate_value_list(table_name: &str, rows: &[TableColumn]) -> String {
     rows.iter()
         .filter(|row| row.table_name == table_name)
         .map(|row| {
-            let column_name = if row.column_name.as_str() == "type" {
-                "r#type"
-            } else {
-                &row.column_name
-            };
+            let column_name = rust_type_fix(row.column_name.as_str());
             format!(
                 ".bind({}.{})",
                 to_snake_case(&row.table_name),
-                to_snake_case(column_name)
+                to_snake_case(&column_name)
             )
         })
         .collect::<Vec<_>>()

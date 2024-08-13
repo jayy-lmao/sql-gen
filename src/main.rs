@@ -1,4 +1,6 @@
 use clap::{App, Arg, SubCommand};
+use once_cell::sync::OnceCell;
+use utils::{DateTimeLib, SqlGenState};
 
 mod db_queries;
 mod generate;
@@ -6,6 +8,8 @@ mod migrate;
 mod models;
 mod query_generate;
 mod utils;
+
+pub static STATE: OnceCell<SqlGenState> = OnceCell::new();
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -94,7 +98,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .takes_value(false)
                 .required(false)
                 .help("Overwrites existing files sharing names in that folder"),
-        );
+        )
+        .arg(
+                Arg::with_name("datetime-lib")
+                    .long("datetime-lib")
+                    .default_value("chrono")
+                    .possible_values(&["chrono", "time"])
+                    .value_name("SQLGEN_DATETIME_LIB")
+                    .help("Specifies the library to use for date and time handling")
+                    .takes_value(true),
+            );
 
     let migrate_subcommand = SubCommand::with_name("migrate")
         .about("Generate SQL migrations based on struct differences")
@@ -229,6 +242,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let enable_serde = matches.is_present("serde");
 
+        let date_time_lib = matches
+            .value_of("datetime-lib")
+            .map(|e| e.to_string())
+            .unwrap();
+        let date_time_lib = DateTimeLib::from(date_time_lib);
+
         generate::generate(
             enable_serde,
             output_folder,
@@ -238,6 +257,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             include_tables,
             exclude_tables,
             schemas,
+            date_time_lib,
         )
         .await?;
     } else if let Some(matches) = matches.subcommand_matches("migrate") {

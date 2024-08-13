@@ -8,6 +8,8 @@ use crate::models::TableColumn;
 use crate::utils::{generate_enum_code, generate_struct_code, to_pascal_case, to_snake_case};
 
 use crate::query_generate::generate_query_code;
+use crate::utils::{DateTimeLib, SqlGenState};
+use crate::STATE;
 
 pub async fn generate(
     enable_serde: bool,
@@ -18,6 +20,7 @@ pub async fn generate(
     include_tables: Option<Vec<&str>>,
     exclude_tables: Vec<String>,
     schemas: Option<Vec<&str>>,
+    date_time_lib: DateTimeLib,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Connect to the Postgres database
     let pool = PgPoolOptions::new()
@@ -65,6 +68,13 @@ pub async fn generate(
         println!("Outputting user defined enums: {:?}", enums);
     }
     println!("Outputting tables: {:?}", tables);
+
+    STATE
+        .set(SqlGenState {
+            user_defined: enums.clone(),
+            date_time_lib,
+        })
+        .expect("Unable to set state");
 
     let mut rs_enums = Vec::new();
 
