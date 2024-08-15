@@ -1,5 +1,6 @@
+use std::sync::OnceLock;
+
 use clap::{App, Arg, SubCommand};
-use once_cell::sync::OnceCell;
 use utils::{DateTimeLib, SqlGenState};
 
 mod db_queries;
@@ -9,7 +10,7 @@ mod models;
 mod query_generate;
 mod utils;
 
-pub static STATE: OnceCell<SqlGenState> = OnceCell::new();
+pub(crate) static STATE: OnceLock<SqlGenState> = OnceLock::new();
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

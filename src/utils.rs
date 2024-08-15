@@ -9,6 +9,12 @@ pub(crate) enum DateTimeLib {
     Chrono,
 }
 
+impl Default for DateTimeLib {
+    fn default() -> Self {
+        DateTimeLib::Chrono
+    }
+}
+
 impl DateTimeLib {
     pub(crate) fn date_type(&self) -> &str {
         match self {
@@ -46,7 +52,7 @@ impl From<String> for DateTimeLib {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(crate) struct SqlGenState {
     pub user_defined: Vec<String>,
     pub date_time_lib: DateTimeLib,
