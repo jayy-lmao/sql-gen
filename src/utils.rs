@@ -168,7 +168,7 @@ pub fn convert_data_type(data_type: &str) -> String {
         "int8" | "bigint" | "bigserial" => "i64",
         "void" => "()",
         "jsonb" | "json" => "serde_json::Value",
-        "text" | "_text" | "varchar" | "name" | "citext" => "String",
+        "text" | "varchar" | "name" | "citext" => "String",
         "geometry" => "String", // when sqlx supports geo types we could change this
         "time" => state.date_time_lib.time_type(),
         "timestamp" => state.date_time_lib.timestamp_type(),

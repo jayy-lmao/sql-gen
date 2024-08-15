@@ -55,8 +55,8 @@ pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
     ));
     query_code.push('\n');
 
-    // query_code.push_str(&generate_unique_query_code(table_name, schema_name, &rows));
-    // query_code.push('\n');
+    query_code.push_str(&generate_unique_query_code(table_name, schema_name, &rows));
+    query_code.push('\n');
 
     query_code.push_str(&generate_select_all_fk_queries(
         table_name,
@@ -304,7 +304,15 @@ fn generate_select_by_pk_query_code_optional(
 
 fn generate_unique_query_code(table_name: &str, schema_name: &str, rows: &[TableColumn]) -> String {
     let mut code = String::new();
-    for row in rows.iter().filter(|r| r.is_unique) {
+    let mut unique_rows = std::collections::HashMap::<(&str, &str), &TableColumn>::new();
+    for row in rows
+        .iter()
+        .filter(|r| r.table_name.as_str() == table_name && r.is_unique)
+    {
+        unique_rows.insert((&row.table_name, &row.column_name), row);
+    }
+    let unique_users_vec: Vec<&TableColumn> = unique_rows.into_values().collect();
+    for row in unique_users_vec.iter() {
         code.push_str(
             generate_select_by_unique_query_code(&row.column_name, table_name, schema_name, rows)
                 .as_str(),
@@ -358,8 +366,12 @@ fn generate_select_by_unique_query_code(
                 convert_data_type(r.udt_name.as_str())
             )
         })
-        .collect::<Vec<String>>()
-        .join(", ");
+        .collect::<Vec<String>>();
+
+    if fn_args.is_empty() {
+        return String::from("");
+    }
+    let fn_args = fn_args.join(", ");
 
     select_code.push_str(&format!(
         "    pub async fn unique_by_{}<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<{}> {{\n",
@@ -416,14 +428,23 @@ fn generate_select_many_by_uniques_query_code(
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
         .map(|r| {
-            format!(
-                "{}_list: Vec<{}>",
-                rust_type_fix(r.column_name.as_str()),
-                convert_data_type(r.udt_name.as_str())
-            )
+            let rs_type = convert_data_type(r.udt_name.as_str());
+            if rs_type.starts_with("Vec<") {
+                None
+            } else {
+                Some(format!(
+                    "{}_list: Vec<{}>",
+                    rust_type_fix(r.column_name.as_str()),
+                    rs_type
+                ))
+            }
         })
-        .collect::<Vec<String>>()
-        .join(", ");
+        .collect::<Option<Vec<String>>>();
+
+    if fn_args.is_none() {
+        return String::from("");
+    }
+    let fn_args = fn_args.unwrap().join(", ");
 
     select_code.push_str(&format!(
         "    pub async fn unique_many_by_{}_list<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<Vec<{}>> {{\n",
@@ -481,8 +502,12 @@ fn generate_select_by_unique_query_code_optional(
                 convert_data_type(r.udt_name.as_str())
             )
         })
-        .collect::<Vec<String>>()
-        .join(", ");
+        .collect::<Vec<String>>();
+
+    if fn_args.is_empty() {
+        return String::from("");
+    }
+    let fn_args = fn_args.join(", ");
 
     select_code.push_str(&format!(
         "    pub async fn unique_by_{}_optional<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<Option<{}>> {{\n",
