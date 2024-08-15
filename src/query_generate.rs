@@ -598,7 +598,7 @@ fn generate_select_by_fk_query_code(
     select_code.push_str(&format!(
         "    pub async fn all_by_{}_{}<'e, E: PgExecutor<'e>>(executor: E, {}_{}: {}) -> Result<Vec<{}>> {{\n",
         to_snake_case(foreign_row_table_name),
-        to_snake_case(column_name),
+        foreign_row_column_name,
         to_snake_case(foreign_row_table_name),
         foreign_row_column_name,
         data_type,
