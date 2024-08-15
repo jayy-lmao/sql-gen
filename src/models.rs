@@ -1,4 +1,4 @@
-#[derive(sqlx::FromRow)]
+#[derive(sqlx::FromRow, Clone)]
 pub struct TableColumn {
     pub(crate) table_name: String,
     pub(crate) column_name: String,
@@ -11,4 +11,10 @@ pub struct TableColumn {
     pub(crate) foreign_key_id: Option<String>,
     // #todo
     pub(crate) table_schema: String,
+}
+
+#[derive(sqlx::FromRow, Clone)]
+pub struct UserDefinedEnums {
+    pub(crate) enum_name: String,
+    pub(crate) enum_value: String,
 }

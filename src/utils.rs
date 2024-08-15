@@ -1,4 +1,64 @@
-use crate::models::TableColumn;
+use crate::{
+    models::{TableColumn, UserDefinedEnums},
+    STATE,
+};
+
+#[derive(Debug)]
+pub(crate) enum DateTimeLib {
+    Time,
+    Chrono,
+}
+
+impl Default for DateTimeLib {
+    fn default() -> Self {
+        DateTimeLib::Chrono
+    }
+}
+
+impl DateTimeLib {
+    pub(crate) fn date_type(&self) -> &str {
+        match self {
+            DateTimeLib::Time => "time::Date",
+            DateTimeLib::Chrono => "chrono::NaiveDate",
+        }
+    }
+    pub(crate) fn time_type(&self) -> &str {
+        match self {
+            DateTimeLib::Time => "time::Time",
+            DateTimeLib::Chrono => "chrono::NaiveTime",
+        }
+    }
+    pub(crate) fn timestamp_type(&self) -> &str {
+        match self {
+            DateTimeLib::Time => "time::OffsetDateTime",
+            DateTimeLib::Chrono => "chrono::NaiveDateTime",
+        }
+    }
+    pub(crate) fn timestampz_type(&self) -> &str {
+        match self {
+            DateTimeLib::Time => "time::OffsetDateTime",
+            DateTimeLib::Chrono => "chrono::DateTime<chrono::Utc>",
+        }
+    }
+}
+
+impl From<String> for DateTimeLib {
+    fn from(value: String) -> Self {
+        if value == "chrono" {
+            DateTimeLib::Chrono
+        } else {
+            DateTimeLib::Time
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct SqlGenState {
+    pub user_defined: Vec<String>,
+    pub struct_derives: Vec<String>,
+    pub enum_derives: Vec<String>,
+    pub date_time_lib: DateTimeLib,
+}
 
 pub(crate) fn to_snake_case(input: &str) -> String {
     let mut output = String::new();
@@ -20,25 +80,68 @@ pub(crate) fn to_snake_case(input: &str) -> String {
     output
 }
 
+pub fn generate_enum_code(enum_name: &str, enum_rows: &Vec<UserDefinedEnums>) -> String {
+    let rs_enum_name = to_pascal_case(enum_name);
+    let mut enum_code = String::new();
+
+    let enum_derives = STATE.get().unwrap().enum_derives.join(", ");
+
+    let extra_derives = if !enum_derives.is_empty() {
+        format!(", {}", enum_derives)
+    } else {
+        "".to_string()
+    };
+    enum_code.push_str(&format!(
+        "#[derive(sqlx::Type, Debug, Clone, Eq, PartialEq{})]\n",
+        extra_derives
+    ));
+    enum_code.push_str(&format!(r#"#[sqlx(type_name = "{}")]"#, enum_name));
+    enum_code.push_str("\n");
+    enum_code.push_str(&format!("pub enum {} {{\n", rs_enum_name));
+
+    for row in enum_rows.iter().filter(|e| &e.enum_name == enum_name) {
+        enum_code.push_str(&format!(r#"  #[sqlx(rename = "{}")]"#, row.enum_value));
+        enum_code.push_str("\n");
+        enum_code.push_str(&format!("  {},\n", to_pascal_case(&row.enum_value)))
+    }
+
+    enum_code.push_str("}\n");
+
+    enum_code
+}
+
 pub fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String {
     let struct_name = to_pascal_case(table_name);
     let mut struct_code = String::new();
 
+    let struct_derives = STATE.get().unwrap().struct_derives.join(", ");
+
+    let extra_derives = if !struct_derives.is_empty() {
+        format!(", {}", struct_derives)
+    } else {
+        "".to_string()
+    };
+
     struct_code.push_str("#![allow(dead_code)]\n");
     struct_code.push_str("// Generated with sql-gen\n// https://github.com/jayy-lmao/sql-gen\n\n");
-    struct_code.push_str("#[derive(sqlx::FromRow, Debug)]\n");
+    struct_code.push_str(&format!(
+        "#[derive(sqlx::FromRow, Debug, Clone{})]\n",
+        extra_derives
+    ));
     struct_code.push_str(&format!("pub struct {} {{\n", struct_name));
 
     for row in rows {
         if row.table_name == table_name {
             let column_name = to_snake_case(&row.column_name);
             let mut data_type = convert_data_type(&row.udt_name);
-            let optional_type = format!("Option<{}>", data_type);
             if row.is_nullable {
-                data_type = optional_type;
+                data_type = format!("Option<{}>", data_type);
             }
-
-            struct_code.push_str(&format!("  pub {}: {},\n", column_name, data_type));
+            struct_code.push_str(&format!(
+                "  pub {}: {},\n",
+                rust_type_fix(column_name.as_str()),
+                data_type
+            ));
         }
     }
     struct_code.push_str("}\n");
@@ -56,24 +159,34 @@ pub fn convert_data_type(data_type: &str) -> String {
         return vec_type;
     }
 
+    let state = STATE.get().unwrap();
+
     match data_type {
         "bool" | "boolean" => "bool",
         "bytea" => "Vec<u8>", // is this right?
         "char" | "bpchar" | "character" => "String",
-        "date" => "chrono::NaiveDate",
+        "date" => state.date_time_lib.date_type(),
         "float4" | "real" => "f32",
-        "float8" | "double precision" => "f64",
+        "float8" | "double precision" | "numeric" => "f64",
         "int2" | "smallint" | "smallserial" => "i16",
         "int4" | "int" | "serial" => "i32",
         "int8" | "bigint" | "bigserial" => "i64",
         "void" => "()",
         "jsonb" | "json" => "serde_json::Value",
         "text" | "varchar" | "name" | "citext" => "String",
-        "time" => "chrono::NaiveTime",
-        "timestamp" => "chrono::NaiveDateTime",
-        "timestamptz" => "chrono::DateTime<chrono::Utc>",
+        "geometry" => "String", // when sqlx supports geo types we could change this
+        "time" => state.date_time_lib.time_type(),
+        "timestamp" => state.date_time_lib.timestamp_type(),
+        "timestamptz" => state.date_time_lib.timestampz_type(),
+        "interval" => "sqlx::postgres::types::PgInterval",
         "uuid" => "uuid::Uuid",
-        _ => panic!("Unknown type: {}", data_type),
+        _ => {
+            if state.user_defined.contains(&data_type.to_string()) {
+                return format!("crate::{}", to_pascal_case(data_type));
+            } else {
+                panic!("Unknown type: {}", data_type)
+            }
+        }
     }
     .to_string()
 }
@@ -170,4 +283,12 @@ pub fn to_pascal_case(input: &str) -> String {
     }
 
     output
+}
+
+pub(crate) fn rust_type_fix(column_name: &str) -> String {
+    if column_name == "type" {
+        String::from("r#type")
+    } else {
+        column_name.to_string()
+    }
 }

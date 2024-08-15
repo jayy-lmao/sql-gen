@@ -1,4 +1,7 @@
+use std::{collections::BTreeSet, sync::OnceLock};
+
 use clap::{App, Arg, SubCommand};
+use utils::{DateTimeLib, SqlGenState};
 
 mod db_queries;
 mod generate;
@@ -6,6 +9,8 @@ mod migrate;
 mod models;
 mod query_generate;
 mod utils;
+
+pub(crate) static STATE: OnceLock<SqlGenState> = OnceLock::new();
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -21,6 +26,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .value_name("SQLGEN_MODEL_OUTPUT_FOLDER")
                 .help("Sets the output folder for generated structs")
                 .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("serde")
+                .long("serde")
+                .default_value("true")
+                .value_name("SQLGEN_ENABLE_SERDE")
+                .help("Adds Serde derices to created structs")
+                .takes_value(false),
         )
         .arg(
             Arg::with_name("migrations")
@@ -69,6 +82,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .help("Specify the table name(s)"),
         )
         .arg(
+            Arg::with_name("exclude")
+                .short('e')
+                .long("exclude")
+                .takes_value(true)
+                .value_name("SQLGEN_EXCLUDE")
+                .multiple(true)
+                .use_delimiter(true)
+                .help("Specify the excluded table name(s)"),
+        )
+        .arg(
             Arg::new("force")
                 .short('f')
                 .long("force")
@@ -76,6 +99,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .takes_value(false)
                 .required(false)
                 .help("Overwrites existing files sharing names in that folder"),
+        )
+        .arg(
+            Arg::with_name("datetime-lib")
+                .long("datetime-lib")
+                .default_value("chrono")
+                .possible_values(&["chrono", "time"])
+                .value_name("SQLGEN_DATETIME_LIB")
+                .help("Specifies the library to use for date and time handling")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("struct-derive")
+                .long("struct-derive")
+                .value_name("SQLGEN_STRUCT_DERIVE")
+                .help("Derive created structs with given values")
+                .multiple(true)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("enum-derive")
+                .long("enum-derive")
+                .value_name("SQLGEN_ENUM_DERIVE")
+                .help("Derive created enums with given values")
+                .multiple(true)
+                .takes_value(true),
         );
 
     let migrate_subcommand = SubCommand::with_name("migrate")
@@ -195,7 +243,74 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let schemas: Option<Vec<&str>> =
             matches.values_of("schema").map(|schemas| schemas.collect());
         let force = matches.is_present("force");
-        generate::generate(output_folder, database_url, context, force, None, schemas).await?;
+        let include_tables = matches.values_of("table").map(|v| v.collect::<Vec<&str>>());
+        let exclude_tables = matches
+            .values_of("exclude")
+            .map(|v| {
+                v.into_iter()
+                    .map(|e| e.to_string())
+                    .collect::<Vec<String>>()
+            })
+            .unwrap_or(vec![]);
+
+        if !exclude_tables.is_empty() {
+            println!("Excluding tables: {:?}", exclude_tables);
+        }
+
+        let enable_serde = matches.is_present("serde");
+        let mut struct_derives = matches
+            .values_of("struct-derive")
+            .map(|v| {
+                v.into_iter()
+                    .map(|e| e.to_string())
+                    .collect::<Vec<String>>()
+            })
+            .unwrap_or_default();
+        let mut enum_derives = matches
+            .values_of("enum-derive")
+            .map(|v| {
+                v.into_iter()
+                    .map(|e| e.to_string())
+                    .collect::<Vec<String>>()
+            })
+            .unwrap_or_default();
+
+        if enable_serde {
+            let mut unique_struct_derivies = struct_derives
+                .clone()
+                .into_iter()
+                .collect::<BTreeSet<String>>();
+            let mut unique_enum_derivies = enum_derives
+                .clone()
+                .into_iter()
+                .collect::<BTreeSet<String>>();
+            for serde_derive in ["serde::Serialize", "serde::Deserialize"] {
+                unique_struct_derivies.insert(serde_derive.to_string());
+                unique_enum_derivies.insert(serde_derive.to_string());
+            }
+
+            struct_derives = unique_struct_derivies.into_iter().collect();
+            enum_derives = unique_enum_derivies.into_iter().collect();
+        }
+        let date_time_lib = matches
+            .value_of("datetime-lib")
+            .map(|e| e.to_string())
+            .unwrap();
+        let date_time_lib = DateTimeLib::from(date_time_lib);
+
+        generate::generate(
+            output_folder,
+            database_url,
+            context,
+            force,
+            include_tables,
+            exclude_tables,
+            schemas,
+            date_time_lib,
+            struct_derives,
+            enum_derives,
+        )
+        .await?;
     } else if let Some(matches) = matches.subcommand_matches("migrate") {
         let input_migrations_folder = matches.value_of("migrations").unwrap_or("./migrations");
         println!(
