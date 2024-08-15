@@ -1,4 +1,4 @@
-use std::sync::OnceLock;
+use std::{collections::BTreeSet, sync::OnceLock};
 
 use clap::{App, Arg, SubCommand};
 use utils::{DateTimeLib, SqlGenState};
@@ -101,14 +101,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .help("Overwrites existing files sharing names in that folder"),
         )
         .arg(
-                Arg::with_name("datetime-lib")
-                    .long("datetime-lib")
-                    .default_value("chrono")
-                    .possible_values(&["chrono", "time"])
-                    .value_name("SQLGEN_DATETIME_LIB")
-                    .help("Specifies the library to use for date and time handling")
-                    .takes_value(true),
-            );
+            Arg::with_name("datetime-lib")
+                .long("datetime-lib")
+                .default_value("chrono")
+                .possible_values(&["chrono", "time"])
+                .value_name("SQLGEN_DATETIME_LIB")
+                .help("Specifies the library to use for date and time handling")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("struct-derive")
+                .long("struct-derive")
+                .value_name("SQLGEN_STRUCT_DERIVE")
+                .help("Derive created structs with given values")
+                .multiple(true)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("enum-derive")
+                .long("enum-derive")
+                .value_name("SQLGEN_ENUM_DERIVE")
+                .help("Derive created enums with given values")
+                .multiple(true)
+                .takes_value(true),
+        );
 
     let migrate_subcommand = SubCommand::with_name("migrate")
         .about("Generate SQL migrations based on struct differences")
@@ -242,7 +258,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         let enable_serde = matches.is_present("serde");
+        let mut struct_derives = matches
+            .values_of("struct-derive")
+            .map(|v| {
+                v.into_iter()
+                    .map(|e| e.to_string())
+                    .collect::<Vec<String>>()
+            })
+            .unwrap_or_default();
+        let mut enum_derives = matches
+            .values_of("enum-derive")
+            .map(|v| {
+                v.into_iter()
+                    .map(|e| e.to_string())
+                    .collect::<Vec<String>>()
+            })
+            .unwrap_or_default();
 
+        if enable_serde {
+            let mut unique_struct_derivies = struct_derives
+                .clone()
+                .into_iter()
+                .collect::<BTreeSet<String>>();
+            let mut unique_enum_derivies = enum_derives
+                .clone()
+                .into_iter()
+                .collect::<BTreeSet<String>>();
+            for serde_derive in ["serde::Serialize", "serde::Deserialize"] {
+                unique_struct_derivies.insert(serde_derive.to_string());
+                unique_enum_derivies.insert(serde_derive.to_string());
+            }
+
+            struct_derives = unique_struct_derivies.into_iter().collect();
+            enum_derives = unique_enum_derivies.into_iter().collect();
+        }
         let date_time_lib = matches
             .value_of("datetime-lib")
             .map(|e| e.to_string())
@@ -250,7 +299,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let date_time_lib = DateTimeLib::from(date_time_lib);
 
         generate::generate(
-            enable_serde,
             output_folder,
             database_url,
             context,
@@ -259,6 +307,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             exclude_tables,
             schemas,
             date_time_lib,
+            struct_derives,
+            enum_derives,
         )
         .await?;
     } else if let Some(matches) = matches.subcommand_matches("migrate") {

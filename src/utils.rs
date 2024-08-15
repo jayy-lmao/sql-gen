@@ -55,6 +55,8 @@ impl From<String> for DateTimeLib {
 #[derive(Debug, Default)]
 pub(crate) struct SqlGenState {
     pub user_defined: Vec<String>,
+    pub struct_derives: Vec<String>,
+    pub enum_derives: Vec<String>,
     pub date_time_lib: DateTimeLib,
 }
 
@@ -78,22 +80,20 @@ pub(crate) fn to_snake_case(input: &str) -> String {
     output
 }
 
-pub fn generate_enum_code(
-    enum_name: &str,
-    enum_rows: &Vec<UserDefinedEnums>,
-    enable_serde: bool,
-) -> String {
+pub fn generate_enum_code(enum_name: &str, enum_rows: &Vec<UserDefinedEnums>) -> String {
     let rs_enum_name = to_pascal_case(enum_name);
     let mut enum_code = String::new();
 
-    let serde_derives = if enable_serde {
-        ", serde::Serialize, serde::Deserialize"
+    let enum_derives = STATE.get().unwrap().enum_derives.join(", ");
+
+    let extra_derives = if !enum_derives.is_empty() {
+        format!(", {}", enum_derives)
     } else {
-        ""
+        "".to_string()
     };
     enum_code.push_str(&format!(
         "#[derive(sqlx::Type, Debug, Clone, Eq, PartialEq{})]\n",
-        serde_derives
+        extra_derives
     ));
     enum_code.push_str(&format!(r#"#[sqlx(type_name = "{}")]"#, enum_name));
     enum_code.push_str("\n");
@@ -110,25 +110,23 @@ pub fn generate_enum_code(
     enum_code
 }
 
-pub fn generate_struct_code(
-    table_name: &str,
-    rows: &Vec<TableColumn>,
-    enable_serde: bool,
-) -> String {
+pub fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String {
     let struct_name = to_pascal_case(table_name);
     let mut struct_code = String::new();
 
-    let serde_derives = if enable_serde {
-        ", serde::Serialize, serde::Deserialize"
+    let struct_derives = STATE.get().unwrap().struct_derives.join(", ");
+
+    let extra_derives = if !struct_derives.is_empty() {
+        format!(", {}", struct_derives)
     } else {
-        ""
+        "".to_string()
     };
 
     struct_code.push_str("#![allow(dead_code)]\n");
     struct_code.push_str("// Generated with sql-gen\n// https://github.com/jayy-lmao/sql-gen\n\n");
     struct_code.push_str(&format!(
         "#[derive(sqlx::FromRow, Debug, Clone{})]\n",
-        serde_derives
+        extra_derives
     ));
     struct_code.push_str(&format!("pub struct {} {{\n", struct_name));
 
@@ -160,6 +158,7 @@ pub fn convert_data_type(data_type: &str) -> String {
         let vec_type = format!("Vec<{}>", array_of_type);
         return vec_type;
     }
+
     let state = STATE.get().unwrap();
 
     match data_type {
