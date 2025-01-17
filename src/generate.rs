@@ -2,6 +2,8 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use std::fs;
 use std::path::Path;
+use std::str::FromStr;
+use syn::{parse2, File};
 
 use crate::db_queries::get_table_columns;
 use crate::models::TableColumn;
@@ -24,7 +26,7 @@ pub async fn generate(
         .await?;
 
     let database_name = get_database_name(&pool).await?;
-    println!("Generating for database: {}", database_name);
+    println!("Generating for database: {database_name}");
 
     let default_schema = "public";
     let rows = get_table_columns(&pool, schemas.unwrap_or(vec![default_schema]), None).await?;
@@ -38,7 +40,7 @@ pub async fn generate(
     }
     let tables: Vec<String> = unique.into_iter().collect::<Vec<String>>();
 
-    println!("Outputting tables: {:?}", tables);
+    println!("Outputting tables: {tables:?}");
 
     // Generate structs and queries for each table
     for table in &tables {
@@ -48,37 +50,43 @@ pub async fn generate(
             }
         }
         // Generate the struct code based on the row
-        let struct_code = generate_struct_code(&table, &rows);
+        let struct_code = generate_struct_code(table, &rows);
 
         // Generate the query code based on the row
-        let query_code = generate_query_code(&table, &rows);
+        let query_code = generate_query_code(table, &rows);
 
-        let struct_file_path = format!("{}/{}.rs", output_folder, to_snake_case(&table));
+        let struct_file_path = format!("{}/{}.rs", output_folder, to_snake_case(table));
         if Path::new(&struct_file_path).exists() && !force {
             eprintln!(
-                "{} already exists, skipping. use --force flag to overwrite",
-                struct_file_path
+                "{struct_file_path} already exists, skipping. use --force flag to overwrite"
             );
         } else {
-            fs::write(struct_file_path, struct_code)?;
+            fs::write(struct_file_path, prettify_code(struct_code))?;
         }
 
         // Write the query code to a file
-        let query_file_path = format!("{}/{}_db_set.rs", output_folder, to_snake_case(&table));
+        let query_file_path = format!("{}/{}_db_set.rs", output_folder, to_snake_case(table));
         if Path::new(&query_file_path).exists() && !force {
             eprintln!(
-                "{} already exists, skipping. use --force flag to overwrite",
-                query_file_path
+                "{query_file_path} already exists, skipping. use --force flag to overwrite"
             );
         } else {
-            fs::write(query_file_path, query_code)?;
+            fs::write(query_file_path, prettify_code(query_code))?;
         }
     }
 
     let context_code = generate_db_context(context.unwrap_or(&database_name), &tables, &rows);
-    let context_file_path = format!("{}/mod.rs", output_folder);
-    fs::write(context_file_path, context_code)?;
+    let context_file_path = format!("{output_folder}/mod.rs");
+    fs::write(context_file_path, prettify_code(context_code))?;
     Ok(())
+}
+
+pub fn prettify_code(code: String) -> String {
+    let tokens = proc_macro2::TokenStream::from_str(&code).expect("Could not parse code");
+    match parse2::<File>(tokens.clone()) {
+        Ok(file) => prettyplease::unparse(&file).to_string(),
+        Err(err) => panic!("Failed to parse TokenStream: {err}. Stream was {tokens}"),
+    }
 }
 
 fn generate_db_context(database_name: &str, tables: &[String], _rows: &[TableColumn]) -> String {
@@ -102,7 +110,7 @@ fn generate_db_context(database_name: &str, tables: &[String], _rows: &[TableCol
         ));
     }
 
-    db_context_code.push_str("\n");
+    db_context_code.push('\n');
     db_context_code.push_str(&format!(
         "pub struct {}Context;\n\n",
         to_pascal_case(database_name)
@@ -119,7 +127,7 @@ fn generate_db_context(database_name: &str, tables: &[String], _rows: &[TableCol
             to_pascal_case(table),
         ));
     }
-    db_context_code.push_str("}");
+    db_context_code.push('}');
     db_context_code
 }
 

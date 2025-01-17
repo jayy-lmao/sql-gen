@@ -23,7 +23,7 @@ pub async fn migrate(
 
     // Read existing struct files from the include folder
     let existing_files = fs::read_dir(include_folder)?
-        .filter_map(|entry| entry.ok())
+        .filter_map(std::result::Result::ok)
         .map(|entry| entry.path())
         .collect::<Vec<PathBuf>>();
 
@@ -51,10 +51,10 @@ pub async fn migrate(
 
         // Generate a timestamp and migration name
         let timestamp = chrono::Utc::now().format("%Y%m%d%H%M%S");
-        let migration_name = format!("{}_{}.sql", timestamp, struct_name);
+        let migration_name = format!("{timestamp}_{struct_name}.sql");
 
         // Write the migration code to a file
-        let migration_file_path = format!("{}/{}", output_folder, migration_name);
+        let migration_file_path = format!("{output_folder}/{migration_name}");
         if !migration_code.is_empty() {
             fs::write(migration_file_path, migration_code)?;
         }
@@ -98,8 +98,7 @@ pub async fn generate_migration_code(
         (_, true) => (table_name_upper, existing_columns_upper),
         _ => {
             panic!(
-                "Table does not exist for {} or {}",
-                table_name_lower, table_name_upper
+                "Table does not exist for {table_name_lower} or {table_name_upper}"
             );
         }
     };
@@ -115,12 +114,10 @@ pub async fn generate_migration_code(
         if let Some(table_row) = matching_column {
             let existing_nullable = table_row.is_nullable;
             let existing_type = &table_row.udt_name;
-            if data_type != &convert_data_type(existing_type) {
-                panic!("Data type {} does not match {}", data_type, existing_type);
-            }
+            assert!(data_type == &convert_data_type(existing_type), "Data type {data_type} does not match {existing_type}");
             // Compare data types and nullability
             if is_nullable != &existing_nullable {
-                let alter_table = format!("ALTER TABLE {}", table_name);
+                let alter_table = format!("ALTER TABLE {table_name}");
 
                 // Generate appropriate column definition
 
@@ -132,20 +129,18 @@ pub async fn generate_migration_code(
                 };
 
                 let migration_statement = format!(
-                    "{} ALTER COLUMN {} {}",
-                    alter_table, column_name, nullable_keyword
+                    "{alter_table} ALTER COLUMN {column_name} {nullable_keyword}"
                 );
 
                 migration_statements.push(migration_statement);
             }
         } else {
-            let alter_table = format!("ALTER TABLE {}", table_name);
+            let alter_table = format!("ALTER TABLE {table_name}");
             let column_definition = convert_data_type_from_pg(data_type);
 
             let nullable_keyword = if *is_nullable { "" } else { "NOT NULL" };
             let migration_statement = format!(
-                "{} ADD COLUMN {} {} {};",
-                alter_table, column_name, column_definition, nullable_keyword
+                "{alter_table} ADD COLUMN {column_name} {column_definition} {nullable_keyword};"
             );
             migration_statements.push(migration_statement);
         }
@@ -162,22 +157,21 @@ pub async fn generate_migration_code(
         .collect();
 
     for table_column in removed_columns {
-        let alter_table = format!("ALTER TABLE {}", table_name);
+        let alter_table = format!("ALTER TABLE {table_name}");
         let drop_column = format!("DROP COLUMN {}", table_column.column_name);
-        let migration_statement = format!("{} {}", alter_table, drop_column);
+        let migration_statement = format!("{alter_table} {drop_column}");
         migration_statements.push(migration_statement);
     }
 
     // Generate the full migration code
     let migration_code = if !migration_statements.is_empty() {
         let timestamp = chrono::Utc::now().format("%Y%m%d%H%M%S");
-        let _migration_name = format!("{}_{}.sql", timestamp, struct_name);
+        let _migration_name = format!("{timestamp}_{struct_name}.sql");
 
         let migration_statements_code = migration_statements.join(";\n");
 
         format!(
-            "-- Migration generated for struct: {}\n{}\n",
-            struct_name, migration_statements_code
+            "-- Migration generated for struct: {struct_name}\n{migration_statements_code}\n"
         )
     } else {
         String::new()

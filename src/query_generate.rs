@@ -10,9 +10,9 @@ pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
         .find(|&r| r.table_name == table_name)
         .map(|r| r.table_schema.as_str())
     {
-        None => "".to_string(),
-        Some("public") => "".to_string(), // Default Schema
-        Some(schema) => format!("\"{}\".", schema),
+        None => String::new(),
+        Some("public") => String::new(), // Default Schema
+        Some(schema) => format!("\"{schema}\"."),
     };
     let schema_name = &schema_prefix;
 
@@ -20,12 +20,10 @@ pub fn generate_query_code(table_name: &str, rows: &[TableColumn]) -> String {
     query_code.push_str("#![allow(dead_code)]\n");
 
     query_code.push_str("// Generated with sql-gen\n// https://github.com/jayy-lmao/sql-gen\n\n");
-    query_code.push_str(&format!(
-        "use sqlx::{{query, query_as, PgExecutor, Result}};\n"
-    ));
-    query_code.push_str(&format!("use super::{};\n\n", struct_name));
-    query_code.push_str(&format!("pub struct {}Set;\n\n", struct_name));
-    query_code.push_str(&format!("impl {}Set {{\n", struct_name));
+    query_code.push_str("use sqlx::{query, query_as, PgExecutor, Result};\n");
+    query_code.push_str(&format!("use super::{struct_name};\n\n"));
+    query_code.push_str(&format!("pub struct {struct_name}Set;\n\n"));
+    query_code.push_str(&format!("impl {struct_name}Set {{\n"));
 
     // Generate query code for SELECT statements
     query_code.push_str(&generate_select_query_code(table_name, schema_name, rows));
@@ -85,12 +83,10 @@ fn generate_select_query_code(table_name: &str, schema_name: &str, rows: &[Table
     let struct_name = to_pascal_case(table_name);
     let mut select_code = String::new();
     select_code.push_str(&format!(
-        "    pub async fn all<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<Vec<{}>> {{\n",
-        struct_name
+        "    pub async fn all<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<Vec<{struct_name}>> {{\n"
     ));
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\"\"#)\n",
-        struct_name, schema_name, table_name
+        "        query_as::<_, {struct_name}>(r#\"SELECT * FROM {schema_name}\"{table_name}\"\"#)\n"
     ));
     select_code.push_str("            .fetch_all(executor)\n");
     select_code.push_str("            .await\n");
@@ -114,7 +110,7 @@ fn generate_select_by_pk_query_code(
 
     // There were no pk rows
     if pkey_name.is_empty() {
-        return String::from("");
+        return String::new();
     }
 
     let fn_args = rows
@@ -131,8 +127,7 @@ fn generate_select_by_pk_query_code(
         .join(", ");
 
     select_code.push_str(&format!(
-        "    pub async fn by_{}<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<{}> {{\n",
-        pkey_name, fn_args, struct_name
+        "    pub async fn by_{pkey_name}<'e, E: PgExecutor<'e>>(&self, executor: E, {fn_args}) -> Result<{struct_name}> {{\n"
     ));
 
     let condition = rows
@@ -147,12 +142,10 @@ fn generate_select_by_pk_query_code(
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
         .map(|r| format!("            .bind({})\n", r.column_name))
-        .collect::<Vec<String>>()
-        .join("");
+        .collect::<String>();
 
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\" WHERE {}\"#)\n",
-        struct_name, schema_name, table_name, condition
+        "        query_as::<_, {struct_name}>(r#\"SELECT * FROM {schema_name}\"{table_name}\" WHERE {condition}\"#)\n"
     ));
     select_code.push_str(&bind);
     select_code.push_str("            .fetch_one(executor)\n");
@@ -178,7 +171,7 @@ fn generate_select_many_by_pks_query_code(
 
     // There were no pk rows
     if pkey_name.is_empty() {
-        return String::from("");
+        return String::new();
     }
 
     let fn_args = rows
@@ -195,8 +188,7 @@ fn generate_select_many_by_pks_query_code(
         .join(", ");
 
     select_code.push_str(&format!(
-        "    pub async fn many_by_{}_list<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<Vec<{}>> {{\n",
-        pkey_name, fn_args, struct_name
+        "    pub async fn many_by_{pkey_name}_list<'e, E: PgExecutor<'e>>(&self, executor: E, {fn_args}) -> Result<Vec<{struct_name}>> {{\n"
     ));
 
     let condition = rows
@@ -211,12 +203,10 @@ fn generate_select_many_by_pks_query_code(
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
         .map(|r| format!("            .bind({}_list)\n", r.column_name))
-        .collect::<Vec<String>>()
-        .join("");
+        .collect::<String>();
 
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\" WHERE {}\"#)\n",
-        struct_name, schema_name, table_name, condition
+        "        query_as::<_, {struct_name}>(r#\"SELECT * FROM {schema_name}\"{table_name}\" WHERE {condition}\"#)\n"
     ));
     select_code.push_str(&bind);
     select_code.push_str("            .fetch_all(executor)\n");
@@ -254,10 +244,7 @@ fn generate_select_by_pk_query_code_optional(
         .join(", ");
 
     select_code.push_str(&format!(
-        "    pub async fn by_{}_optional<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<Option<{}>> {{\n",
-        pkey_name,
-        fn_args,
-        struct_name
+        "    pub async fn by_{pkey_name}_optional<'e, E: PgExecutor<'e>>(&self, executor: E, {fn_args}) -> Result<Option<{struct_name}>> {{\n"
     ));
 
     let condition = rows
@@ -272,12 +259,10 @@ fn generate_select_by_pk_query_code_optional(
         .iter()
         .filter(|r| r.is_primary_key && r.table_name == table_name)
         .map(|r| format!("            .bind({})\n", r.column_name))
-        .collect::<Vec<String>>()
-        .join("");
+        .collect::<String>();
 
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\" WHERE {}\"#)\n",
-        struct_name, schema_name, table_name, condition
+        "        query_as::<_, {struct_name}>(r#\"SELECT * FROM {schema_name}\"{table_name}\" WHERE {condition}\"#)\n"
     ));
     select_code.push_str(&bind);
     select_code.push_str("            .fetch_optional(executor)\n");
@@ -330,7 +315,7 @@ fn generate_select_by_unique_query_code(
 
     // There were no unique rows
     if unique_name.is_empty() {
-        return String::from("");
+        return String::new();
     }
 
     let fn_args = rows
@@ -347,8 +332,7 @@ fn generate_select_by_unique_query_code(
         .join(", ");
 
     select_code.push_str(&format!(
-        "    pub async fn by_{}<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<{}> {{\n",
-        unique_name, fn_args, struct_name
+        "    pub async fn by_{unique_name}<'e, E: PgExecutor<'e>>(&self, executor: E, {fn_args}) -> Result<{struct_name}> {{\n"
     ));
 
     let condition = rows
@@ -363,12 +347,10 @@ fn generate_select_by_unique_query_code(
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
         .map(|r| format!("            .bind({})\n", r.column_name))
-        .collect::<Vec<String>>()
-        .join("");
+        .collect::<String>();
 
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\" WHERE {}\"#)\n",
-        struct_name, schema_name, table_name, condition
+        "        query_as::<_, {struct_name}>(r#\"SELECT * FROM {schema_name}\"{table_name}\" WHERE {condition}\"#)\n"
     ));
     select_code.push_str(&bind);
     select_code.push_str("            .fetch_one(executor)\n");
@@ -389,7 +371,7 @@ fn generate_select_many_by_uniques_query_code(
 
     // There were no unique rows
     if unique_name.is_empty() {
-        return String::from("");
+        return String::new();
     }
 
     let fn_args = rows
@@ -406,8 +388,7 @@ fn generate_select_many_by_uniques_query_code(
         .join(", ");
 
     select_code.push_str(&format!(
-        "    pub async fn many_by_{}_list<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<Vec<{}>> {{\n",
-        unique_name, fn_args, struct_name
+        "    pub async fn many_by_{unique_name}_list<'e, E: PgExecutor<'e>>(&self, executor: E, {fn_args}) -> Result<Vec<{struct_name}>> {{\n"
     ));
 
     let condition = rows
@@ -422,12 +403,10 @@ fn generate_select_many_by_uniques_query_code(
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
         .map(|r| format!("            .bind({}_list)\n", r.column_name))
-        .collect::<Vec<String>>()
-        .join("");
+        .collect::<String>();
 
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\" WHERE {}\"#)\n",
-        struct_name, schema_name, table_name, condition
+        "        query_as::<_, {struct_name}>(r#\"SELECT * FROM {schema_name}\"{table_name}\" WHERE {condition}\"#)\n"
     ));
     select_code.push_str(&bind);
     select_code.push_str("            .fetch_all(executor)\n");
@@ -460,10 +439,7 @@ fn generate_select_by_unique_query_code_optional(
         .join(", ");
 
     select_code.push_str(&format!(
-        "    pub async fn by_{}_optional<'e, E: PgExecutor<'e>>(&self, executor: E, {}) -> Result<Option<{}>> {{\n",
-        unique_name,
-        fn_args,
-        struct_name
+        "    pub async fn by_{unique_name}_optional<'e, E: PgExecutor<'e>>(&self, executor: E, {fn_args}) -> Result<Option<{struct_name}>> {{\n"
     ));
 
     let condition = rows
@@ -478,12 +454,10 @@ fn generate_select_by_unique_query_code_optional(
         .iter()
         .filter(|r| r.is_unique && r.table_name == table_name && r.column_name == unique_name)
         .map(|r| format!("            .bind({})\n", r.column_name))
-        .collect::<Vec<String>>()
-        .join("");
+        .collect::<String>();
 
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\" WHERE {}\"#)\n",
-        struct_name, schema_name, table_name, condition
+        "        query_as::<_, {struct_name}>(r#\"SELECT * FROM {schema_name}\"{table_name}\" WHERE {condition}\"#)\n"
     ));
     select_code.push_str(&bind);
     select_code.push_str("            .fetch_optional(executor)\n");
@@ -513,7 +487,7 @@ fn generate_select_all_fk_queries(
 
             if let Some(foreign_row) = matching_row {
                 let fk_query = generate_select_by_fk_query_code(
-                    &table_name,
+                    table_name,
                     &row.column_name,
                     schema_name,
                     &foreign_row.table_name,
@@ -551,8 +525,7 @@ fn generate_select_by_fk_query_code(
     ));
 
     select_code.push_str(&format!(
-        "        query_as::<_, {}>(r#\"SELECT * FROM {}\"{}\" WHERE {} = $1\"#)\n",
-        struct_name, schema_name, table_name, column_name
+        "        query_as::<_, {struct_name}>(r#\"SELECT * FROM {schema_name}\"{table_name}\" WHERE {column_name} = $1\"#)\n"
     ));
     select_code.push_str(&format!(
         "            .bind({}_{})\n",
@@ -612,26 +585,24 @@ fn generate_update_query_code(table_name: &str, schema_name: &str, rows: &[Table
         "            {}\n",
         generate_value_list(table_name, rows)
     ));
-    update_code.push_str(&format!("            .fetch_one(executor)\n"));
-    update_code.push_str(&format!("            .await\n"));
+    update_code.push_str("            .fetch_one(executor)\n");
+    update_code.push_str("            .await\n");
     update_code.push_str("    }\n");
     update_code
 }
 
 fn generate_delete_query_code(table_name: &str, schema_name: &str, rows: &[TableColumn]) -> String {
     let mut delete_code = String::new();
-    delete_code.push_str(&format!(
-        "    pub async fn delete<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<()> {{\n"
-    ));
+    delete_code.push_str("    pub async fn delete<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<()> {\n");
     delete_code.push_str(&format!(
         "        query(r#\"DELETE FROM {}\"{}\" WHERE {}\"#)\n",
         schema_name,
         table_name,
         generate_delete_conditions(table_name, rows)
     ));
-    delete_code.push_str(&format!("            .execute(executor)\n"));
-    delete_code.push_str(&format!("            .await\n"));
-    delete_code.push_str(&format!("            .map(|_| ())\n"));
+    delete_code.push_str("            .execute(executor)\n");
+    delete_code.push_str("            .await\n");
+    delete_code.push_str("            .map(|_| ())\n");
     delete_code.push_str("    }\n");
     delete_code
 }
@@ -652,7 +623,7 @@ fn generate_placeholder_list(table_name: &str, rows: &[TableColumn]) -> String {
         .map(|(idx, _col)| format!("${}", idx + 1))
         .collect::<Vec<String>>()
         .join(", ");
-    format!("{}", placeholders)
+    placeholders.to_string()
 }
 
 fn generate_value_list(table_name: &str, rows: &[TableColumn]) -> String {
