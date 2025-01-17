@@ -2,6 +2,8 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use std::fs;
 use std::path::Path;
+use std::str::FromStr;
+use syn::{parse2, File};
 
 use crate::db_queries::get_table_columns;
 use crate::models::TableColumn;
@@ -60,7 +62,7 @@ pub async fn generate(
                 struct_file_path
             );
         } else {
-            fs::write(struct_file_path, struct_code)?;
+            fs::write(struct_file_path, prettify_code(struct_code))?;
         }
 
         // Write the query code to a file
@@ -71,14 +73,22 @@ pub async fn generate(
                 query_file_path
             );
         } else {
-            fs::write(query_file_path, query_code)?;
+            fs::write(query_file_path, prettify_code(query_code))?;
         }
     }
 
     let context_code = generate_db_context(context.unwrap_or(&database_name), &tables, &rows);
     let context_file_path = format!("{}/mod.rs", output_folder);
-    fs::write(context_file_path, context_code)?;
+    fs::write(context_file_path, prettify_code(context_code))?;
     Ok(())
+}
+
+pub fn prettify_code(code: String) -> String {
+    let tokens = proc_macro2::TokenStream::from_str(&code).expect("Could not parse code");
+    match parse2::<File>(tokens.clone()) {
+        Ok(file) => prettyplease::unparse(&file).to_string(),
+        Err(err) => panic!("Failed to parse TokenStream: {err}. Stream was {tokens}"),
+    }
 }
 
 fn generate_db_context(database_name: &str, tables: &[String], _rows: &[TableColumn]) -> String {

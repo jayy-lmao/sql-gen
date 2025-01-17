@@ -1,3 +1,7 @@
+use std::sync::LazyLock;
+use testcontainers::Container;
+use tokio::sync::OnceCell;
+
 use clap::{App, Arg, SubCommand};
 
 mod db_queries;
@@ -6,6 +10,31 @@ mod migrate;
 mod models;
 mod query_generate;
 mod utils;
+
+type TestPostgres = testcontainers_modules::postgres::Postgres;
+
+// LazyLock for testcontainers::Cli, created once and shared
+static DOCKER_CLI: LazyLock<testcontainers::clients::Cli> =
+    LazyLock::new(testcontainers::clients::Cli::default);
+
+// Global LazyLock holding both the container and database pool.
+static DB_RESOURCES: LazyLock<OnceCell<(Container<'static, TestPostgres>, String)>> =
+    LazyLock::new(OnceCell::new);
+
+async fn prepare_db() -> (Container<'static, TestPostgres>, String) {
+    let container = DOCKER_CLI.run(TestPostgres::default());
+    let connection_string = format!(
+        "postgres://postgres:postgres@127.0.0.1:{}/postgres",
+        container.get_host_port_ipv4(5432)
+    );
+
+    (container, connection_string)
+}
+
+pub async fn get_test_db_string() -> String {
+    let (_, conn_string) = DB_RESOURCES.get_or_init(prepare_db).await;
+    conn_string.clone()
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -131,18 +160,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .subcommand(migrate_subcommand);
     let matches = matcher.get_matches();
 
-    let mut test_container_db_uri: Option<String> = None;
-
-    let docker = testcontainers::clients::Cli::default();
-    let container = docker.run(testcontainers_modules::postgres::Postgres::default());
-    let connection_string = &format!(
-        "postgres://postgres:postgres@127.0.0.1:{}/postgres",
-        container.get_host_port_ipv4(5432)
-    );
-    {
-        test_container_db_uri = Some(connection_string.to_string());
-    }
-
     if let Some(matches) = matches.subcommand_matches("generate") {
         let database_is_docker = matches.value_of("database") == Some("docker");
 
@@ -160,7 +177,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let pool = sqlx::postgres::PgPoolOptions::new()
                 .max_connections(5)
-                .connect(test_container_db_uri.clone().expect("No db uri").as_str())
+                .connect(get_test_db_string().await.as_str())
                 .await
                 .expect("could not create pool");
 
@@ -184,18 +201,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let mut database_url = matches
             .value_of("database")
-            .expect("Must provide either a input migration folder or a database uri");
+            .expect("Must provide either a input migration folder or a database uri")
+            .to_string();
 
         if database_url == "docker" {
-            database_url = test_container_db_uri
-                .as_deref()
-                .expect("No docker database url");
+            database_url = get_test_db_string().await;
         }
 
         let schemas: Option<Vec<&str>> =
             matches.values_of("schema").map(|schemas| schemas.collect());
         let force = matches.is_present("force");
-        generate::generate(output_folder, database_url, context, force, None, schemas).await?;
+        generate::generate(output_folder, &database_url, context, force, None, schemas).await?;
     } else if let Some(matches) = matches.subcommand_matches("migrate") {
         let input_migrations_folder = matches.value_of("migrations").unwrap_or("./migrations");
         println!(
@@ -204,7 +220,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(5)
-            .connect(test_container_db_uri.clone().expect("No db uri").as_str())
+            .connect(get_test_db_string().await.as_str())
             .await
             .expect("could not create pool");
 
@@ -225,12 +241,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let mut database_url = matches
             .value_of("database")
-            .expect("Must provide either a input migration folder or a database uri");
+            .expect("Must provide either a input migration folder or a database uri")
+            .to_string();
 
         if database_url == "docker" {
-            database_url = test_container_db_uri
-                .as_deref()
-                .expect("No docker database url");
+            database_url = get_test_db_string().await
         }
 
         // let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
@@ -238,7 +253,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             matches.values_of("schema").map(|schemas| schemas.collect());
 
         println!("Finding new migration differences");
-        migrate::migrate(include_folder, output_folder, database_url, None, None).await?;
+        migrate::migrate(include_folder, output_folder, &database_url, None, None).await?;
     }
 
     Ok(())

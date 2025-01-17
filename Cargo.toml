@@ -16,3 +16,6 @@ tokio = { version = "1", features = ["full"] }
 dotenv = "0.15.0"
 testcontainers = { version ="0.15.0" }
 testcontainers-modules = { version = "0.3.5", features = ["postgres"] }
+proc-macro2 = "1.0.93"
+syn = "2.0.96"
+prettyplease = "0.2.29"

@@ -70,6 +70,7 @@ pub fn convert_data_type(data_type: &str) -> String {
         "jsonb" | "json" => "serde_json::Value",
         "text" | "varchar" | "name" | "citext" => "String",
         "time" => "chrono::NaiveTime",
+        "numeric" | "decimal" => "rust_decimal::Decimal",
         "timestamp" => "chrono::NaiveDateTime",
         "timestamptz" => "chrono::DateTime<chrono::Utc>",
         "uuid" => "uuid::Uuid",
