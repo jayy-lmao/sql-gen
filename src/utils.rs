@@ -27,18 +27,18 @@ pub fn generate_struct_code(table_name: &str, rows: &Vec<TableColumn>) -> String
     struct_code.push_str("#![allow(dead_code)]\n");
     struct_code.push_str("// Generated with sql-gen\n// https://github.com/jayy-lmao/sql-gen\n\n");
     struct_code.push_str("#[derive(sqlx::FromRow, Debug)]\n");
-    struct_code.push_str(&format!("pub struct {} {{\n", struct_name));
+    struct_code.push_str(&format!("pub struct {struct_name} {{\n"));
 
     for row in rows {
         if row.table_name == table_name {
             let column_name = to_snake_case(&row.column_name);
             let mut data_type = convert_data_type(&row.udt_name);
-            let optional_type = format!("Option<{}>", data_type);
+            let optional_type = format!("Option<{data_type}>");
             if row.is_nullable {
                 data_type = optional_type;
             }
 
-            struct_code.push_str(&format!("  pub {}: {},\n", column_name, data_type));
+            struct_code.push_str(&format!("  pub {column_name}: {data_type},\n"));
         }
     }
     struct_code.push_str("}\n");
@@ -50,9 +50,9 @@ pub fn convert_data_type(data_type: &str) -> String {
     if data_type.to_lowercase().contains("char(") {
         return "String".to_string();
     }
-    if data_type.starts_with("_") {
+    if data_type.starts_with('_') {
         let array_of_type = convert_data_type(&data_type[1..]);
-        let vec_type = format!("Vec<{}>", array_of_type);
+        let vec_type = format!("Vec<{array_of_type}>");
         return vec_type;
     }
 
@@ -74,7 +74,7 @@ pub fn convert_data_type(data_type: &str) -> String {
         "timestamp" => "chrono::NaiveDateTime",
         "timestamptz" => "chrono::DateTime<chrono::Utc>",
         "uuid" => "uuid::Uuid",
-        _ => panic!("Unknown type: {}", data_type),
+        _ => panic!("Unknown type: {data_type}"),
     }
     .to_string()
 }
@@ -85,7 +85,7 @@ pub fn convert_data_type_from_pg(data_type: &str) -> String {
     }
     if data_type.contains("Vec<") {
         let array_type = convert_data_type_from_pg(&data_type[4..data_type.len() - 1]);
-        return format!("{}[]", array_type);
+        return format!("{array_type}[]");
     }
     match data_type {
         "i64" => "int8",
@@ -102,7 +102,7 @@ pub fn convert_data_type_from_pg(data_type: &str) -> String {
         "uuid::Uuid" => "uuid",
         "bool" => "boolean",
         "Vec<u8>" => "bytea", // is this right ?
-        _ => panic!("Unknown type: {}", data_type),
+        _ => panic!("Unknown type: {data_type}"),
     }
     .to_string()
 }
@@ -148,11 +148,6 @@ pub fn parse_struct_fields(struct_code: &str) -> Vec<(String, String, bool)> {
     fields
 }
 
-#[cfg(test)]
-mod tests {
-    // ... (unit tests can be defined here)
-}
-
 pub fn to_pascal_case(input: &str) -> String {
     let mut output = String::new();
     let mut capitalize_next = true;
@@ -171,4 +166,9 @@ pub fn to_pascal_case(input: &str) -> String {
     }
 
     output
+}
+
+#[cfg(test)]
+mod tests {
+    // ... (unit tests can be defined here)
 }

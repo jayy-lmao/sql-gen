@@ -163,7 +163,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(matches) = matches.subcommand_matches("generate") {
         let database_is_docker = matches.value_of("database") == Some("docker");
 
-        if let Some(input_migrations_folder) = matches.value_of("migrations").or_else(|| {
+        if let Some(input_migrations_folder) = matches.value_of("migrations").or({
             if database_is_docker {
                 Some("migrations")
             } else {
@@ -171,8 +171,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }) {
             println!(
-                "Creating DB and applying migrations from {}",
-                input_migrations_folder
+                "Creating DB and applying migrations from {input_migrations_folder}"
             );
 
             let pool = sqlx::postgres::PgPoolOptions::new()
@@ -209,14 +208,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         let schemas: Option<Vec<&str>> =
-            matches.values_of("schema").map(|schemas| schemas.collect());
+            matches.values_of("schema").map(std::iter::Iterator::collect);
         let force = matches.is_present("force");
         generate::generate(output_folder, &database_url, context, force, None, schemas).await?;
     } else if let Some(matches) = matches.subcommand_matches("migrate") {
         let input_migrations_folder = matches.value_of("migrations").unwrap_or("./migrations");
         println!(
-            "Creating DB and applying migrations from {}",
-            input_migrations_folder
+            "Creating DB and applying migrations from {input_migrations_folder}"
         );
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(5)
@@ -245,12 +243,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .to_string();
 
         if database_url == "docker" {
-            database_url = get_test_db_string().await
+            database_url = get_test_db_string().await;
         }
 
         // let tables: Option<Vec<&str>> = matches.values_of("table").map(|tables| tables.collect());
         let schemas: Option<Vec<&str>> =
-            matches.values_of("schema").map(|schemas| schemas.collect());
+            matches.values_of("schema").map(std::iter::Iterator::collect);
 
         println!("Finding new migration differences");
         migrate::migrate(include_folder, output_folder, &database_url, None, None).await?;
