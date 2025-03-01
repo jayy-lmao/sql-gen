@@ -1,6 +1,6 @@
 use sqlx::prelude::FromRow;
 
-use crate::core::models::TableColumn;
+use crate::{core::models::db::TableColumn, postgres::queries::convert_type::convert_data_type};
 
 #[derive(FromRow)]
 pub struct PostgresTableColumn {
@@ -18,6 +18,7 @@ pub struct PostgresTableColumn {
 
 impl From<PostgresTableColumn> for TableColumn {
     fn from(value: PostgresTableColumn) -> Self {
+        let recommended_rust_type = convert_data_type(&value.udt_name);
         Self {
             column_name: value.column_name,
             udt_name: value.udt_name,
@@ -27,6 +28,7 @@ impl From<PostgresTableColumn> for TableColumn {
             is_primary_key: value.is_primary_key,
             foreign_key_table: value.foreign_key_table,
             foreign_key_id: value.foreign_key_id,
+            recommended_rust_type,
         }
     }
 }

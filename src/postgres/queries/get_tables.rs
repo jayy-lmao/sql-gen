@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use sqlx::PgPool;
 
 use crate::{
-    core::models::{Table, TableColumn},
+    core::models::db::{Table, TableColumn},
     postgres::models::postgres_table_column::PostgresTableColumn,
 };
 

@@ -1,14 +1,11 @@
 use std::error::Error;
 
-use crate::{
-    core::models::CustomEnum,
-    postgres::queries::{get_enums::get_postgres_enums, test_helper::get_test_pool},
-};
+use sqlx::PgPool;
 
-#[tokio::test]
-async fn test_get_postgres_enums() -> Result<(), Box<dyn Error>> {
-    let pool = get_test_pool().await;
+use crate::{core::models::db::CustomEnum, postgres::queries::get_enums::get_postgres_enums};
 
+#[sqlx::test]
+async fn test_get_postgres_enums(pool: PgPool) -> Result<(), Box<dyn Error>> {
     sqlx::query("DROP TYPE IF EXISTS mood CASCADE;")
         .execute(&pool)
         .await?;

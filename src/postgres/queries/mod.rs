@@ -1,8 +1,9 @@
+pub mod convert_type;
 pub mod get_enums;
+#[cfg(test)]
+mod get_enums_test;
 pub mod get_tables;
 #[cfg(test)]
-mod test_get_enums;
-#[cfg(test)]
-mod test_get_tables;
+mod get_tables_test;
 #[cfg(test)]
 mod test_helper;

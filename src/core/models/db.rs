@@ -3,6 +3,7 @@ pub struct TableColumn {
     pub(crate) column_name: String,
     pub(crate) udt_name: String,
     pub(crate) data_type: String,
+    pub(crate) recommended_rust_type: Option<String>,
     pub(crate) is_nullable: bool,
     pub(crate) is_unique: bool,
     pub(crate) is_primary_key: bool,
@@ -28,6 +29,7 @@ pub struct TableColumnBuilder {
     column_name: String,
     udt_name: String,
     data_type: String,
+    recommended_rust_type: Option<String>,
     is_nullable: bool,
     is_unique: bool,
     is_primary_key: bool,
@@ -50,6 +52,7 @@ impl TableColumnBuilder {
             is_primary_key: false,
             foreign_key_table: None,
             foreign_key_id: None,
+            recommended_rust_type: None,
         }
     }
 
@@ -77,11 +80,17 @@ impl TableColumnBuilder {
         self
     }
 
+    pub fn recommended_rust_type(mut self, recommended_rust_type: impl ToString) -> Self {
+        self.recommended_rust_type = Some(recommended_rust_type.to_string());
+        self
+    }
+
     pub fn build(self) -> TableColumn {
         TableColumn {
             column_name: self.column_name,
             udt_name: self.udt_name,
             data_type: self.data_type,
+            recommended_rust_type: self.recommended_rust_type,
             is_nullable: self.is_nullable,
             is_unique: self.is_unique,
             is_primary_key: self.is_primary_key,

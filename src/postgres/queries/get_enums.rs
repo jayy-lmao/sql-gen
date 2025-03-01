@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use sqlx::PgPool;
 
-use crate::{core::models::CustomEnum, postgres::models::postgres_enum::PostgresEnumRow};
+use crate::{core::models::db::CustomEnum, postgres::models::postgres_enum::PostgresEnumRow};
 
 pub async fn get_postgres_enums(pool: &PgPool) -> Result<Vec<CustomEnum>, sqlx::Error> {
     let query = r"
