@@ -13,7 +13,7 @@ use super::models::{
     rust::RustDbSetStruct,
 };
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct TableToStructOptions {
     override_name: Option<String>,
     column_overrides: HashMap<String, ColumnToFieldOptions>,
@@ -23,9 +23,12 @@ impl TableToStructOptions {
     fn add_column_override(&mut self, column_name: &str, options: ColumnToFieldOptions) {
         self.column_overrides.insert(column_name.to_string(), options);
     }
+    fn add_type_override(&mut self, type_name: &str, options: ColumnToFieldOptions) {
+        self.type_overrides.insert(type_name.to_string(), options);
+    }
 }
 
-#[derive(Default,Clone)]
+#[derive(Default,Clone, Debug)]
 pub struct ColumnToFieldOptions {
     override_name: Option<String>,
     override_type: Option<String>,
@@ -38,9 +41,12 @@ pub fn convert_column_to_field(
     let field_name = options
         .override_name
         .unwrap_or(column.column_name.to_case(Case::Snake));
+
+
     let maybe_field_type: Option<String> = options
         .override_type
         .or(column.recommended_rust_type.clone());
+
 
     if let Some(field_type) = maybe_field_type {
         return Some(RustDbSetField {
@@ -55,7 +61,7 @@ pub fn convert_table_to_struct(table: Table, options: TableToStructOptions) -> R
     let table_name_pascal_case = table.table_name.clone().to_case(Case::Pascal);
     let table_name_singular = pluralize(&table_name_pascal_case, 1, false);
 
-    let maybe_override = options.override_name;
+    let maybe_override = options.override_name.clone();
 
     let struct_name = maybe_override.unwrap_or(table_name_singular);
     let table_name = table.table_name.clone();
@@ -162,6 +168,26 @@ fn can_convert_table_with_basic_column() {
     )
 }
 
+#[test]
+fn should_ignore_columns_with_invalid_types() {
+    let table = Table {
+        table_name: "products".to_string(),
+        table_schema: "public".to_string(),
+        columns: vec![TableColumnBuilder::new("title", "badtype", "badtype").build()],
+    };
+    let rust_struct = convert_table_to_struct(table, TableToStructOptions::default());
+    pretty_assertions::assert_eq!(
+        rust_struct,
+        RustDbSetStruct {
+            struct_name: "Product".to_string(),
+            table_name: Some("products".to_string()),
+            fields: vec![]
+        }
+    )
+}
+
+
+
 
 #[test]
 fn can_convert_table_with_column_type_override() {
@@ -173,6 +199,7 @@ fn can_convert_table_with_column_type_override() {
 
     let column_override = ColumnToFieldOptions { override_name: None, override_type: Some("String".to_string()) };
     let mut table_to_struct_options = TableToStructOptions::default();
+
     table_to_struct_options.add_column_override("id", column_override);
 
     let rust_struct = convert_table_to_struct(table, table_to_struct_options);
@@ -189,4 +216,66 @@ fn can_convert_table_with_column_type_override() {
         }
     )
 }
+
+#[test]
+fn can_convert_table_with_global_type_override() {
+    let table = Table {
+        table_name: "products".to_string(),
+        table_schema: "public".to_string(),
+        columns: vec![TableColumnBuilder::new("id", "int4", "int4").build()],
+    };
+
+    let type_override = ColumnToFieldOptions { override_name: None, override_type: Some("String".to_string()) };
+    let mut table_to_struct_options = TableToStructOptions::default();
+
+    table_to_struct_options.add_type_override("int4", type_override);
+
+    let rust_struct = convert_table_to_struct(table, table_to_struct_options);
+
+    pretty_assertions::assert_eq!(
+        rust_struct,
+        RustDbSetStruct {
+            struct_name: "Product".to_string(),
+            table_name: Some("products".to_string()),
+            fields: vec![RustDbSetField {
+                field_name: "id".to_string(),
+                field_type: "String".to_string()
+            }]
+        }
+    )
+}
+
+
+
+#[test]
+fn column_override_takes_preference_over_global_type_override() {
+    let table = Table {
+        table_name: "products".to_string(),
+        table_schema: "public".to_string(),
+        columns: vec![TableColumnBuilder::new("price", "int4", "int4").build()],
+    };
+
+    let type_override = ColumnToFieldOptions { override_name: None, override_type: Some("String".to_string()) };
+    let column_override = ColumnToFieldOptions { override_name: None, override_type: Some("rust_decimal::Decimal".to_string()) };
+
+    let mut table_to_struct_options = TableToStructOptions::default();
+
+    table_to_struct_options.add_type_override("int4", type_override);
+    table_to_struct_options.add_column_override("price", column_override);
+
+    let rust_struct = convert_table_to_struct(table, table_to_struct_options);
+
+    pretty_assertions::assert_eq!(
+        rust_struct,
+        RustDbSetStruct {
+            struct_name: "Product".to_string(),
+            table_name: Some("products".to_string()),
+            fields: vec![RustDbSetField {
+                field_name: "price".to_string(),
+                field_type: "rust_decimal::Decimal".to_string()
+            }]
+        }
+    )
+}
+
 
