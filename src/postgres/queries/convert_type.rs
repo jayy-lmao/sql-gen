@@ -26,9 +26,6 @@ pub fn convert_data_type(udt_type: &str) -> Option<String> {
         "timestamp" => Some("chrono::NaiveDateTime".to_string()),
         "timestamptz" => Some("chrono::DateTime<chrono::Utc>".to_string()),
         "uuid" => Some("uuid::Uuid".to_string()),
-        unmatched_type => {
-            println!("WARNING: Could not match type {unmatched_type}");
-            None
-        }
+        _ => None,
     }
 }

@@ -11,6 +11,7 @@ pub fn convert_table_to_struct(table: Table, options: TableToStructOptions) -> R
     let table_name_singular = pluralize(&table_name_pascal_case, 1, false);
 
     let maybe_override = options.override_name.clone();
+    println!("OPTIONS: {:#?}", options);
 
     let struct_name = maybe_override.unwrap_or(table_name_singular);
     let table_name = table.table_name.clone();

@@ -64,3 +64,32 @@ async fn test_basic_postgres_table_with_array(pool: PgPool) -> Result<(), Box<dy
 
     Ok(())
 }
+
+#[sqlx::test]
+async fn test_postgres_table_with_custom_type(pool: PgPool) -> Result<(), Box<dyn Error>> {
+    sqlx::query("DROP TYPE IF EXISTS status CASCADE;")
+        .execute(&pool)
+        .await?;
+
+    sqlx::query("CREATE TYPE status AS ENUM ('pending', 'shipped', 'delivered');")
+        .execute(&pool)
+        .await?;
+
+    test_table(
+        &pool,
+        "CREATE TABLE test_orders_status_0 (id SERIAL PRIMARY KEY, order_status status NOT NULL);",
+        vec![Table {
+            table_name: "test_orders_status_0".to_string(),
+            table_schema: "public".to_string(),
+            columns: vec![
+                TableColumnBuilder::new("id", "int4", "integer")
+                    .is_primary_key()
+                    .build(),
+                TableColumnBuilder::new("order_status", "status", "USER-DEFINED").build(),
+            ],
+        }],
+    )
+    .await?;
+
+    Ok(())
+}
