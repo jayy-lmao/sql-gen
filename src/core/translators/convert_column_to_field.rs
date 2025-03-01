@@ -20,6 +20,7 @@ pub fn convert_column_to_field(
         return Some(RustDbSetField {
             field_name,
             field_type,
+            is_optional: false,
         });
     }
     None

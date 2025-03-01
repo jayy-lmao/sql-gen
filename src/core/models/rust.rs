@@ -15,4 +15,5 @@ pub struct RustDbSetEnum {
 pub struct RustDbSetField {
     pub(crate) field_name: String,
     pub(crate) field_type: String,
+    pub(crate) is_optional: bool,
 }

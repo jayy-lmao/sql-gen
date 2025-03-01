@@ -21,3 +21,6 @@ pretty_assertions = "1.4.1"
 syn = { version="2.0.98", features=["full"] }
 convert_case = "0.8.0"
 pluralizer = "0.5.0"
+quote = "1.0.37"
+proc-macro2 = "1.0.89"
+prettyplease = "0.2.25"

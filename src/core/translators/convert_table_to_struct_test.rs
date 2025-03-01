@@ -85,7 +85,8 @@ fn should_convert_table_with_basic_column() {
             table_name: Some("products".to_string()),
             fields: vec![RustDbSetField {
                 field_name: "title".to_string(),
-                field_type: "String".to_string()
+                field_type: "String".to_string(),
+                is_optional: false
             }]
         }
     )
@@ -108,7 +109,8 @@ fn should_convert_table_with_optional_column() {
             table_name: Some("products".to_string()),
             fields: vec![RustDbSetField {
                 field_name: "description".to_string(),
-                field_type: "Option<String>".to_string()
+                field_type: "String".to_string(),
+                is_optional: true
             }]
         }
     )
@@ -131,7 +133,8 @@ fn should_convert_table_with_array_column() {
             table_name: Some("products".to_string()),
             fields: vec![RustDbSetField {
                 field_name: "tags".to_string(),
-                field_type: "Vec<String>".to_string()
+                field_type: "Vec<String>".to_string(),
+                is_optional: false
             }]
         }
     )
@@ -164,7 +167,8 @@ fn should_convert_table_with_enum_column() {
             table_name: Some("orders".to_string()),
             fields: vec![RustDbSetField {
                 field_name: "order_status".to_string(),
-                field_type: "Status".to_string()
+                field_type: "Status".to_string(),
+                is_optional: false
             }]
         }
     )
@@ -212,7 +216,8 @@ fn should_convert_table_with_column_type_override() {
             table_name: Some("products".to_string()),
             fields: vec![RustDbSetField {
                 field_name: "id".to_string(),
-                field_type: "String".to_string()
+                field_type: "String".to_string(),
+                is_optional: false
             }]
         }
     )
@@ -242,7 +247,8 @@ fn should_convert_table_with_global_type_override() {
             table_name: Some("products".to_string()),
             fields: vec![RustDbSetField {
                 field_name: "id".to_string(),
-                field_type: "String".to_string()
+                field_type: "String".to_string(),
+                is_optional: false
             }]
         }
     )
@@ -278,7 +284,8 @@ fn column_override_takes_preference_over_global_type_override() {
             table_name: Some("products".to_string()),
             fields: vec![RustDbSetField {
                 field_name: "price".to_string(),
-                field_type: "rust_decimal::Decimal".to_string()
+                field_type: "rust_decimal::Decimal".to_string(),
+                is_optional: false
             }]
         }
     )

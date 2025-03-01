@@ -27,13 +27,14 @@ fn setup_test_db() -> String {
 
 /// Runs before all tests **only in test mode**
 #[cfg(test)]
-#[ctor::ctor]
-fn initialize_database() {
-    if std::env::var("DATABASE_URL").is_ok() {
-        return; // Skip setup if DATABASE_URL is already set
+async fn initialize_database() -> sqlx::PgPool {
+    use sqlx::PgPool;
+
+    if let Ok(db_url) = std::env::var("DATABASE_URL") {
+        return PgPool::connect(&db_url).await.expect("Could not db");
     }
 
     let db_url = setup_test_db();
 
-    std::env::set_var("DATABASE_URL", db_url);
+    return PgPool::connect(&db_url).await.expect("Could not db");
 }
