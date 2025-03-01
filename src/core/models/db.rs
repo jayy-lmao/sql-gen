@@ -85,7 +85,13 @@ impl TableColumnBuilder {
     pub fn build(self) -> TableColumn {
         TableColumn {
             column_name: self.column_name,
-            recommended_rust_type: convert_data_type(&self.udt_name),
+            recommended_rust_type: convert_data_type(&self.udt_name).map(|dt| {
+                if self.is_nullable {
+                    format!("Option<{dt}>")
+                } else {
+                    dt
+                }
+            }),
             udt_name: self.udt_name,
             data_type: self.data_type,
             is_nullable: self.is_nullable,
