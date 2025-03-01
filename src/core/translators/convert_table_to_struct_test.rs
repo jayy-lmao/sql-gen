@@ -92,6 +92,52 @@ fn should_convert_table_with_basic_column() {
 }
 
 #[test]
+fn should_convert_table_with_optional_column() {
+    let table = Table {
+        table_name: "products".to_string(),
+        table_schema: "public".to_string(),
+        columns: vec![TableColumnBuilder::new("description", "text", "text")
+            .is_nullable()
+            .build()],
+    };
+    let rust_struct = convert_table_to_struct(table, TableToStructOptions::default());
+    assert_eq!(
+        rust_struct,
+        RustDbSetStruct {
+            struct_name: "Product".to_string(),
+            table_name: Some("products".to_string()),
+            fields: vec![RustDbSetField {
+                field_name: "description".to_string(),
+                field_type: "Option<String>".to_string()
+            }]
+        }
+    )
+}
+
+#[test]
+fn should_convert_table_with_array_column() {
+    let table = Table {
+        table_name: "products".to_string(),
+        table_schema: "public".to_string(),
+        columns: vec![TableColumnBuilder::new("tags", "_text", "ARRAY")
+            .is_nullable()
+            .build()],
+    };
+    let rust_struct = convert_table_to_struct(table, TableToStructOptions::default());
+    assert_eq!(
+        rust_struct,
+        RustDbSetStruct {
+            struct_name: "Product".to_string(),
+            table_name: Some("products".to_string()),
+            fields: vec![RustDbSetField {
+                field_name: "tags".to_string(),
+                field_type: "Vec<String>".to_string()
+            }]
+        }
+    )
+}
+
+#[test]
 fn should_convert_table_with_enum_column() {
     let table = Table {
         table_name: "orders".to_string(),
