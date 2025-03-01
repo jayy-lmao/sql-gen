@@ -30,10 +30,10 @@ async fn test_basic_postgres_tables(pool: PgPool) -> Result<(), Box<dyn Error>> 
             table_name: "test_table_0".to_string(),
             table_schema: "public".to_string(),
             columns: vec![
-                TableColumnBuilder::new("id", "int4", "integer").recommended_rust_type("i32").is_primary_key().build(),
-                TableColumnBuilder::new("name", "varchar", "character varying").recommended_rust_type("String").is_unique().is_nullable().build(),
-                TableColumnBuilder::new("description", "text", "text").recommended_rust_type("String").is_nullable().build(),
-                TableColumnBuilder::new("parent_id", "int4", "integer").is_nullable().recommended_rust_type("i32").foreign_key_table("test_table_0").foreign_key_id("id").build(),
+                TableColumnBuilder::new("id", "int4", "integer").is_primary_key().build(),
+                TableColumnBuilder::new("name", "varchar", "character varying").is_unique().is_nullable().build(),
+                TableColumnBuilder::new("description", "text", "text").is_nullable().build(),
+                TableColumnBuilder::new("parent_id", "int4", "integer").is_nullable().foreign_key_table("test_table_0").foreign_key_id("id").build(),
             ],
         }],
     )
@@ -52,12 +52,10 @@ async fn test_basic_postgres_table_with_array(pool: PgPool) -> Result<(), Box<dy
             table_schema: "public".to_string(),
             columns: vec![
                 TableColumnBuilder::new("id", "int4", "integer")
-                    .recommended_rust_type("i32")
                     .is_primary_key()
                     .build(),
                 TableColumnBuilder::new("names", "_text", "ARRAY")
                     .is_nullable()
-                    .recommended_rust_type("Vec<String>")
                     .build(),
             ],
         }],

@@ -1,3 +1,5 @@
+use crate::postgres::queries::convert_type::convert_data_type;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct TableColumn {
     pub(crate) column_name: String,
@@ -80,17 +82,12 @@ impl TableColumnBuilder {
         self
     }
 
-    pub fn recommended_rust_type(mut self, recommended_rust_type: impl ToString) -> Self {
-        self.recommended_rust_type = Some(recommended_rust_type.to_string());
-        self
-    }
-
     pub fn build(self) -> TableColumn {
         TableColumn {
             column_name: self.column_name,
+            recommended_rust_type: convert_data_type(&self.udt_name),
             udt_name: self.udt_name,
             data_type: self.data_type,
-            recommended_rust_type: self.recommended_rust_type,
             is_nullable: self.is_nullable,
             is_unique: self.is_unique,
             is_primary_key: self.is_primary_key,
