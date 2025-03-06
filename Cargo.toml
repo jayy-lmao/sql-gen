@@ -24,3 +24,5 @@ pluralizer = "0.5.0"
 quote = "1.0.37"
 proc-macro2 = "1.0.89"
 prettyplease = "0.2.25"
+setup_db_macros = { path = "./setup_db_macros" }
+

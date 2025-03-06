@@ -30,9 +30,17 @@ SELECT
         ELSE FALSE
     END AS is_unique,
     f.foreign_table_name AS foreign_key_table,
-    f.foreign_column_name AS foreign_key_id
+    f.foreign_column_name AS foreign_key_id,
+    -- Retrieve the column comment using the table's OID and the column's ordinal position
+    col_description(cls.oid, c.ordinal_position) AS column_comment,
+    -- Retrieve the table comment using the table's OID
+    obj_description(cls.oid) AS table_comment
 FROM
     information_schema.columns c
+    -- Join to get the table OID from pg_class via pg_namespace
+    JOIN pg_catalog.pg_namespace n ON n.nspname = c.table_schema
+    JOIN pg_catalog.pg_class cls ON cls.relname = c.table_name
+        AND cls.relnamespace = n.oid
 LEFT JOIN
     (
         SELECT
@@ -103,8 +111,7 @@ ON
 WHERE
     c.table_schema = ANY($1)
     AND c.table_name != '_sqlx_migrations'
-    AND
-    ($2 IS NULL OR c.table_name = ANY($2))
+    AND ($2 IS NULL OR c.table_name = ANY($2))
 ORDER BY
     c.table_name,
     c.ordinal_position;
@@ -116,22 +123,27 @@ ORDER BY
         .bind(table_names)
         .fetch_all(pool)
         .await?;
-    let mut table_map: HashMap<(String, String), Vec<TableColumn>> = HashMap::new();
+    let mut table_map: HashMap<(String, String, Option<String>), Vec<TableColumn>> = HashMap::new();
 
     for row in rows {
         table_map
-            .entry((row.table_name.clone(), row.table_schema.clone()))
+            .entry((
+                row.table_name.clone(),
+                row.table_schema.clone(),
+                row.table_comment.clone(),
+            ))
             .or_default()
             .push(TableColumn::from(row));
     }
 
     let mut tables: Vec<Table> = Vec::new();
 
-    for ((table_name, table_schema), columns) in table_map {
+    for ((table_name, table_schema, table_comment), columns) in table_map {
         tables.push(Table {
             table_name,
             table_schema,
             columns,
+            table_comment,
         });
     }
 

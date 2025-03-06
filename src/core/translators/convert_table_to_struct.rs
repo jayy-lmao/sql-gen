@@ -1,8 +1,6 @@
 use convert_case::{Case, Casing};
 use pluralizer::pluralize;
-
-use crate::core::models::{db::Table, rust::RustDbSetStruct};
-
+use crate::core::models::{db::Table, rust::{dbset_attribute_with_table_name, RustDbSetStruct}};
 use super::{convert_column_to_field::convert_column_to_field, models::TableToStructOptions};
 
 
@@ -35,8 +33,10 @@ pub fn convert_table_to_struct(table: Table, options: TableToStructOptions) -> R
 
     RustDbSetStruct {
         struct_name,
-        table_name: Some(table_name),
+        attributes: vec![dbset_attribute_with_table_name(table_name)],
         fields,
+        comment: table.table_comment.clone(),
+        ..Default::default()
     }
 }
 

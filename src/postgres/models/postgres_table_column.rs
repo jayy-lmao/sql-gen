@@ -5,7 +5,9 @@ use crate::{core::models::db::TableColumn, postgres::queries::convert_type::conv
 #[derive(FromRow)]
 pub struct PostgresTableColumn {
     pub(crate) table_name: String,
+    pub(crate) table_comment: Option<String>,
     pub(crate) column_name: String,
+    pub(crate) column_comment: Option<String>,
     pub(crate) udt_name: String,
     pub(crate) data_type: String,
     pub(crate) is_nullable: bool,
@@ -29,6 +31,7 @@ impl From<PostgresTableColumn> for TableColumn {
             foreign_key_table: value.foreign_key_table,
             foreign_key_id: value.foreign_key_id,
             recommended_rust_type,
+            column_comment: value.column_comment,
         }
     }
 }

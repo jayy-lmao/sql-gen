@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-
-use crate::core::models::db::CustomEnum;
-
 use super::convert_db_enum_to_rust_enum::convert_db_enum_to_rust_enum;
+use crate::core::models::db::CustomEnum;
+use std::collections::HashMap;
 
 #[derive(Default, Debug, Clone)]
 pub struct TableToStructOptions {

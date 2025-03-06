@@ -5,6 +5,7 @@ use sqlx::PgPool;
 use crate::{core::models::db::CustomEnum, postgres::queries::get_enums::get_postgres_enums};
 
 #[sqlx::test]
+#[setup_db_macros::setup_pg_db]
 async fn test_get_postgres_enums(pool: PgPool) -> Result<(), Box<dyn Error>> {
     sqlx::query("DROP TYPE IF EXISTS mood CASCADE;")
         .execute(&pool)

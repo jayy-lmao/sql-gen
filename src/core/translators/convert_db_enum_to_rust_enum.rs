@@ -1,6 +1,5 @@
-use convert_case::{Case, Casing};
-
 use crate::core::models::{db::CustomEnum, rust::RustDbSetEnum};
+use convert_case::{Case, Casing};
 
 pub fn convert_db_enum_to_rust_enum(custom_enum: &CustomEnum) -> RustDbSetEnum {
     RustDbSetEnum {

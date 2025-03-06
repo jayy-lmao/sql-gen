@@ -2,33 +2,36 @@ use crate::postgres::queries::convert_type::convert_data_type;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct TableColumn {
-    pub(crate) column_name: String,
-    pub(crate) udt_name: String,
-    pub(crate) data_type: String,
-    pub(crate) recommended_rust_type: Option<String>,
-    pub(crate) is_nullable: bool,
-    pub(crate) is_unique: bool,
-    pub(crate) is_primary_key: bool,
-    pub(crate) foreign_key_table: Option<String>,
-    pub(crate) foreign_key_id: Option<String>,
+    pub column_name: String,
+    pub column_comment: Option<String>,
+    pub udt_name: String,
+    pub data_type: String,
+    pub recommended_rust_type: Option<String>,
+    pub is_nullable: bool,
+    pub is_unique: bool,
+    pub is_primary_key: bool,
+    pub foreign_key_table: Option<String>,
+    pub foreign_key_id: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Default)]
 pub struct Table {
-    pub(crate) table_name: String,
-    pub(crate) table_schema: String,
-    pub(crate) columns: Vec<TableColumn>,
+    pub table_name: String,
+    pub table_comment: Option<String>,
+    pub table_schema: String,
+    pub columns: Vec<TableColumn>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct CustomEnum {
-    pub(crate) name: String,
-    pub(crate) schema: String,
-    pub(crate) variants: Vec<String>,
+    pub name: String,
+    pub schema: String,
+    pub variants: Vec<String>,
 }
 
 pub struct TableColumnBuilder {
     column_name: String,
+    column_comment: Option<String>,
     udt_name: String,
     data_type: String,
     recommended_rust_type: Option<String>,
@@ -47,6 +50,7 @@ impl TableColumnBuilder {
     ) -> Self {
         Self {
             column_name: column_name.to_string(),
+            column_comment: None,
             udt_name: udt_name.to_string(),
             data_type: data_type.to_string(),
             is_nullable: false,
@@ -73,6 +77,11 @@ impl TableColumnBuilder {
         self
     }
 
+    pub fn add_column_comment(mut self, column_comment: impl Into<String>) -> Self {
+        self.column_comment = Some(column_comment.into());
+        self
+    }
+
     pub fn foreign_key_table(mut self, foreign_key_table: impl ToString) -> Self {
         self.foreign_key_table = Some(foreign_key_table.to_string());
         self
@@ -85,13 +94,7 @@ impl TableColumnBuilder {
     pub fn build(self) -> TableColumn {
         TableColumn {
             column_name: self.column_name,
-            recommended_rust_type: convert_data_type(&self.udt_name).map(|dt| {
-                if self.is_nullable {
-                    format!("Option<{dt}>")
-                } else {
-                    dt
-                }
-            }),
+            recommended_rust_type: convert_data_type(&self.udt_name),
             udt_name: self.udt_name,
             data_type: self.data_type,
             is_nullable: self.is_nullable,
@@ -99,6 +102,7 @@ impl TableColumnBuilder {
             is_primary_key: self.is_primary_key,
             foreign_key_table: self.foreign_key_table,
             foreign_key_id: self.foreign_key_id,
+            column_comment: self.column_comment,
         }
     }
 }
