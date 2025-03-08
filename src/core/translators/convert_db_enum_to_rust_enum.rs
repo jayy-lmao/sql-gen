@@ -19,6 +19,6 @@ pub fn convert_db_enum_to_rust_enum(custom_enum: &CustomEnum) -> RustDbSetEnum {
             .collect(),
         derives: vec!["sqlx::Type".to_string()],
         attributes: vec![enum_typename_attribute(&custom_enum.name)],
-        comment: None,
+        comment: custom_enum.comments.clone(),
     }
 }
