@@ -1,6 +1,6 @@
 use crate::core::{
     models::{
-        db::{CustomEnum, Table, TableColumnBuilder},
+        db::{CustomEnum, CustomEnumVariant, Table, TableColumnBuilder},
         rust::{dbset_attribute_with_table_name, RustDbSetField, RustDbSetStruct},
     },
     translators::{
@@ -160,10 +160,20 @@ fn should_convert_table_with_enum_column() {
         name: "status".to_string(),
         schema: "public".to_string(),
         variants: vec![
-            "pending".to_string(),
-            "shipped".to_string(),
-            "delivered".to_string(),
+            CustomEnumVariant {
+                name: "pending".to_string(),
+                ..Default::default()
+            },
+            CustomEnumVariant {
+                name: "shipped".to_string(),
+                ..Default::default()
+            },
+            CustomEnumVariant {
+                name: "delivered".to_string(),
+                ..Default::default()
+            },
         ],
+        ..Default::default()
     }];
     let table_to_struct_options = TableToStructOptions::default().add_enums(&enums);
 

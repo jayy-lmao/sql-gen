@@ -15,6 +15,8 @@ This project draws inspiration from `rsdbgen` (GitHub: [brianhv/rsdbgen](https:/
 - [ ] Generate DB
     - [ ] Support DB comments
     - [ ] Support custom types
+        - [ ] User defined mappings
+        - [ ] DB custom types
     - [ ] Support enums
     - [ ] Support DBSet
         - [ ] Support struct attributes

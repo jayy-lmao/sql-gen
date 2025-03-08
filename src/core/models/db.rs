@@ -22,11 +22,16 @@ pub struct Table {
     pub columns: Vec<TableColumn>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Default)]
+pub struct CustomEnumVariant {
+    pub name: String,
+}
+#[derive(Debug, PartialEq, Eq, Default)]
 pub struct CustomEnum {
     pub name: String,
     pub schema: String,
-    pub variants: Vec<String>,
+    pub variants: Vec<CustomEnumVariant>,
+    pub comments: Option<String>,
 }
 
 pub struct TableColumnBuilder {

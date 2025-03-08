@@ -2,7 +2,10 @@ use std::error::Error;
 
 use sqlx::PgPool;
 
-use crate::{core::models::db::CustomEnum, postgres::queries::get_enums::get_postgres_enums};
+use crate::{
+    core::models::db::{CustomEnum, CustomEnumVariant},
+    postgres::queries::get_enums::get_postgres_enums,
+};
 
 #[sqlx::test]
 #[setup_db_macros::setup_pg_db]
@@ -20,10 +23,71 @@ async fn test_get_postgres_enums(pool: PgPool) -> Result<(), Box<dyn Error>> {
     let expected = vec![CustomEnum {
         name: "mood".to_string(),
         schema: "public".to_string(),
-        variants: vec!["sad".to_string(), "ok".to_string(), "happy".to_string()],
+        variants: vec![
+            CustomEnumVariant {
+                name: "sad".to_string(),
+                ..Default::default()
+            },
+            CustomEnumVariant {
+                name: "ok".to_string(),
+                ..Default::default()
+            },
+            CustomEnumVariant {
+                name: "happy".to_string(),
+                ..Default::default()
+            },
+        ],
+        comments: None,
     }];
 
     assert_eq!(enums, expected);
+
+    Ok(())
+}
+
+#[sqlx::test]
+#[setup_db_macros::setup_pg_db]
+async fn test_get_postgres_enums_with_comments(pool: PgPool) -> Result<(), Box<dyn Error>> {
+    // Clean up any existing type
+    sqlx::query("DROP TYPE IF EXISTS weather CASCADE;")
+        .execute(&pool)
+        .await?;
+
+    // Create the enum type
+    sqlx::query("CREATE TYPE weather AS ENUM ('rainy', 'cloudy', 'sunny');")
+        .execute(&pool)
+        .await?;
+
+    // Add a comment to the enum type
+    sqlx::query("COMMENT ON TYPE weather IS 'This enum represents different weather';")
+        .execute(&pool)
+        .await?;
+
+    // Retrieve the enum definitions including comments
+    let enums = get_postgres_enums(&pool).await?;
+
+    // Define the expected result including the comment on the type
+    let expected = vec![CustomEnum {
+        name: "weather".to_string(),
+        schema: "public".to_string(),
+        variants: vec![
+            CustomEnumVariant {
+                name: "rainy".to_string(),
+                ..Default::default()
+            },
+            CustomEnumVariant {
+                name: "cloudy".to_string(),
+                ..Default::default()
+            },
+            CustomEnumVariant {
+                name: "sunny".to_string(),
+                ..Default::default()
+            },
+        ],
+        comments: Some("This enum represents different weather".to_string()),
+    }];
+
+    pretty_assertions::assert_eq!(enums, expected);
 
     Ok(())
 }

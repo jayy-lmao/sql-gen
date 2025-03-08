@@ -8,9 +8,18 @@ pub struct RustDbSetStruct {
 }
 
 #[derive(Debug, PartialEq, Default)]
+pub struct RustDbSetEnumVariant {
+    pub name: String,
+    pub attributes: Vec<RustDbSetAttribute>,
+}
+
+#[derive(Debug, PartialEq, Default)]
 pub struct RustDbSetEnum {
     pub enum_name: String,
-    pub variants: Vec<String>,
+    pub comment: Option<String>,
+    pub derives: Vec<String>,
+    pub attributes: Vec<RustDbSetAttribute>,
+    pub variants: Vec<RustDbSetEnumVariant>,
 }
 
 #[derive(Debug, PartialEq, Default)]
@@ -49,6 +58,26 @@ pub fn key_attribute() -> RustDbSetAttribute {
     RustDbSetAttribute {
         attribute_name: "key".to_string(),
         attribute_args: vec![],
+    }
+}
+
+pub fn enum_typename_attribute(type_name: impl Into<String>) -> RustDbSetAttribute {
+    RustDbSetAttribute {
+        attribute_name: "sqlx".to_string(),
+        attribute_args: vec![RustDbSetAttributeArg {
+            name: "type_name".to_string(),
+            value: Some(type_name.into()),
+        }],
+    }
+}
+
+pub fn enum_variant_rename_attribute(rename_name: impl Into<String>) -> RustDbSetAttribute {
+    RustDbSetAttribute {
+        attribute_name: "sqlx".to_string(),
+        attribute_args: vec![RustDbSetAttributeArg {
+            name: "rename".to_string(),
+            value: Some(rename_name.into()),
+        }],
     }
 }
 

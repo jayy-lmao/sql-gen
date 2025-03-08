@@ -1,63 +1,10 @@
-use super::helpers::pretty_print_tokenstream;
-use crate::core::models::rust::{RustDbSetAttribute, RustDbSetField, RustDbSetStruct};
+use super::helpers::{get_attributes, get_derives, pretty_print_tokenstream};
+use crate::core::models::rust::{RustDbSetField, RustDbSetStruct};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-fn get_derives(rust_struct: &RustDbSetStruct) -> TokenStream {
-    if rust_struct.derives.is_empty() {
-        return quote! {};
-    }
-
-    let struct_derives = rust_struct
-        .derives
-        .iter()
-        .map(|derive| {
-            let derive_ident = format_ident!("{}", derive);
-            quote! {
-                #derive_ident
-            }
-        })
-        .collect::<Vec<_>>();
-
-    quote! {
-        #[derive(#(#struct_derives),*)]
-    }
-}
-
-fn get_attributes(attributes: &[RustDbSetAttribute]) -> TokenStream {
-    if attributes.is_empty() {
-        return quote! {};
-    }
-
-    let struct_fields_tokens = attributes
-        .iter()
-        .map(|attribute| {
-            let attribute_name = format_ident!("{}", attribute.attribute_name);
-
-            if attribute.attribute_args.is_empty() {
-                return quote! {
-                    #[#attribute_name]
-                };
-            }
-
-            let attribute_args = attribute.attribute_args.iter().map(|a| {
-                let arg_name = format_ident!("{}", a.name);
-                if let Some(arg_value) = &a.value {
-                    quote! { #arg_name = #arg_value }
-                } else {
-                    quote! { #arg_name }
-                }
-            });
-
-            quote! {
-                #[#attribute_name(#(#attribute_args),*)]
-            }
-        })
-        .collect::<Vec<_>>();
-
-    quote! {
-        #(#struct_fields_tokens),*
-    }
+pub fn get_derives_for_struct(rust_struct: &RustDbSetStruct) -> TokenStream {
+    get_derives(&rust_struct.derives)
 }
 
 fn get_attributes_for_struct(rust_struct: &RustDbSetStruct) -> TokenStream {
@@ -100,7 +47,7 @@ pub fn write_struct_to_string(rust_struct: RustDbSetStruct) -> String {
     let struct_name = format_ident!("{}", rust_struct.struct_name);
     let fields = get_struct_fields_tokens(&rust_struct);
     let attributes = get_attributes_for_struct(&rust_struct);
-    let derives = get_derives(&rust_struct);
+    let derives = get_derives_for_struct(&rust_struct);
 
     let comment = if let Some(comment) = &rust_struct.comment {
         let comment = format!(" {}", comment);

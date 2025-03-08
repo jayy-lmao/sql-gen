@@ -1,21 +1,10 @@
-use super::helpers::pretty_print_tokenstream;
 use crate::core::{
     models::rust::{
         dbset_attribute_with_table_name, key_attribute, RustDbSetAttribute, RustDbSetAttributeArg,
         RustDbSetField, RustDbSetStruct,
     },
-    writers::struct_writer::write_struct_to_string,
+    writers::{struct_writer::write_struct_to_string, test_helpers::format_rust_content_string},
 };
-use std::str::FromStr;
-
-fn tokenstream_from_string(input: &str) -> Result<proc_macro2::TokenStream, String> {
-    proc_macro2::TokenStream::from_str(input)
-        .map_err(|err| syn::Error::new(proc_macro2::Span::call_site(), err).to_string())
-}
-
-fn format_rust_content_string(input: &str) -> String {
-    pretty_print_tokenstream(tokenstream_from_string(input).expect("Could not parse"))
-}
 
 #[test]
 fn should_write_empty_struct_to_string() {
