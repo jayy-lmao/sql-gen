@@ -12,6 +12,7 @@ pub struct TableColumn {
     pub is_primary_key: bool,
     pub foreign_key_table: Option<String>,
     pub foreign_key_id: Option<String>,
+    pub is_auto_populated: bool,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
@@ -39,12 +40,12 @@ pub struct TableColumnBuilder {
     column_comment: Option<String>,
     udt_name: String,
     data_type: String,
-    recommended_rust_type: Option<String>,
     is_nullable: bool,
     is_unique: bool,
     is_primary_key: bool,
     foreign_key_table: Option<String>,
     foreign_key_id: Option<String>,
+    is_auto_populated: bool,
 }
 
 impl TableColumnBuilder {
@@ -63,12 +64,17 @@ impl TableColumnBuilder {
             is_primary_key: false,
             foreign_key_table: None,
             foreign_key_id: None,
-            recommended_rust_type: None,
+            is_auto_populated: false,
         }
     }
 
     pub fn is_nullable(mut self) -> Self {
         self.is_nullable = true;
+        self
+    }
+
+    pub fn is_auto_populated(mut self) -> Self {
+        self.is_auto_populated = true;
         self
     }
 
@@ -108,6 +114,7 @@ impl TableColumnBuilder {
             foreign_key_table: self.foreign_key_table,
             foreign_key_id: self.foreign_key_id,
             column_comment: self.column_comment,
+            is_auto_populated: self.is_auto_populated,
         }
     }
 }

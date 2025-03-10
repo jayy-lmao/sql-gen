@@ -4,6 +4,10 @@ use crate::core::models::{db::Table, rust::{dbset_attribute_with_table_name, Rus
 use super::{convert_column_to_field::convert_column_to_field, models::TableToStructOptions};
 
 
+pub fn convert_tables_to_struct(tables: Vec<Table>, options: TableToStructOptions) -> Vec<RustDbSetStruct> {
+    tables.into_iter().map(|table| convert_table_to_struct(table, options.clone())).collect()
+}
+
 pub fn convert_table_to_struct(table: Table, options: TableToStructOptions) -> RustDbSetStruct {
     let table_name_pascal_case = table.table_name.clone().to_case(Case::Pascal);
     let table_name_singular = pluralize(&table_name_pascal_case, 1, false);
@@ -32,7 +36,7 @@ pub fn convert_table_to_struct(table: Table, options: TableToStructOptions) -> R
         .collect();
 
     RustDbSetStruct {
-        struct_name,
+        name: struct_name,
         attributes: vec![dbset_attribute_with_table_name(table_name)],
         fields,
         comment: table.table_comment.clone(),

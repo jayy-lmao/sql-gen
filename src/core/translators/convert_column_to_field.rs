@@ -1,6 +1,6 @@
 use crate::core::models::{
     db::TableColumn,
-    rust::{key_attribute, unique_attribute, RustDbSetField},
+    rust::{auto_attribute, key_attribute, unique_attribute, RustDbSetField},
 };
 use convert_case::{Case, Casing};
 
@@ -19,6 +19,9 @@ pub fn convert_column_to_field(
         .or(column.recommended_rust_type.clone());
 
     let mut attributes = vec![];
+    if column.is_auto_populated {
+        attributes.push(auto_attribute());
+    }
     if column.is_primary_key {
         attributes.push(key_attribute());
     } else if column.is_unique {

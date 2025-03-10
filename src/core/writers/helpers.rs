@@ -42,7 +42,7 @@ pub fn get_attributes(attributes: &[RustDbSetAttribute]) -> TokenStream {
         .collect::<Vec<_>>();
 
     quote! {
-        #(#struct_fields_tokens),*
+        #(#struct_fields_tokens)*
     }
 }
 

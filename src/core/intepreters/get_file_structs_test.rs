@@ -16,7 +16,7 @@ fn should_parse_simple_struct() {
     );
 
     let expected = vec![RustDbSetStruct {
-        struct_name: "Customer".to_string(),
+        name: "Customer".to_string(),
         ..Default::default()
     }];
 
@@ -37,7 +37,7 @@ fn should_parse_struct_with_db_set_macro() {
     );
 
     let expected = vec![RustDbSetStruct {
-        struct_name: "Customer".to_string(),
+        name: "Customer".to_string(),
         attributes: vec![dbset_attribute_with_table_name("users")],
         ..Default::default()
     }];

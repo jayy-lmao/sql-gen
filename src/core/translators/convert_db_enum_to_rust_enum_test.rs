@@ -16,7 +16,7 @@ fn test_empty_variants() {
     };
 
     let rust_enum = convert_db_enum_to_rust_enum(&custom_enum);
-    assert_eq!(rust_enum.enum_name, "Examples");
+    assert_eq!(rust_enum.name, "Examples");
     assert!(rust_enum.variants.is_empty());
     assert_eq!(rust_enum.derives, vec!["sqlx::Type".to_string()]);
     let expected_attr = enum_typename_attribute(&custom_enum.name);
@@ -45,7 +45,7 @@ fn test_multiple_variants() {
 
     let rust_enum = convert_db_enum_to_rust_enum(&custom_enum);
 
-    assert_eq!(rust_enum.enum_name, "Color");
+    assert_eq!(rust_enum.name, "Color");
 
     let expected_variant_names = vec!["Red", "Green", "Blue"];
     let variant_names: Vec<_> = rust_enum.variants.iter().map(|v| v.name.as_str()).collect();
@@ -81,7 +81,7 @@ fn test_pascal_case_conversion() {
 
     let rust_enum = convert_db_enum_to_rust_enum(&custom_enum);
 
-    assert_eq!(rust_enum.enum_name, "MyCustomEnum");
+    assert_eq!(rust_enum.name, "MyCustomEnum");
 
     let expected_variant_names = vec!["FirstVariant", "SecondVariant"];
     let variant_names: Vec<_> = rust_enum.variants.iter().map(|v| v.name.as_str()).collect();

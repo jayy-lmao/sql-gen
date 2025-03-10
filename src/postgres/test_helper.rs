@@ -1,39 +1,92 @@
-use std::sync::{Mutex, OnceLock};
-use testcontainers::clients;
-use testcontainers_modules::postgres::Postgres;
+use sqlx::{postgres::PgPoolOptions, PgPool};
+use std::{
+    process::Command,
+    sync::{Arc, OnceLock},
+};
+use uuid::Uuid;
 
-type StoredDbContainer = Option<(testcontainers::Container<'static, Postgres>, String)>;
+static CONTAINER_GUARD: OnceLock<Arc<ContainerGuard>> = OnceLock::new();
 
-static DOCKER: OnceLock<clients::Cli> = OnceLock::new();
-static CONTAINER: OnceLock<Mutex<StoredDbContainer>> = OnceLock::new();
+struct ContainerGuard;
 
-#[cfg(test)]
-fn setup_test_db() -> String {
-    let container_lock = CONTAINER.get_or_init(|| Mutex::new(None));
-    let mut container_guard = container_lock.lock().unwrap();
+impl ContainerGuard {
+    fn new() -> Self {
+        let container_name = "rust_test_sqlx_container";
+        let port = "5434";
 
-    if container_guard.is_none() {
-        let docker = DOCKER.get_or_init(clients::Cli::default);
+        // Try to create the container
+        let output = Command::new("docker")
+            .args([
+                "run",
+                "--rm",
+                "-d",
+                "--name",
+                container_name,
+                "-e",
+                "POSTGRES_USER=postgres",
+                "-e",
+                "POSTGRES_PASSWORD=postgres",
+                "-p",
+                &format!("{port}:5432"),
+                "postgres:latest",
+            ])
+            .output()
+            .expect("failed to run docker");
 
-        let container = docker.run(Postgres::default());
-        let port = container.get_host_port_ipv4(5432);
-        let db_url = format!("postgres://postgres:postgres@localhost:{}/postgres", port);
+        // If container exists already, just start it
+        if !output.status.success() {
+            Command::new("docker")
+                .args(["start", container_name])
+                .status()
+                .expect("Failed to start existing container");
+        }
 
-        *container_guard = Some((container, db_url.clone()));
+        Self
     }
-
-    container_guard.as_ref().unwrap().1.clone()
 }
 
-/// Runs before all tests **only in test mode**
-#[cfg(test)]
-pub async fn initialize_database() {
-    if std::env::var("DATABASE_URL").is_ok() {
-        return;
-    }
+pub async fn setup_pg_db() -> PgPool {
+    // Ensure exactly one container guard is created (across threads within the same process)
+    let _guard = CONTAINER_GUARD.get_or_init(|| Arc::new(ContainerGuard::new()));
 
-    let db_url = setup_test_db();
+    wait_for_postgres_ready().await;
 
-    //return PgPool::connect(&db_url).await.expect("Could not db");
-    std::env::set_var("DATABASE_URL", db_url);
+    let root_db_url = "postgres://postgres:postgres@localhost:5434/postgres";
+    let root_pool = PgPoolOptions::new()
+        .connect(root_db_url)
+        .await
+        .expect("Failed to connect to postgres container");
+
+    let db_name = format!("test_db_{}", Uuid::new_v4().simple());
+
+    sqlx::query(&format!("CREATE DATABASE {db_name}"))
+        .execute(&root_pool)
+        .await
+        .expect("Failed to create test database");
+
+    let test_db_url = format!("postgres://postgres:postgres@localhost:5434/{db_name}");
+
+    PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&test_db_url)
+        .await
+        .expect("Failed to connect to test database")
 }
+
+async fn wait_for_postgres_ready() {
+    const MAX_TRIES: usize = 10;
+    const DELAY: std::time::Duration = std::time::Duration::from_millis(500);
+    for _ in 0..MAX_TRIES {
+        if Command::new("docker")
+            .args(["exec", "rust_test_sqlx_container", "pg_isready"])
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+        {
+            return;
+        }
+        tokio::time::sleep(DELAY).await;
+    }
+    panic!("Postgres container failed to become ready in time");
+}
+

@@ -9,8 +9,8 @@ use crate::{
 
 pub async fn get_tables(
     pool: &PgPool,
-    schemas: Vec<&str>,
-    table_names: Option<&Vec<String>>,
+    schemas: &[String],
+    table_names: &Option<Vec<String>>,
 ) -> sqlx::Result<Vec<Table>> {
     // get all tables from the database
     let query = "
@@ -34,7 +34,15 @@ SELECT
     -- Retrieve the column comment using the table's OID and the column's ordinal position
     col_description(cls.oid, c.ordinal_position) AS column_comment,
     -- Retrieve the table comment using the table's OID
-    obj_description(cls.oid) AS table_comment
+    obj_description(cls.oid) AS table_comment,
+    -- New field: TRUE if the column has a default expression, is an identity column, or a generated column.
+    CASE
+         WHEN c.column_default IS NOT NULL
+              OR c.is_identity = 'YES'
+              OR c.is_generated = 'ALWAYS'
+         THEN TRUE
+         ELSE FALSE
+    END AS is_auto_populated
 FROM
     information_schema.columns c
     -- Join to get the table OID from pg_class via pg_namespace

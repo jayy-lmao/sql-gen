@@ -32,7 +32,7 @@ impl TableToStructOptions {
                 custom_enum.name.clone(),
                 ColumnToFieldOptions {
                     override_name: None,
-                    override_type: Some(rust_enum.enum_name),
+                    override_type: Some(rust_enum.name),
                 },
             );
         }

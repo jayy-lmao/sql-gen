@@ -8,7 +8,7 @@ pub fn get_file_structs(text: &str) -> Vec<RustDbSetStruct> {
         .into_iter()
         .filter_map(|item| match item {
             syn::Item::Struct(item_struct) => Some(RustDbSetStruct {
-                struct_name: item_struct.ident.to_string(),
+                name: item_struct.ident.to_string(),
                 attributes: extract_table_attributes(&item_struct),
                 ..Default::default()
             }),

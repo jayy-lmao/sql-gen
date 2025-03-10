@@ -44,7 +44,7 @@ fn get_struct_fields_tokens(rust_struct: &RustDbSetStruct) -> Vec<TokenStream> {
 // - [ ] Enum imports
 // - [ ] Maybe custom type imports like rust_decimal / uuid?
 pub fn write_struct_to_string(rust_struct: RustDbSetStruct) -> String {
-    let struct_name = format_ident!("{}", rust_struct.struct_name);
+    let struct_name = format_ident!("{}", rust_struct.name);
     let fields = get_struct_fields_tokens(&rust_struct);
     let attributes = get_attributes_for_struct(&rust_struct);
     let derives = get_derives_for_struct(&rust_struct);

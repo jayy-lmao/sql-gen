@@ -1,15 +1,14 @@
 use std::error::Error;
 
-use sqlx::PgPool;
-
 use crate::{
     core::models::db::{CustomEnum, CustomEnumVariant},
-    postgres::queries::get_enums::get_postgres_enums,
+    postgres::{queries::get_enums::get_postgres_enums, test_helper::setup_pg_db},
 };
 
-#[sqlx::test]
-#[setup_db_macros::setup_pg_db]
-async fn test_get_postgres_enums(pool: PgPool) -> Result<(), Box<dyn Error>> {
+#[tokio::test]
+async fn test_get_postgres_enums() -> Result<(), Box<dyn Error>> {
+    let pool = setup_pg_db().await;
+
     sqlx::query("DROP TYPE IF EXISTS mood CASCADE;")
         .execute(&pool)
         .await?;
@@ -26,15 +25,12 @@ async fn test_get_postgres_enums(pool: PgPool) -> Result<(), Box<dyn Error>> {
         variants: vec![
             CustomEnumVariant {
                 name: "sad".to_string(),
-                ..Default::default()
             },
             CustomEnumVariant {
                 name: "ok".to_string(),
-                ..Default::default()
             },
             CustomEnumVariant {
                 name: "happy".to_string(),
-                ..Default::default()
             },
         ],
         comments: None,
@@ -45,9 +41,9 @@ async fn test_get_postgres_enums(pool: PgPool) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[sqlx::test]
-#[setup_db_macros::setup_pg_db]
-async fn test_get_postgres_enums_with_comments(pool: PgPool) -> Result<(), Box<dyn Error>> {
+#[tokio::test]
+async fn test_get_postgres_enums_with_comments() -> Result<(), Box<dyn Error>> {
+    let pool = setup_pg_db().await;
     // Clean up any existing type
     sqlx::query("DROP TYPE IF EXISTS weather CASCADE;")
         .execute(&pool)
@@ -73,15 +69,12 @@ async fn test_get_postgres_enums_with_comments(pool: PgPool) -> Result<(), Box<d
         variants: vec![
             CustomEnumVariant {
                 name: "rainy".to_string(),
-                ..Default::default()
             },
             CustomEnumVariant {
                 name: "cloudy".to_string(),
-                ..Default::default()
             },
             CustomEnumVariant {
                 name: "sunny".to_string(),
-                ..Default::default()
             },
         ],
         comments: Some("This enum represents different weather".to_string()),

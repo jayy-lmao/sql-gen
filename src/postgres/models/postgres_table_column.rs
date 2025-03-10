@@ -4,18 +4,19 @@ use crate::{core::models::db::TableColumn, postgres::queries::convert_type::conv
 
 #[derive(FromRow)]
 pub struct PostgresTableColumn {
-    pub(crate) table_name: String,
-    pub(crate) table_comment: Option<String>,
-    pub(crate) column_name: String,
-    pub(crate) column_comment: Option<String>,
-    pub(crate) udt_name: String,
-    pub(crate) data_type: String,
-    pub(crate) is_nullable: bool,
-    pub(crate) is_unique: bool,
-    pub(crate) is_primary_key: bool,
-    pub(crate) foreign_key_table: Option<String>,
-    pub(crate) foreign_key_id: Option<String>,
-    pub(crate) table_schema: String,
+    pub table_name: String,
+    pub table_comment: Option<String>,
+    pub column_name: String,
+    pub column_comment: Option<String>,
+    pub udt_name: String,
+    pub data_type: String,
+    pub is_nullable: bool,
+    pub is_unique: bool,
+    pub is_primary_key: bool,
+    pub foreign_key_table: Option<String>,
+    pub foreign_key_id: Option<String>,
+    pub table_schema: String,
+    pub is_auto_populated: bool,
 }
 
 impl From<PostgresTableColumn> for TableColumn {
@@ -32,6 +33,7 @@ impl From<PostgresTableColumn> for TableColumn {
             foreign_key_id: value.foreign_key_id,
             recommended_rust_type,
             column_comment: value.column_comment,
+            is_auto_populated: value.is_auto_populated,
         }
     }
 }

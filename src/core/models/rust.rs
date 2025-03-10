@@ -1,28 +1,28 @@
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Default, Clone)]
 pub struct RustDbSetStruct {
     pub derives: Vec<String>,
     pub attributes: Vec<RustDbSetAttribute>,
-    pub struct_name: String,
+    pub name: String,
     pub fields: Vec<RustDbSetField>,
     pub comment: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Default, Clone)]
 pub struct RustDbSetEnumVariant {
     pub name: String,
     pub attributes: Vec<RustDbSetAttribute>,
 }
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Default, Clone)]
 pub struct RustDbSetEnum {
-    pub enum_name: String,
+    pub name: String,
     pub comment: Option<String>,
     pub derives: Vec<String>,
     pub attributes: Vec<RustDbSetAttribute>,
     pub variants: Vec<RustDbSetEnumVariant>,
 }
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Default, Clone)]
 pub struct RustDbSetField {
     pub field_name: String,
     pub field_type: String,
@@ -31,7 +31,7 @@ pub struct RustDbSetField {
     pub comment: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Default, Clone)]
 pub struct RustDbSetAttribute {
     pub attribute_name: String,
     pub attribute_args: Vec<RustDbSetAttributeArg>,
@@ -44,6 +44,13 @@ pub fn dbset_attribute_with_table_name(table_name: impl Into<String>) -> RustDbS
             name: "table_name".to_string(),
             value: Some(table_name.into()),
         }],
+    }
+}
+
+pub fn auto_attribute() -> RustDbSetAttribute {
+    RustDbSetAttribute {
+        attribute_name: "auto".to_string(),
+        attribute_args: vec![],
     }
 }
 
@@ -81,7 +88,7 @@ pub fn enum_variant_rename_attribute(rename_name: impl Into<String>) -> RustDbSe
     }
 }
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Default, Clone)]
 pub struct RustDbSetAttributeArg {
     pub name: String,
     pub value: Option<String>,

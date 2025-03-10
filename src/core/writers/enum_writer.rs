@@ -32,7 +32,7 @@ fn get_enum_variants_tokens(rust_enum: &RustDbSetEnum) -> Vec<TokenStream> {
 }
 
 pub fn write_enum_to_string(rust_enum: RustDbSetEnum) -> String {
-    let struct_name = format_ident!("{}", rust_enum.enum_name);
+    let struct_name = format_ident!("{}", rust_enum.name);
     let variants = get_enum_variants_tokens(&rust_enum);
     let attributes = get_attributes_for_enum(&rust_enum);
     let derives = get_derives_for_enum(&rust_enum);

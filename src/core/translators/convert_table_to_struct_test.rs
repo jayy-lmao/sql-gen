@@ -1,7 +1,10 @@
 use crate::core::{
     models::{
         db::{CustomEnum, CustomEnumVariant, Table, TableColumnBuilder},
-        rust::{dbset_attribute_with_table_name, RustDbSetField, RustDbSetStruct},
+        rust::{
+            auto_attribute, dbset_attribute_with_table_name, key_attribute, unique_attribute,
+            RustDbSetField, RustDbSetStruct,
+        },
     },
     translators::{
         convert_table_to_struct::convert_table_to_struct,
@@ -21,7 +24,7 @@ fn should_convert_empty_table_to_struct() {
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
-            struct_name: "Product".to_string(),
+            name: "Product".to_string(),
             attributes: vec![dbset_attribute_with_table_name("products")],
             ..Default::default()
         }
@@ -39,7 +42,7 @@ fn should_convert_empty_table_to_struct_2() {
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
-            struct_name: "Inventory".to_string(),
+            name: "Inventory".to_string(),
             attributes: vec![dbset_attribute_with_table_name("inventories")],
             ..Default::default()
         }
@@ -63,7 +66,7 @@ fn should_convert_table_to_struct_with_override() {
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
-            struct_name: "Customer".to_string(),
+            name: "Customer".to_string(),
             attributes: vec![dbset_attribute_with_table_name("users")],
             ..Default::default()
         }
@@ -82,13 +85,66 @@ fn should_convert_table_with_basic_column() {
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
-            struct_name: "Product".to_string(),
+            name: "Product".to_string(),
             attributes: vec![dbset_attribute_with_table_name("products")],
             fields: vec![RustDbSetField {
                 field_name: "title".to_string(),
                 field_type: "String".to_string(),
                 ..Default::default()
             }],
+            ..Default::default()
+        }
+    )
+}
+
+#[test]
+fn should_convert_table_with_each_column_attribute_type() {
+    let table = Table {
+        table_name: "products".to_string(),
+        table_schema: "public".to_string(),
+        columns: vec![
+            TableColumnBuilder::new("id", "uuid", "uuid")
+                .is_auto_populated()
+                .is_primary_key()
+                .build(),
+            TableColumnBuilder::new("title", "text", "text")
+                .is_unique()
+                .build(),
+            TableColumnBuilder::new("description", "text", "text")
+                .is_nullable()
+                .build(),
+        ],
+        ..Default::default()
+    };
+    let rust_struct = convert_table_to_struct(table, TableToStructOptions::default());
+    assert_eq!(
+        rust_struct,
+        RustDbSetStruct {
+            name: "Product".to_string(),
+            attributes: vec![dbset_attribute_with_table_name("products")],
+            fields: vec![
+                RustDbSetField {
+                    field_name: "id".to_string(),
+                    field_type: "uuid::Uuid".to_string(),
+                    is_optional: false,
+                    attributes: vec![auto_attribute(), key_attribute(),],
+                    comment: None,
+                },
+                RustDbSetField {
+                    field_name: "title".to_string(),
+                    field_type: "String".to_string(),
+                    is_optional: false,
+                    attributes: vec![unique_attribute()],
+                    comment: None,
+                },
+                RustDbSetField {
+                    field_name: "description".to_string(),
+                    field_type: "String".to_string(),
+                    is_optional: true,
+                    attributes: vec![],
+                    comment: None,
+                },
+            ],
             ..Default::default()
         }
     )
@@ -108,7 +164,7 @@ fn should_convert_table_with_optional_column() {
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
-            struct_name: "Product".to_string(),
+            name: "Product".to_string(),
             attributes: vec![dbset_attribute_with_table_name("products")],
             fields: vec![RustDbSetField {
                 field_name: "description".to_string(),
@@ -135,7 +191,7 @@ fn should_convert_table_with_array_column() {
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
-            struct_name: "Product".to_string(),
+            name: "Product".to_string(),
             attributes: vec![dbset_attribute_with_table_name("products")],
             fields: vec![RustDbSetField {
                 field_name: "tags".to_string(),
@@ -162,15 +218,12 @@ fn should_convert_table_with_enum_column() {
         variants: vec![
             CustomEnumVariant {
                 name: "pending".to_string(),
-                ..Default::default()
             },
             CustomEnumVariant {
                 name: "shipped".to_string(),
-                ..Default::default()
             },
             CustomEnumVariant {
                 name: "delivered".to_string(),
-                ..Default::default()
             },
         ],
         ..Default::default()
@@ -182,7 +235,7 @@ fn should_convert_table_with_enum_column() {
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
-            struct_name: "Order".to_string(),
+            name: "Order".to_string(),
             attributes: vec![dbset_attribute_with_table_name("orders")],
             fields: vec![RustDbSetField {
                 field_name: "order_status".to_string(),
@@ -206,7 +259,7 @@ fn should_ignore_columns_with_invalid_types() {
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
-            struct_name: "Product".to_string(),
+            name: "Product".to_string(),
             attributes: vec![dbset_attribute_with_table_name("products")],
             fields: vec![],
             ..Default::default()
@@ -235,7 +288,7 @@ fn should_convert_table_with_column_type_override() {
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
-            struct_name: "Product".to_string(),
+            name: "Product".to_string(),
             attributes: vec![dbset_attribute_with_table_name("products")],
             fields: vec![RustDbSetField {
                 field_name: "id".to_string(),
@@ -268,7 +321,7 @@ fn should_convert_table_with_global_type_override() {
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
-            struct_name: "Product".to_string(),
+            name: "Product".to_string(),
             attributes: vec![dbset_attribute_with_table_name("products")],
             fields: vec![RustDbSetField {
                 field_name: "id".to_string(),
@@ -307,7 +360,7 @@ fn column_override_takes_preference_over_global_type_override() {
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
-            struct_name: "Product".to_string(),
+            name: "Product".to_string(),
             attributes: vec![dbset_attribute_with_table_name("products")],
             fields: vec![RustDbSetField {
                 field_name: "price".to_string(),
