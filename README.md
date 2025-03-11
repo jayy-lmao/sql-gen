@@ -13,18 +13,22 @@ This project draws inspiration from `rsdbgen` (GitHub: [brianhv/rsdbgen](https:/
 ## V2 Todo
 
 - [ ] Generate DB
+    - [ ] Writing files
+        - [ ] to `-`
+        - [ ] to a single file
+        - [ ] to a folder
     - [x] Support DB comments
     - [x] Support custom types
         - [ ] User defined mappings
         - [ ] DB custom types
-    - [ ] Support enums
-    - [ ] Support DBSet
-        - [ ] Support struct attributes
-        - [ ] Support struct derives
-        - [ ] Support field attributes
-            - [ ] key
-            - [ ] unique
-            - [ ] auto
+    - [x] Support enums
+    - [x] Support DBSet
+        - [x] Support struct attributes
+        - [x] Support struct derives
+        - [x] Support field attributes
+            - [x] key
+            - [x] unique
+            - [x] auto
 - [ ] Update the generated
     - [ ] Locate and update existing generated structs
 - [ ] Generate migration
