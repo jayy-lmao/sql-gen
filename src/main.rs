@@ -93,11 +93,10 @@ async fn main() {
             .await
             .unwrap();
 
-    let structs_mapped = translators::convert_table_to_struct::convert_tables_to_struct(
-        tables,
-        TableToStructOptions::default(),
-    );
+    let tables_options = TableToStructOptions::default().add_enums(&enums);
 
+    let structs_mapped =
+        translators::convert_table_to_struct::convert_tables_to_struct(tables, tables_options);
     let enums_mapped =
         translators::convert_db_enum_to_rust_enum::convert_db_enums_to_rust_enum(enums);
 

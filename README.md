@@ -13,8 +13,8 @@ This project draws inspiration from `rsdbgen` (GitHub: [brianhv/rsdbgen](https:/
 ## V2 Todo
 
 - [ ] Generate DB
-    - [ ] Support DB comments
-    - [ ] Support custom types
+    - [x] Support DB comments
+    - [x] Support custom types
         - [ ] User defined mappings
         - [ ] DB custom types
     - [ ] Support enums

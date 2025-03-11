@@ -1,6 +1,5 @@
 use crate::core::models::rust::{RustDbSetEnum, RustDbSetStruct};
 use convert_case::{Case, Casing};
-use quote::{format_ident, quote};
 
 use super::helpers::pretty_print_tokenstream;
 
