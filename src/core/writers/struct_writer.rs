@@ -1,4 +1,6 @@
-use super::helpers::{get_attributes, get_derives, pretty_print_tokenstream};
+use std::fmt::Display;
+
+use super::helpers::{get_attributes, get_derives, pretty_print_tokenstream, sanitize_field_name};
 use crate::core::models::rust::{RustDbSetField, RustDbSetStruct};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -19,53 +21,60 @@ fn get_struct_fields_tokens(rust_struct: &RustDbSetStruct) -> Vec<TokenStream> {
     let mut struct_fields_tokens = vec![];
 
     for field in rust_struct.fields.iter() {
-        let field_name = format_ident!("{}", field.field_name);
+        let field_name = sanitize_field_name(&field.field_name);
         let field_type = format_ident!("{}", field.field_type);
 
         let attributes = get_attributes_for_field(field);
-        let field_ast = if field.is_optional {
-            quote! {
-                #attributes
-                #field_name: Option<#field_type>
-            }
-        } else {
-            quote! {
-                #attributes
-                #field_name: #field_type
-            }
+        let mut base_type = quote! { #field_type };
+
+        for _ in 0..field.array_depth {
+            base_type = quote! { Vec<#base_type> };
+        }
+
+        if field.is_optional {
+            base_type = quote! { Option<#base_type> };
+        }
+
+        let field = quote! {
+            #attributes
+            #field_name: #base_type
         };
 
-        struct_fields_tokens.push(field_ast);
+        struct_fields_tokens.push(field);
     }
     struct_fields_tokens
 }
 
-// TODO:
-// - [ ] Enum imports
-// - [ ] Maybe custom type imports like rust_decimal / uuid?
-pub fn write_struct_to_string(rust_struct: RustDbSetStruct) -> String {
-    let struct_name = format_ident!("{}", rust_struct.name);
-    let fields = get_struct_fields_tokens(&rust_struct);
-    let attributes = get_attributes_for_struct(&rust_struct);
-    let derives = get_derives_for_struct(&rust_struct);
+impl RustDbSetStruct {
+    pub fn to_tokens(&self) -> TokenStream {
+        let struct_name = format_ident!("{}", self.name);
+        let fields = get_struct_fields_tokens(self);
+        let attributes = get_attributes_for_struct(self);
+        let derives = get_derives_for_struct(self);
 
-    let comment = if let Some(comment) = &rust_struct.comment {
-        let comment = format!(" {}", comment);
-        quote! {
-           #[doc = #comment]
-        }
-    } else {
-        quote! {}
-    };
+        let comment = if let Some(comment) = &self.comment {
+            let comment = format!(" {}", comment);
+            quote! {
+               #[doc = #comment]
+            }
+        } else {
+            quote! {}
+        };
 
-    let struct_ast = quote! {
-        #comment
-        #derives
-        #attributes
-        pub struct #struct_name {
-            #(#fields),*
-        }
-    };
+        let struct_tokens = quote! {
+            #comment
+            #derives
+            #attributes
+            pub struct #struct_name {
+                #(#fields),*
+            }
+        };
+        struct_tokens
+    }
+}
 
-    pretty_print_tokenstream(struct_ast)
+impl Display for RustDbSetStruct {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", pretty_print_tokenstream(self.to_tokens()))
+    }
 }

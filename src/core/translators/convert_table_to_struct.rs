@@ -1,11 +1,19 @@
+use super::{convert_column_to_field::convert_column_to_field, models::TableToStructOptions};
+use crate::core::models::{
+    db::Table,
+    rust::{dbset_attribute_with_table_name, RustDbSetStruct},
+};
 use convert_case::{Case, Casing};
 use pluralizer::pluralize;
-use crate::core::models::{db::Table, rust::{dbset_attribute_with_table_name, RustDbSetStruct}};
-use super::{convert_column_to_field::convert_column_to_field, models::TableToStructOptions};
 
-
-pub fn convert_tables_to_struct(tables: Vec<Table>, options: TableToStructOptions) -> Vec<RustDbSetStruct> {
-    tables.into_iter().map(|table| convert_table_to_struct(table, options.clone())).collect()
+pub fn convert_tables_to_struct(
+    tables: Vec<Table>,
+    options: TableToStructOptions,
+) -> Vec<RustDbSetStruct> {
+    tables
+        .into_iter()
+        .map(|table| convert_table_to_struct(table, options.clone()))
+        .collect()
 }
 
 pub fn convert_table_to_struct(table: Table, options: TableToStructOptions) -> RustDbSetStruct {
@@ -21,7 +29,6 @@ pub fn convert_table_to_struct(table: Table, options: TableToStructOptions) -> R
         .columns
         .iter()
         .filter_map(|c| { 
-
             let column_override = options.column_overrides.get(&c.column_name).cloned();
             let type_override = options.type_overrides.get(&c.udt_name).cloned();
             let column_to_field_options = column_override.or(type_override).unwrap_or_default();
@@ -43,4 +50,3 @@ pub fn convert_table_to_struct(table: Table, options: TableToStructOptions) -> R
         ..Default::default()
     }
 }
-

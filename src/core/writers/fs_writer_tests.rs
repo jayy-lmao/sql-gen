@@ -1,6 +1,6 @@
 use crate::core::{
     models::rust::{RustDbSetEnum, RustDbSetEnumVariant, RustDbSetField, RustDbSetStruct},
-    writers::fs_writer::{DbSetsFsWriter, DbSetsFsWriterFile, FsWriterContent},
+    writers::fs_writer::{DbSetsFsWriter, DbSetsFsWriterEnumFile, DbSetsFsWriterStructFile},
 };
 use pretty_assertions::assert_eq;
 
@@ -39,16 +39,14 @@ async fn should_store_enums_and_structs() {
     assert_eq!(
         fs_writer,
         DbSetsFsWriter {
-            files: vec![
-                DbSetsFsWriterFile {
-                    name: String::from("mood"),
-                    content: FsWriterContent::Enum(my_enum)
-                },
-                DbSetsFsWriterFile {
-                    name: String::from("product"),
-                    content: FsWriterContent::Struct(my_struct)
-                },
-            ]
-        }
+            struct_files: vec![DbSetsFsWriterStructFile {
+                name: String::from("product"),
+                content: my_struct
+            },],
+            enum_files: vec![DbSetsFsWriterEnumFile {
+                name: String::from("mood"),
+                content: my_enum
+            },]
+        },
     )
 }

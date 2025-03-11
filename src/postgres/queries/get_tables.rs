@@ -42,13 +42,19 @@ SELECT
               OR c.is_generated = 'ALWAYS'
          THEN TRUE
          ELSE FALSE
-    END AS is_auto_populated
+    END AS is_auto_populated,
+    -- New field: Array depth determined from pg_attribute.attndims.
+    a.attndims AS array_depth
 FROM
     information_schema.columns c
     -- Join to get the table OID from pg_class via pg_namespace
     JOIN pg_catalog.pg_namespace n ON n.nspname = c.table_schema
     JOIN pg_catalog.pg_class cls ON cls.relname = c.table_name
         AND cls.relnamespace = n.oid
+    -- Join to get the attribute information, including array dimensions
+    LEFT JOIN pg_catalog.pg_attribute a
+        ON a.attrelid = cls.oid
+        AND a.attnum = c.ordinal_position
 LEFT JOIN
     (
         SELECT
@@ -59,16 +65,14 @@ LEFT JOIN
             information_schema.table_constraints AS tc
         JOIN
             information_schema.key_column_usage AS kcu
-        ON
-            tc.constraint_schema = kcu.constraint_schema
-            AND tc.constraint_name = kcu.constraint_name
+                ON tc.constraint_schema = kcu.constraint_schema
+                AND tc.constraint_name = kcu.constraint_name
         WHERE
             tc.constraint_type = 'PRIMARY KEY'
     ) AS kcu
-ON
-    c.table_schema = kcu.table_schema
-    AND c.table_name = kcu.table_name
-    AND c.column_name = kcu.column_name
+        ON c.table_schema = kcu.table_schema
+        AND c.table_name = kcu.table_name
+        AND c.column_name = kcu.column_name
 LEFT JOIN
     (
         SELECT
@@ -79,16 +83,14 @@ LEFT JOIN
             information_schema.table_constraints AS tc
         JOIN
             information_schema.key_column_usage AS kcu
-        ON
-            tc.constraint_schema = kcu.constraint_schema
-            AND tc.constraint_name = kcu.constraint_name
+                ON tc.constraint_schema = kcu.constraint_schema
+                AND tc.constraint_name = kcu.constraint_name
         WHERE
             tc.constraint_type = 'UNIQUE'
     ) AS u
-ON
-    c.table_schema = u.table_schema
-    AND c.table_name = u.table_name
-    AND c.column_name = u.column_name
+        ON c.table_schema = u.table_schema
+        AND c.table_name = u.table_name
+        AND c.column_name = u.column_name
 LEFT JOIN
     (
         SELECT
@@ -101,21 +103,18 @@ LEFT JOIN
             information_schema.table_constraints AS tc
         JOIN
             information_schema.key_column_usage AS kcu
-        ON
-            tc.constraint_schema = kcu.constraint_schema
-            AND tc.constraint_name = kcu.constraint_name
+                ON tc.constraint_schema = kcu.constraint_schema
+                AND tc.constraint_name = kcu.constraint_name
         JOIN
             information_schema.constraint_column_usage AS ccu
-        ON
-            ccu.constraint_schema = tc.constraint_schema
-            AND ccu.constraint_name = tc.constraint_name
+                ON ccu.constraint_schema = tc.constraint_schema
+                AND ccu.constraint_name = tc.constraint_name
         WHERE
             tc.constraint_type = 'FOREIGN KEY'
     ) AS f
-ON
-    c.table_schema = f.table_schema
-    AND c.table_name = f.table_name
-    AND c.column_name = f.column_name
+        ON c.table_schema = f.table_schema
+        AND c.table_name = f.table_name
+        AND c.column_name = f.column_name
 WHERE
     c.table_schema = ANY($1)
     AND c.table_name != '_sqlx_migrations'

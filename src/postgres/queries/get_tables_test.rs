@@ -101,6 +101,7 @@ async fn test_basic_postgres_table_with_array() -> Result<(), Box<dyn Error>> {
                     .build(),
                 TableColumnBuilder::new("names", "_text", "ARRAY")
                     .is_nullable()
+                    .array_depth(1)
                     .build(),
             ],
             ..Default::default()

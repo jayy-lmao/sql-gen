@@ -1,37 +1,56 @@
-use convert_case::{Case, Casing};
-
 use crate::core::models::rust::{RustDbSetEnum, RustDbSetStruct};
+use convert_case::{Case, Casing};
+use quote::{format_ident, quote};
+
+use super::helpers::pretty_print_tokenstream;
 
 #[derive(PartialEq, Debug)]
-pub enum FsWriterContent {
-    Enum(RustDbSetEnum),
-    Struct(RustDbSetStruct),
+pub struct DbSetsFsWriterStructFile {
+    pub name: String,
+    pub content: RustDbSetStruct,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct DbSetsFsWriterFile {
+pub struct DbSetsFsWriterEnumFile {
     pub name: String,
-    pub content: FsWriterContent,
+    pub content: RustDbSetEnum,
 }
 
 #[derive(Default, PartialEq, Debug)]
 pub struct DbSetsFsWriter {
-    pub files: Vec<DbSetsFsWriterFile>,
+    pub enum_files: Vec<DbSetsFsWriterEnumFile>,
+    pub struct_files: Vec<DbSetsFsWriterStructFile>,
 }
 
 impl DbSetsFsWriter {
     pub fn add_enum(&mut self, rust_enum: RustDbSetEnum) -> &Self {
-        self.files.push(DbSetsFsWriterFile {
+        self.enum_files.push(DbSetsFsWriterEnumFile {
             name: rust_enum.name.to_case(Case::Snake),
-            content: FsWriterContent::Enum(rust_enum),
+            content: rust_enum,
         });
         self
     }
     pub fn add_struct(&mut self, rust_struct: RustDbSetStruct) -> &Self {
-        self.files.push(DbSetsFsWriterFile {
+        self.struct_files.push(DbSetsFsWriterStructFile {
             name: rust_struct.name.to_case(Case::Snake),
-            content: FsWriterContent::Struct(rust_struct),
+            content: rust_struct,
         });
         self
+    }
+
+    pub fn write_as_one_file(&self) -> String {
+        let mut outputs = vec![];
+
+        for enum_tokens in &self.enum_files {
+            outputs.push(enum_tokens.content.to_tokens());
+        }
+
+        for struct_tokens in &self.struct_files {
+            outputs.push(struct_tokens.content.to_tokens());
+        }
+
+        outputs.into_iter().fold(String::new(), |acc, output| {
+            format!("{}\n{}", acc, pretty_print_tokenstream(output))
+        })
     }
 }

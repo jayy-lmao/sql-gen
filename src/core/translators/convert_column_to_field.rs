@@ -33,6 +33,7 @@ pub fn convert_column_to_field(
             field_name,
             field_type,
             is_optional: column.is_nullable,
+            array_depth: column.array_depth,
             attributes,
             comment: column.column_comment.clone(),
         });

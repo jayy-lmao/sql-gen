@@ -5,13 +5,12 @@ pub fn convert_data_type(udt_type: &str) -> Option<String> {
 
     if let Some(stripped_vec_type) = udt_type.strip_prefix("_") {
         let array_of_type = convert_data_type(stripped_vec_type);
-        let vec_type = array_of_type.map(|rust_type| format!("Vec<{}>", rust_type));
-        return vec_type;
+        return array_of_type;
     }
 
     match udt_type {
         "bool" | "boolean" => Some("bool".to_string()),
-        "bytea" => Some("Vec<u8>".to_string()), // is this right?
+        "bytea" => Some("u8".to_string()), // is this right?
         "char" | "bpchar" | "character" => Some("String".to_string()),
         "date" => Some("chrono::NaiveDate".to_string()),
         "float4" | "real" => Some("f32".to_string()),

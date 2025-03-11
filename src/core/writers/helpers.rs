@@ -59,3 +59,18 @@ pub fn get_derives(derives: &[String]) -> TokenStream {
         #[derive(#(#struct_derives),*)]
     }
 }
+
+pub fn sanitize_field_name(name: &str) -> proc_macro2::Ident {
+    let reserved_keywords = [
+        "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn",
+        "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
+        "return", "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe",
+        "use", "where", "while", "async", "await", "dyn",
+    ];
+
+    if reserved_keywords.contains(&name) {
+        format_ident!("r#{}", name)
+    } else {
+        format_ident!("{}", name)
+    }
+}

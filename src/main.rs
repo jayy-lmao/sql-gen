@@ -111,6 +111,9 @@ async fn main() {
         writer.add_enum(rust_enum);
     }
 
-    println!("Args {:#?}", args);
-    println!("Files to write {:#?}", writer.files);
+    println!("[Debug] args {:#?}", args);
+
+    if args.output_folder.as_str() == "-" {
+        println!("{}", writer.write_as_one_file())
+    }
 }

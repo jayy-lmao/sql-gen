@@ -89,4 +89,3 @@ async fn wait_for_postgres_ready() {
     }
     panic!("Postgres container failed to become ready in time");
 }
-

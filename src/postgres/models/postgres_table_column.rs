@@ -11,6 +11,7 @@ pub struct PostgresTableColumn {
     pub udt_name: String,
     pub data_type: String,
     pub is_nullable: bool,
+    pub array_depth: i16,
     pub is_unique: bool,
     pub is_primary_key: bool,
     pub foreign_key_table: Option<String>,
@@ -25,6 +26,7 @@ impl From<PostgresTableColumn> for TableColumn {
         Self {
             column_name: value.column_name,
             udt_name: value.udt_name,
+            array_depth: value.array_depth,
             data_type: value.data_type,
             is_nullable: value.is_nullable,
             is_unique: value.is_unique,

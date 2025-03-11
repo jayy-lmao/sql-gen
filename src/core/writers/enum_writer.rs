@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use super::helpers::{get_attributes, get_derives, pretty_print_tokenstream};
 use crate::core::models::rust::{RustDbSetEnum, RustDbSetEnumVariant};
 use proc_macro2::TokenStream;
@@ -31,29 +33,37 @@ fn get_enum_variants_tokens(rust_enum: &RustDbSetEnum) -> Vec<TokenStream> {
     enum_variants_tokens
 }
 
-pub fn write_enum_to_string(rust_enum: RustDbSetEnum) -> String {
-    let struct_name = format_ident!("{}", rust_enum.name);
-    let variants = get_enum_variants_tokens(&rust_enum);
-    let attributes = get_attributes_for_enum(&rust_enum);
-    let derives = get_derives_for_enum(&rust_enum);
+impl RustDbSetEnum {
+    pub fn to_tokens(&self) -> TokenStream {
+        let struct_name = format_ident!("{}", self.name);
+        let variants = get_enum_variants_tokens(self);
+        let attributes = get_attributes_for_enum(self);
+        let derives = get_derives_for_enum(self);
 
-    let comment = if let Some(comment) = &rust_enum.comment {
-        let comment = format!(" {}", comment);
-        quote! {
-           #[doc = #comment]
-        }
-    } else {
-        quote! {}
-    };
+        let comment = if let Some(comment) = &self.comment {
+            let comment = format!(" {}", comment);
+            quote! {
+               #[doc = #comment]
+            }
+        } else {
+            quote! {}
+        };
 
-    let struct_ast = quote! {
-        #comment
-        #derives
-        #attributes
-        pub enum #struct_name {
-            #(#variants),*
-        }
-    };
+        let enum_tokens = quote! {
+            #comment
+            #derives
+            #attributes
+            pub enum #struct_name {
+                #(#variants),*
+            }
+        };
 
-    pretty_print_tokenstream(struct_ast)
+        enum_tokens
+    }
+}
+
+impl Display for RustDbSetEnum {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", pretty_print_tokenstream(self.to_tokens()))
+    }
 }

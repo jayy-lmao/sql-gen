@@ -2,27 +2,27 @@ use crate::core::{
     models::rust::{
         enum_typename_attribute, enum_variant_rename_attribute, RustDbSetEnum, RustDbSetEnumVariant,
     },
-    writers::{enum_writer::write_enum_to_string, test_helpers::format_rust_content_string},
+    writers::test_helpers::format_rust_content_string,
 };
 
 #[test]
 fn should_write_empty_enum_to_string() {
-    let content = write_enum_to_string(RustDbSetEnum {
+    let content = RustDbSetEnum {
         name: "Weather".to_string(),
         ..Default::default()
-    });
-    assert_eq!(content.trim(), "pub enum Weather {}")
+    };
+    assert_eq!(content.to_string().trim(), "pub enum Weather {}")
 }
 
 #[test]
 fn should_write_empty_enum_with_comments_to_string() {
-    let content = write_enum_to_string(RustDbSetEnum {
+    let content = RustDbSetEnum {
         name: "Weather".to_string(),
         comment: Some("A weather enum".to_string()),
         ..Default::default()
-    });
+    };
     assert_eq!(
-        content,
+        content.to_string(),
         format_rust_content_string(
             r#"
             /// A weather enum
@@ -34,13 +34,13 @@ fn should_write_empty_enum_with_comments_to_string() {
 
 #[test]
 fn should_write_enum_with_attributes_to_string() {
-    let content = write_enum_to_string(RustDbSetEnum {
+    let content = RustDbSetEnum {
         name: "Weather".to_string(),
         attributes: vec![enum_typename_attribute("weather")],
         ..Default::default()
-    });
+    };
     assert_eq!(
-        content,
+        content.to_string(),
         format_rust_content_string(
             r#"
                 #[sqlx(type_name = "weather")]
@@ -52,25 +52,28 @@ fn should_write_enum_with_attributes_to_string() {
 
 #[test]
 fn should_write_enum_with_derives_to_string() {
-    let content = write_enum_to_string(RustDbSetEnum {
+    let content = RustDbSetEnum {
         name: "Weather".to_string(),
         derives: vec!["Debug".to_string()],
         ..Default::default()
-    });
-    assert_eq!(content.trim(), "#[derive(Debug)]\npub enum Weather {}")
+    };
+    assert_eq!(
+        content.to_string().trim(),
+        "#[derive(Debug)]\npub enum Weather {}"
+    )
 }
 
 #[test]
 fn should_write_enum_with_attributes_and_derives_to_string() {
-    let content = write_enum_to_string(RustDbSetEnum {
+    let content = RustDbSetEnum {
         name: "Weather".to_string(),
         derives: vec!["Debug".to_string(), "PartialEq".to_string()],
         attributes: vec![enum_typename_attribute("weather")],
 
         ..Default::default()
-    });
+    };
     assert_eq!(
-        content,
+        content.to_string(),
         format_rust_content_string(
             r#"
                 #[derive(Debug, PartialEq)]
@@ -83,7 +86,7 @@ fn should_write_enum_with_attributes_and_derives_to_string() {
 
 #[test]
 fn should_write_basic_enum_to_string() {
-    let content = write_enum_to_string(RustDbSetEnum {
+    let content = RustDbSetEnum {
         name: "Mood".to_string(),
         variants: vec![
             RustDbSetEnumVariant {
@@ -96,9 +99,9 @@ fn should_write_basic_enum_to_string() {
             },
         ],
         ..Default::default()
-    });
+    };
     assert_eq!(
-        content,
+        content.to_string(),
         format_rust_content_string(
             "pub enum Mood {
                 Happy,
@@ -110,7 +113,7 @@ fn should_write_basic_enum_to_string() {
 
 #[test]
 fn should_write_enum_with_sqlx_fields_to_string() {
-    let content = write_enum_to_string(RustDbSetEnum {
+    let content = RustDbSetEnum {
         name: "Mood".to_string(),
         attributes: vec![enum_typename_attribute("mood")],
         derives: vec!["sqlx::Type".to_string()],
@@ -125,9 +128,9 @@ fn should_write_enum_with_sqlx_fields_to_string() {
             },
         ],
         ..Default::default()
-    });
+    };
     assert_eq!(
-        content,
+        content.to_string(),
         format_rust_content_string(
             r#"
 

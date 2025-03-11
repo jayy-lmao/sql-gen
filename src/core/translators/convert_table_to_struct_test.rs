@@ -126,23 +126,21 @@ fn should_convert_table_with_each_column_attribute_type() {
                 RustDbSetField {
                     field_name: "id".to_string(),
                     field_type: "uuid::Uuid".to_string(),
-                    is_optional: false,
                     attributes: vec![auto_attribute(), key_attribute(),],
-                    comment: None,
+                    ..Default::default()
                 },
                 RustDbSetField {
                     field_name: "title".to_string(),
                     field_type: "String".to_string(),
-                    is_optional: false,
                     attributes: vec![unique_attribute()],
-                    comment: None,
+                    ..Default::default()
                 },
                 RustDbSetField {
                     field_name: "description".to_string(),
                     field_type: "String".to_string(),
                     is_optional: true,
                     attributes: vec![],
-                    comment: None,
+                    ..Default::default()
                 },
             ],
             ..Default::default()
@@ -184,6 +182,7 @@ fn should_convert_table_with_array_column() {
         table_schema: "public".to_string(),
         columns: vec![TableColumnBuilder::new("tags", "_text", "ARRAY")
             .is_nullable()
+            .array_depth(1)
             .build()],
         ..Default::default()
     };
@@ -195,8 +194,9 @@ fn should_convert_table_with_array_column() {
             attributes: vec![dbset_attribute_with_table_name("products")],
             fields: vec![RustDbSetField {
                 field_name: "tags".to_string(),
-                field_type: "Vec<String>".to_string(),
+                field_type: "String".to_string(),
                 is_optional: true,
+                array_depth: 1,
                 ..Default::default()
             }],
             ..Default::default()
