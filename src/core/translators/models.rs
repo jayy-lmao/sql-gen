@@ -23,7 +23,7 @@ impl TableToStructOptions {
     pub fn set_model_derives(mut self, mode: Mode, derives: &Option<Vec<String>>) -> Self {
         let mode_default = match mode {
             Mode::Sqlx => "sqlx::FromRow",
-            Mode::Dbset => "sqlx::DbSet",
+            Mode::Dbset => "db_set_macros::DbSet",
         }
         .to_string();
 
