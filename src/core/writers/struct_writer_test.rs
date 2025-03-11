@@ -146,6 +146,28 @@ fn should_write_struct_with_vec_to_string() {
 }
 
 #[test]
+fn should_write_struct_with_reserved_field_names_to_string() {
+    let content = RustDbSetStruct {
+        name: "Product".to_string(),
+        fields: vec![RustDbSetField {
+            field_name: "type".to_string(),
+            field_type: "String".to_string(),
+            is_optional: false,
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+    assert_eq!(
+        content.to_string(),
+        format_rust_content_string(
+            "pub struct Product {
+                r#type: String,
+        }"
+        )
+    )
+}
+
+#[test]
 fn should_write_struct_with_field_attributes_to_string() {
     let content = RustDbSetStruct {
         name: "Product".to_string(),
