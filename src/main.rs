@@ -23,31 +23,34 @@ struct Cli {
     /// Schema names (can accept many).
     #[arg(
         long,
-        value_name = "SCHEMAS",
+        value_name = "SQLGEN_SCHEMAS",
         default_value = "public",
         value_delimiter = ','
     )]
     schemas: Vec<String>,
 
     /// Table names (can accept many).
-    #[arg(long, value_name = "INCLUDE_TABLES", value_delimiter = ',')]
+    #[arg(long, value_name = "SQLGEN_INCLUDE_TABLES", value_delimiter = ',')]
     include_tables: Option<Vec<String>>,
 
     /// Model derives to add (can be used multiple times).
     #[arg(
         long = "model-derive",
-        value_name = "MODEL_DERIVE",
+        value_name = "SQLGEN_MODEL_DERIVE",
         value_delimiter = ','
     )]
-    model_derives: Vec<String>,
+    model_derives: Option<Vec<String>>,
 
     // /// Mode of code generation: either sqlx or dbset.
-    #[arg(long, value_enum, default_value_t = Mode::Sqlx)]
+    #[arg(long,
+        value_enum,
+        value_name = "SQLGEN_MODE",
+        default_value_t = Mode::Sqlx)]
     mode: Mode,
     /// Type overrides (can be used multiple times).
     #[arg(
         long = "type-override",
-        value_name = "TYPE_OVERRIDE",
+        value_name = "SQLGEN_TYPE_OVERRIDE",
         value_delimiter = ','
     )]
     type_overrides: Vec<String>,
@@ -55,7 +58,7 @@ struct Cli {
     /// Field overrides (can be used multiple times).
     #[arg(
         long = "field-override",
-        value_name = "FIELD_OVERRIDE",
+        value_name = "SQLGEN_FIELD_OVERRIDE",
         value_delimiter = ','
     )]
     field_overrides: Vec<String>,
@@ -70,7 +73,7 @@ struct Cli {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
-enum Mode {
+pub enum Mode {
     Sqlx,
     Dbset,
 }
@@ -93,7 +96,9 @@ async fn main() {
             .await
             .unwrap();
 
-    let tables_options = TableToStructOptions::default().add_enums(&enums);
+    let tables_options = TableToStructOptions::default()
+        .add_enums(&enums)
+        .set_model_derives(args.mode, &args.model_derives);
 
     let structs_mapped =
         translators::convert_table_to_struct::convert_tables_to_struct(tables, tables_options);

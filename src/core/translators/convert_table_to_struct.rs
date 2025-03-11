@@ -46,6 +46,7 @@ pub fn convert_table_to_struct(table: Table, options: TableToStructOptions) -> R
         name: struct_name,
         attributes: vec![dbset_attribute_with_table_name(table_name)],
         fields,
+        derives: options.struct_derives,
         comment: table.table_comment.clone(),
         ..Default::default()
     }
