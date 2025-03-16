@@ -5,14 +5,17 @@ use crate::core::{
     },
     translators::convert_db_enum_to_rust_enum::convert_db_enum_to_rust_enum,
 };
+use pretty_assertions::assert_eq;
 
 #[test]
 fn test_empty_variants() {
     let custom_enum = CustomEnum {
         name: "examples".to_string(),
-        schema: "public".to_string(),
+        type_name: Some("examples".to_string()),
+        schema: Some("public".to_string()),
         variants: vec![],
         comments: Some("Example comment".to_string()),
+        ..Default::default()
     };
 
     let rust_enum = convert_db_enum_to_rust_enum(&custom_enum);
@@ -25,10 +28,31 @@ fn test_empty_variants() {
 }
 
 #[test]
+fn test_empty_variants_when_child_of_table() {
+    let custom_enum = CustomEnum {
+        name: "product_status".to_string(),
+        type_name: Some("product_status".to_string()),
+        child_of_table: Some("products".to_string()),
+        schema: Some("public".to_string()),
+        variants: vec![],
+        comments: Some("Example comment".to_string()),
+    };
+
+    let rust_enum = convert_db_enum_to_rust_enum(&custom_enum);
+    assert_eq!(rust_enum.name, "ProductProductStatus");
+    assert!(rust_enum.variants.is_empty());
+    assert_eq!(rust_enum.derives, vec!["sqlx::Type".to_string()]);
+    let expected_attr = enum_typename_attribute(&custom_enum.name);
+    assert_eq!(rust_enum.attributes, vec![expected_attr]);
+    assert_eq!(rust_enum.comment, Some("Example comment".to_string()));
+}
+
+#[test]
 fn test_multiple_variants() {
     let custom_enum = CustomEnum {
         name: "color".to_string(),
-        schema: "public".to_string(),
+        type_name: Some("color".to_string()),
+        schema: Some("public".to_string()),
         variants: vec![
             CustomEnumVariant {
                 name: "red".to_string(),
@@ -41,6 +65,7 @@ fn test_multiple_variants() {
             },
         ],
         comments: None,
+        ..Default::default()
     };
 
     let rust_enum = convert_db_enum_to_rust_enum(&custom_enum);
@@ -67,7 +92,7 @@ fn test_multiple_variants() {
 fn test_pascal_case_conversion() {
     let custom_enum = CustomEnum {
         name: "my_custom_enum".to_string(),
-        schema: "public".to_string(),
+        schema: Some("public".to_string()),
         variants: vec![
             CustomEnumVariant {
                 name: "first_variant".to_string(),
@@ -77,6 +102,8 @@ fn test_pascal_case_conversion() {
             },
         ],
         comments: Some("Test comment".to_string()),
+
+        ..Default::default()
     };
 
     let rust_enum = convert_db_enum_to_rust_enum(&custom_enum);

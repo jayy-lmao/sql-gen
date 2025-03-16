@@ -148,7 +148,7 @@ ORDER BY
     for ((table_name, table_schema, table_comment), columns) in table_map {
         tables.push(Table {
             table_name,
-            table_schema,
+            table_schema: Some(table_schema),
             columns,
             table_comment,
         });

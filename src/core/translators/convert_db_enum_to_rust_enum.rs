@@ -5,17 +5,42 @@ use crate::core::models::{
     },
 };
 use convert_case::{Case, Casing};
+use pluralizer::pluralize;
 
-pub fn convert_db_enums_to_rust_enum(custom_enums: Vec<CustomEnum>) -> Vec<RustDbSetEnum> {
+use super::models::CodegenOptions;
+
+pub fn convert_db_enums_to_rust_enum(
+    custom_enums: Vec<CustomEnum>,
+    options: CodegenOptions,
+) -> Vec<RustDbSetEnum> {
     custom_enums
         .iter()
-        .map(convert_db_enum_to_rust_enum)
+        .map(|e| convert_db_enum_to_rust_enum(e, options.clone()))
         .collect()
 }
 
-pub fn convert_db_enum_to_rust_enum(custom_enum: &CustomEnum) -> RustDbSetEnum {
+pub fn convert_db_enum_to_rust_enum(
+    custom_enum: &CustomEnum,
+    options: CodegenOptions,
+) -> RustDbSetEnum {
+    let name = if let Some(parent_table_name) = &custom_enum.child_of_table {
+        let table_name_singular = pluralize(parent_table_name, 1, false);
+        format!(
+            "{}{}",
+            table_name_singular.to_case(Case::Pascal),
+            custom_enum.name.to_case(Case::Pascal),
+        )
+    } else {
+        custom_enum.name.to_case(Case::Pascal)
+    };
+
     RustDbSetEnum {
-        name: custom_enum.name.to_case(Case::Pascal),
+        name,
+        attributes: if let Some(type_name) = &custom_enum.type_name {
+            vec![enum_typename_attribute(type_name)]
+        } else {
+            vec![]
+        },
         variants: custom_enum
             .variants
             .iter()
@@ -25,7 +50,6 @@ pub fn convert_db_enum_to_rust_enum(custom_enum: &CustomEnum) -> RustDbSetEnum {
             })
             .collect(),
         derives: vec!["sqlx::Type".to_string()],
-        attributes: vec![enum_typename_attribute(&custom_enum.name)],
         comment: custom_enum.comments.clone(),
     }
 }

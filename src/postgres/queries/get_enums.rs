@@ -47,8 +47,10 @@ pub async fn get_postgres_enums(pool: &PgPool) -> Result<Vec<CustomEnum>, sqlx::
 
     for ((schema, name, enum_comment), variants) in enum_map {
         enums.push(CustomEnum {
-            name,
-            schema,
+            name: name.clone(),
+            type_name: Some(name),
+            schema: Some(schema),
+            child_of_table: None,
             comments: enum_comment,
             variants: variants
                 .into_iter()

@@ -13,13 +13,17 @@ This project draws inspiration from `rsdbgen` (GitHub: [brianhv/rsdbgen](https:/
 ## V2 Todo
 
 - [ ] Generate DB
-    - [ ] Writing files
-        - [ ] to `-`
-        - [ ] to a single file
+    - [ ] DB Support
+        - [ ] Postgres
+        - [ ] MySQL
+        - [ ] SQLITE 3
+    - [x] Writing files
+        - [x] to `-`
+        - [~] to a single file
         - [ ] to a folder
     - [x] Support DB comments
     - [x] Support custom types
-        - [ ] User defined mappings
+        - [x] User defined mappings
         - [ ] DB custom types
     - [x] Support enums
     - [x] Support DBSet
@@ -29,6 +33,14 @@ This project draws inspiration from `rsdbgen` (GitHub: [brianhv/rsdbgen](https:/
             - [x] key
             - [x] unique
             - [x] auto
+    - [x] Model Derives arg
+    - [ ] Tables filter
+        - [x] for PG
+        - [x] for MySQL
+    - [ ] type overrides
+    - [ ] field overrides
+    - [ ] schema input
+- [ ] Adding DbSet support for MySQL
 - [ ] Update the generated
     - [ ] Locate and update existing generated structs
 - [ ] Generate migration

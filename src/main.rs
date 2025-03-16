@@ -1,12 +1,13 @@
 use core::{
-    translators::{self, models::TableToStructOptions},
+    translators::{self, models::CodegenOptions},
     writers::fs_writer::DbSetsFsWriter,
 };
 
 use clap::{Parser, ValueEnum};
-use sqlx::postgres::PgPoolOptions;
+use sqlx::{mysql::MySqlPoolOptions, postgres::PgPoolOptions};
 
 pub mod core;
+pub mod mysql;
 pub mod postgres;
 
 #[derive(Parser, Debug)]
@@ -20,19 +21,26 @@ struct Cli {
     #[arg(long)]
     db_url: String,
 
-    /// Schema names (can accept many).
-    #[arg(
-        long,
-        value_name = "SQLGEN_SCHEMAS",
-        default_value = "public",
-        value_delimiter = ','
-    )]
-    schemas: Vec<String>,
-
+    // /// Schema names (can accept many).
+    // #[arg(
+    //     long,
+    //     value_name = "SQLGEN_SCHEMAS",
+    //     default_value = "public",
+    //     value_delimiter = ','
+    // )]
+    // schemas: Vec<String>,
     /// Table names (can accept many).
     #[arg(long, value_name = "SQLGEN_INCLUDE_TABLES", value_delimiter = ',')]
     include_tables: Option<Vec<String>>,
 
+    /// Enum derives to add (can be used multiple times).
+    #[arg(
+        long = "enum-derive",
+        value_name = "SQLGEN_ENUM_DERIVE",
+        value_delimiter = ','
+    )]
+    enum_derives: Option<Vec<String>>,
+    ///
     /// Model derives to add (can be used multiple times).
     #[arg(
         long = "model-derive",
@@ -49,59 +57,106 @@ struct Cli {
     mode: Mode,
     /// Type overrides (can be used multiple times).
     #[arg(
-        long = "type-override",
-        value_name = "SQLGEN_TYPE_OVERRIDE",
+        long = "type-overrides",
+        value_name = "SQLGEN_TYPE_OVERRIDES",
         value_delimiter = ','
     )]
     type_overrides: Vec<String>,
 
     /// Field overrides (can be used multiple times).
     #[arg(
-        long = "field-override",
-        value_name = "SQLGEN_FIELD_OVERRIDE",
+        long = "table-overrides",
+        value_name = "SQLGEN_TABLE_OVERRIDS",
         value_delimiter = ','
     )]
-    field_overrides: Vec<String>,
+    table_overrides: Vec<String>,
 
-    /// Output folder.
+    /// Output .
     #[arg(long, default_value = "src/models/")]
-    output_folder: String,
+    output: String,
 
     /// Overwrite files flag (if set, files will be overwritten).
     #[arg(long, action = clap::ArgAction::SetTrue)]
     overwrite_files: bool,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum, Default)]
 pub enum Mode {
+    #[default]
     Sqlx,
     Dbset,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum, Default)]
+pub enum DatabaseType {
+    #[default]
+    Postgres,
+    MySql,
 }
 
 #[tokio::main]
 async fn main() {
     let args = Cli::parse();
 
-    let pool = PgPoolOptions::new()
-        .connect(&args.db_url)
-        .await
-        .expect("Failed to connect to postgres container");
+    let database_type = if args.db_url.starts_with("postgres://") {
+        DatabaseType::Postgres
+    } else {
+        DatabaseType::MySql
+    };
 
-    let enums = postgres::queries::get_enums::get_postgres_enums(&pool)
-        .await
-        .unwrap();
+    if args.mode == Mode::Dbset && database_type == DatabaseType::MySql {
+        panic!("DbSet not currently supported for MySql")
+    }
 
-    let tables =
-        postgres::queries::get_tables::get_tables(&pool, &args.schemas, &args.include_tables)
+    let (enums, tables) = match database_type {
+        DatabaseType::Postgres => {
+            let pool = PgPoolOptions::new()
+                .connect(&args.db_url)
+                .await
+                .expect("Failed to connect to postgres container");
+
+            let enums = postgres::queries::get_enums::get_postgres_enums(&pool)
+                .await
+                .unwrap();
+
+            let tables = postgres::queries::get_tables::get_tables(
+                &pool,
+                &[String::from("public")],
+                &args.include_tables,
+            )
             .await
             .unwrap();
 
-    let tables_options = TableToStructOptions::default()
-        .add_enums(&enums)
-        .set_model_derives(args.mode, &args.model_derives);
+            (enums, tables)
+        }
+        DatabaseType::MySql => {
+            let pool = MySqlPoolOptions::new()
+                .connect(&args.db_url)
+                .await
+                .expect("Failed to connect to mysql container");
+
+            let enums = mysql::queries::get_enums::get_mysql_enums(&pool)
+                .await
+                .unwrap();
+
+            let tables = mysql::queries::get_tables::get_tables(&pool, &[], &args.include_tables)
+                .await
+                .unwrap();
+
+            (enums, tables)
+        }
+    };
+
+    let mut options = CodegenOptions::default();
+    options.set_mode(args.mode);
+    options.set_type_overrides_from_arg(&args.type_overrides);
+    options.set_table_column_overrides_from_arg(&args.table_overrides);
+    options.add_enums(&enums);
+    options.set_model_derives(&args.model_derives);
+    options.set_enum_derives(&args.enum_derives);
 
     let structs_mapped =
-        translators::convert_table_to_struct::convert_tables_to_struct(tables, tables_options);
+        translators::convert_table_to_struct::convert_tables_to_struct(tables, options);
     let enums_mapped =
         translators::convert_db_enum_to_rust_enum::convert_db_enums_to_rust_enum(enums);
 
@@ -115,9 +170,18 @@ async fn main() {
         writer.add_enum(rust_enum);
     }
 
-    println!("[Debug] args {:#?}", args);
+    // println!("[Debug] args {:#?}", args);
 
-    if args.output_folder.as_str() == "-" {
-        println!("{}", writer.write_as_one_file())
+    if args.output.as_str() == "-" {
+        writer.write_to_std_out();
+    } else if args.output.ends_with(".rs") {
+        writer.write_to_file(&args.output);
+    } else if args.output.ends_with("/") {
+        writer.write_db_sets_to_fs(&args.output);
+    } else {
+        println!(
+            "WARNING: invalid output {} must end in .rs if single file or a / if folder",
+            args.output
+        )
     }
 }

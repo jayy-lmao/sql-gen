@@ -31,7 +31,7 @@ async fn test_basic_postgres_tables() -> Result<(), Box<dyn Error>> {
         &["CREATE TABLE test_table_0 (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE, description TEXT, parent_id INTEGER REFERENCES test_table_0 (id));"],
         vec![Table {
             table_name: "test_table_0".to_string(),
-            table_schema: "public".to_string(),
+            table_schema: Some("public".to_string()),
             columns: vec![
                 TableColumnBuilder::new("id", "int4", "integer").is_primary_key().is_auto_populated().build(),
                 TableColumnBuilder::new("name", "varchar", "character varying").is_unique().is_nullable().build(),
@@ -63,7 +63,7 @@ async fn test_basic_postgres_tables_with_comments() -> Result<(), Box<dyn Error>
         vec![Table {
             table_name: "test_table_with_comments".to_string(),
             table_comment: Some("Some test table comment".to_string()),
-            table_schema: "public".to_string(),
+            table_schema: Some("public".to_string()),
             columns: vec![
                 TableColumnBuilder::new("id", "int4", "integer")
                     .is_primary_key()
@@ -93,7 +93,7 @@ async fn test_basic_postgres_table_with_array() -> Result<(), Box<dyn Error>> {
         &["CREATE TABLE test_table_1 (id SERIAL PRIMARY KEY, names TEXT[]);"],
         vec![Table {
             table_name: "test_table_1".to_string(),
-            table_schema: "public".to_string(),
+            table_schema: Some("public".to_string()),
             columns: vec![
                 TableColumnBuilder::new("id", "int4", "integer")
                     .is_primary_key()
@@ -128,7 +128,7 @@ async fn test_postgres_table_with_custom_type() -> Result<(), Box<dyn Error>> {
         &["CREATE TABLE test_orders_status_0 (id SERIAL PRIMARY KEY, order_status status NOT NULL);"],
         vec![Table {
             table_name: "test_orders_status_0".to_string(),
-            table_schema: "public".to_string(),
+            table_schema: Some("public".to_string()),
             columns: vec![
                 TableColumnBuilder::new("id", "int4", "integer")
                     .is_primary_key()

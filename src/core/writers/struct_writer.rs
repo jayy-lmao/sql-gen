@@ -22,7 +22,9 @@ fn get_struct_fields_tokens(rust_struct: &RustDbSetStruct) -> Vec<TokenStream> {
 
     for field in rust_struct.fields.iter() {
         let field_name = sanitize_field_name(&field.field_name);
-        let field_type = format_ident!("{}", field.field_type);
+        //let field_type = format_ident!("{}", field.field_type);
+        let field_type: syn::Path =
+            syn::parse_str(&field.field_type).expect("Failed to parse path");
 
         let attributes = get_attributes_for_field(field);
         let mut base_type = quote! { #field_type };

@@ -21,7 +21,8 @@ async fn test_get_postgres_enums() -> Result<(), Box<dyn Error>> {
 
     let expected = vec![CustomEnum {
         name: "mood".to_string(),
-        schema: "public".to_string(),
+        type_name: Some("mood".to_string()),
+        schema: Some("public".to_string()),
         variants: vec![
             CustomEnumVariant {
                 name: "sad".to_string(),
@@ -34,6 +35,7 @@ async fn test_get_postgres_enums() -> Result<(), Box<dyn Error>> {
             },
         ],
         comments: None,
+        ..Default::default()
     }];
 
     assert_eq!(enums, expected);
@@ -65,7 +67,8 @@ async fn test_get_postgres_enums_with_comments() -> Result<(), Box<dyn Error>> {
     // Define the expected result including the comment on the type
     let expected = vec![CustomEnum {
         name: "weather".to_string(),
-        schema: "public".to_string(),
+        type_name: Some("weather".to_string()),
+        schema: Some("public".to_string()),
         variants: vec![
             CustomEnumVariant {
                 name: "rainy".to_string(),
@@ -78,6 +81,7 @@ async fn test_get_postgres_enums_with_comments() -> Result<(), Box<dyn Error>> {
             },
         ],
         comments: Some("This enum represents different weather".to_string()),
+        ..Default::default()
     }];
 
     pretty_assertions::assert_eq!(enums, expected);

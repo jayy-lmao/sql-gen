@@ -1,15 +1,18 @@
-use crate::core::{
-    models::{
-        db::{CustomEnum, CustomEnumVariant, Table, TableColumnBuilder},
-        rust::{
-            auto_attribute, dbset_attribute_with_table_name, key_attribute, unique_attribute,
-            RustDbSetField, RustDbSetStruct,
+use crate::{
+    core::{
+        models::{
+            db::{CustomEnum, CustomEnumVariant, Table, TableColumnBuilder},
+            rust::{
+                auto_attribute, dbset_attribute_with_table_name, key_attribute, unique_attribute,
+                RustDbSetField, RustDbSetStruct,
+            },
+        },
+        translators::{
+            convert_table_to_struct::convert_table_to_struct,
+            models::{CodegenOptions, ColumnToFieldOptions},
         },
     },
-    translators::{
-        convert_table_to_struct::convert_table_to_struct,
-        models::{ColumnToFieldOptions, TableToStructOptions},
-    },
+    Mode,
 };
 use pretty_assertions::assert_eq;
 
@@ -17,10 +20,12 @@ use pretty_assertions::assert_eq;
 fn should_convert_empty_table_to_struct() {
     let table = Table {
         table_name: "products".to_string(),
-        table_schema: "public".to_string(),
+        table_schema: Some("public".to_string()),
         ..Default::default()
     };
-    let rust_struct = convert_table_to_struct(table, TableToStructOptions::default());
+    let mut options = CodegenOptions::default();
+    options.set_mode(Mode::Dbset);
+    let rust_struct = convert_table_to_struct(table, options);
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
@@ -35,10 +40,12 @@ fn should_convert_empty_table_to_struct() {
 fn should_convert_empty_table_to_struct_2() {
     let table = Table {
         table_name: "inventories".to_string(),
-        table_schema: "public".to_string(),
+        table_schema: Some("public".to_string()),
         ..Default::default()
     };
-    let rust_struct = convert_table_to_struct(table, TableToStructOptions::default());
+    let mut options = CodegenOptions::default();
+    options.set_mode(Mode::Dbset);
+    let rust_struct = convert_table_to_struct(table, options);
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
@@ -53,12 +60,13 @@ fn should_convert_empty_table_to_struct_2() {
 fn should_convert_table_to_struct_with_override() {
     let table = Table {
         table_name: "users".to_string(),
-        table_schema: "public".to_string(),
+        table_schema: Some("public".to_string()),
         ..Default::default()
     };
 
-    let table_to_struct_options = TableToStructOptions {
+    let table_to_struct_options = CodegenOptions {
         override_name: Some("Customer".to_string()),
+        mode: Mode::Dbset,
         ..Default::default()
     };
 
@@ -77,11 +85,15 @@ fn should_convert_table_to_struct_with_override() {
 fn should_convert_table_with_basic_column() {
     let table = Table {
         table_name: "products".to_string(),
-        table_schema: "public".to_string(),
+        table_schema: Some("public".to_string()),
         columns: vec![TableColumnBuilder::new("title", "text", "text").build()],
         ..Default::default()
     };
-    let rust_struct = convert_table_to_struct(table, TableToStructOptions::default());
+
+    let mut options = CodegenOptions::default();
+    options.set_mode(Mode::Dbset);
+
+    let rust_struct = convert_table_to_struct(table, options);
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
@@ -101,7 +113,7 @@ fn should_convert_table_with_basic_column() {
 fn should_convert_table_with_each_column_attribute_type() {
     let table = Table {
         table_name: "products".to_string(),
-        table_schema: "public".to_string(),
+        table_schema: Some("public".to_string()),
         columns: vec![
             TableColumnBuilder::new("id", "uuid", "uuid")
                 .is_auto_populated()
@@ -116,7 +128,10 @@ fn should_convert_table_with_each_column_attribute_type() {
         ],
         ..Default::default()
     };
-    let rust_struct = convert_table_to_struct(table, TableToStructOptions::default());
+    let mut options = CodegenOptions::default();
+    options.set_mode(Mode::Dbset);
+
+    let rust_struct = convert_table_to_struct(table, options);
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
@@ -152,13 +167,16 @@ fn should_convert_table_with_each_column_attribute_type() {
 fn should_convert_table_with_optional_column() {
     let table = Table {
         table_name: "products".to_string(),
-        table_schema: "public".to_string(),
+        table_schema: Some("public".to_string()),
         columns: vec![TableColumnBuilder::new("description", "text", "text")
             .is_nullable()
             .build()],
         ..Default::default()
     };
-    let rust_struct = convert_table_to_struct(table, TableToStructOptions::default());
+    let mut options = CodegenOptions::default();
+    options.set_mode(Mode::Dbset);
+
+    let rust_struct = convert_table_to_struct(table, options);
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
@@ -179,14 +197,17 @@ fn should_convert_table_with_optional_column() {
 fn should_convert_table_with_array_column() {
     let table = Table {
         table_name: "products".to_string(),
-        table_schema: "public".to_string(),
+        table_schema: Some("public".to_string()),
         columns: vec![TableColumnBuilder::new("tags", "_text", "ARRAY")
             .is_nullable()
             .array_depth(1)
             .build()],
         ..Default::default()
     };
-    let rust_struct = convert_table_to_struct(table, TableToStructOptions::default());
+    let mut options = CodegenOptions::default();
+    options.set_mode(Mode::Dbset);
+
+    let rust_struct = convert_table_to_struct(table, options);
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
@@ -208,13 +229,13 @@ fn should_convert_table_with_array_column() {
 fn should_convert_table_with_enum_column() {
     let table = Table {
         table_name: "orders".to_string(),
-        table_schema: "public".to_string(),
+        table_schema: Some("public".to_string()),
         columns: vec![TableColumnBuilder::new("order_status", "status", "USER-DEFINED").build()],
         ..Default::default()
     };
     let enums: Vec<CustomEnum> = vec![CustomEnum {
         name: "status".to_string(),
-        schema: "public".to_string(),
+        schema: Some("public".to_string()),
         variants: vec![
             CustomEnumVariant {
                 name: "pending".to_string(),
@@ -228,7 +249,9 @@ fn should_convert_table_with_enum_column() {
         ],
         ..Default::default()
     }];
-    let table_to_struct_options = TableToStructOptions::default().add_enums(&enums);
+    let mut table_to_struct_options = CodegenOptions::default();
+    table_to_struct_options.set_mode(Mode::Dbset);
+    table_to_struct_options.add_enums(&enums);
 
     let rust_struct = convert_table_to_struct(table, table_to_struct_options);
 
@@ -251,11 +274,14 @@ fn should_convert_table_with_enum_column() {
 fn should_ignore_columns_with_invalid_types() {
     let table = Table {
         table_name: "products".to_string(),
-        table_schema: "public".to_string(),
+        table_schema: Some("public".to_string()),
         columns: vec![TableColumnBuilder::new("title", "badtype", "badtype").build()],
         ..Default::default()
     };
-    let rust_struct = convert_table_to_struct(table, TableToStructOptions::default());
+    let mut options = CodegenOptions::default();
+    options.set_mode(Mode::Dbset);
+
+    let rust_struct = convert_table_to_struct(table, options);
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
@@ -271,7 +297,7 @@ fn should_ignore_columns_with_invalid_types() {
 fn should_convert_table_with_column_type_override() {
     let table = Table {
         table_name: "products".to_string(),
-        table_schema: "public".to_string(),
+        table_schema: Some("public".to_string()),
         columns: vec![TableColumnBuilder::new("id", "i32", "i32").build()],
         ..Default::default()
     };
@@ -279,9 +305,11 @@ fn should_convert_table_with_column_type_override() {
     let column_override = ColumnToFieldOptions {
         override_name: None,
         override_type: Some("String".to_string()),
+        mode: Mode::Dbset,
     };
-    let table_to_struct_options =
-        TableToStructOptions::default().add_column_override("id", column_override);
+    let mut table_to_struct_options = CodegenOptions::default();
+    table_to_struct_options.set_mode(Mode::Dbset);
+    table_to_struct_options.add_column_override("id", column_override);
 
     let rust_struct = convert_table_to_struct(table, table_to_struct_options);
 
@@ -304,7 +332,7 @@ fn should_convert_table_with_column_type_override() {
 fn should_convert_table_with_global_type_override() {
     let table = Table {
         table_name: "products".to_string(),
-        table_schema: "public".to_string(),
+        table_schema: Some("public".to_string()),
         columns: vec![TableColumnBuilder::new("id", "int4", "int4").build()],
         ..Default::default()
     };
@@ -312,9 +340,11 @@ fn should_convert_table_with_global_type_override() {
     let type_override = ColumnToFieldOptions {
         override_name: None,
         override_type: Some("String".to_string()),
+        mode: Mode::Dbset,
     };
-    let table_to_struct_options =
-        TableToStructOptions::default().add_type_override("int4", type_override);
+    let mut table_to_struct_options = CodegenOptions::default();
+    table_to_struct_options.set_mode(Mode::Dbset);
+    table_to_struct_options.add_type_override("int4", type_override);
 
     let rust_struct = convert_table_to_struct(table, table_to_struct_options);
 
@@ -337,7 +367,7 @@ fn should_convert_table_with_global_type_override() {
 fn column_override_takes_preference_over_global_type_override() {
     let table = Table {
         table_name: "products".to_string(),
-        table_schema: "public".to_string(),
+        table_schema: Some("public".to_string()),
         columns: vec![TableColumnBuilder::new("price", "int4", "int4").build()],
         ..Default::default()
     };
@@ -345,15 +375,18 @@ fn column_override_takes_preference_over_global_type_override() {
     let type_override = ColumnToFieldOptions {
         override_name: None,
         override_type: Some("String".to_string()),
+        mode: Mode::Dbset,
     };
     let column_override = ColumnToFieldOptions {
         override_name: None,
         override_type: Some("rust_decimal::Decimal".to_string()),
+        mode: Mode::Dbset,
     };
 
-    let table_to_struct_options = TableToStructOptions::default()
-        .add_type_override("int4", type_override)
-        .add_column_override("price", column_override);
+    let mut table_to_struct_options = CodegenOptions::default();
+    table_to_struct_options.set_mode(Mode::Dbset);
+    table_to_struct_options.add_type_override("int4", type_override);
+    table_to_struct_options.add_column_override("price", column_override);
 
     let rust_struct = convert_table_to_struct(table, table_to_struct_options);
 

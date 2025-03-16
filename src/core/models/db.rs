@@ -1,4 +1,4 @@
-use crate::postgres::queries::convert_type::convert_data_type;
+use crate::mysql::queries::convert_type::convert_data_type;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct TableColumn {
@@ -20,7 +20,7 @@ pub struct TableColumn {
 pub struct Table {
     pub table_name: String,
     pub table_comment: Option<String>,
-    pub table_schema: String,
+    pub table_schema: Option<String>,
     pub columns: Vec<TableColumn>,
 }
 
@@ -31,7 +31,11 @@ pub struct CustomEnumVariant {
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct CustomEnum {
     pub name: String,
-    pub schema: String,
+    // Only for Postgres
+    pub type_name: Option<String>,
+    /// Only for MySQL
+    pub child_of_table: Option<String>,
+    pub schema: Option<String>,
     pub variants: Vec<CustomEnumVariant>,
     pub comments: Option<String>,
 }
