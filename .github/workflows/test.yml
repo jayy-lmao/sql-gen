@@ -22,14 +22,8 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Cache Cargo registry, git dependencies, and build artifacts
-        uses: swatinam/cargo-cache@v2
-        with:
-          cache-key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          cache-path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.8
 
       - name: Install cargo-nextest
         run: cargo install cargo-nextest
