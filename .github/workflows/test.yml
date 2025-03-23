@@ -1,4 +1,4 @@
-name: Rust Nextest
+name: Test
 
 on:
   push:
@@ -21,6 +21,15 @@ jobs:
         with:
           toolchain: stable
           override: true
+
+      - name: Cache Cargo registry, git dependencies, and build artifacts
+        uses: swatinam/cargo-cache@v1
+        with:
+          cache-key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          cache-path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
 
       - name: Install cargo-nextest
         run: cargo install cargo-nextest

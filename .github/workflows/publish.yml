@@ -1,0 +1,39 @@
+name: Publish Crate
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type: patch, minor, or major'
+        required: true
+        default: patch
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install cargo-release
+        run: cargo install cargo-release
+
+      - name: Bump version and publish
+        env:
+          CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Bump the version using the specified bump type (patch, minor, or major)
+          cargo release ${{ github.event.inputs.bump }} --no-confirm --skip-publish
+          # Push the release commit and tags
+          git push --follow-tags
+          # Publish the crate to crates.io
+          cargo publish --token $CRATES_IO_TOKEN
+
