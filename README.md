@@ -132,6 +132,9 @@ SQL-Gen uses the following command-line flags:
 - **`--type-overrides <MAP>`**  
   Override default SQL-to-Rust type mappings with custom values (e.g., `numeric=rust_decimal::Decimal,todo_status=String`).
 
+- **`--table-overrides <MAP>`**  
+  Override default SQL-to-Rust type mappings for a specific table column with custom values (e.g., `status=String`).
+
 Run `sql-gen --help` to see the full list of options.
 
 ## Example
