@@ -64,7 +64,7 @@ COMMENT ON TABLE todos IS 'Table to store todo items with tags and status inform
     assert_eq!(
         writer.write_to_string().trim(),
         r#"
-#[derive(sqlx::Type)]
+#[derive(Debug, Clone, PartialEq, sqlx::Type)]
 #[sqlx(type_name = "todo_status")]
 pub enum TodoStatus {
     #[sqlx(rename = "pending")]

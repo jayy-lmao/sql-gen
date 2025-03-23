@@ -108,7 +108,7 @@ impl CodegenOptions {
                 "Debug".to_string(),
                 "Clone".to_string(),
                 "PartialEq".to_string(),
-                "sqlx::FromRow".to_string(),
+                "sqlx::Type".to_string(),
             ]
         });
     }
