@@ -1,7 +1,4 @@
-use sqlx::{
-    mysql::MySqlPoolOptions,
-    MySqlPool,
-};
+use sqlx::{mysql::MySqlPoolOptions, MySqlPool};
 use std::{
     process::Command,
     sync::{Arc, OnceLock},

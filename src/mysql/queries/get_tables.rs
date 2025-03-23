@@ -53,7 +53,8 @@ WHERE
 ORDER BY
     c.TABLE_NAME,
     c.ORDINAL_POSITION;
-".to_string();
+"
+    .to_string();
 
     let rows = sqlx::query_as::<sqlx::MySql, MySqlTableColumn>(query.as_str())
         .fetch_all(pool)
