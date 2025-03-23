@@ -23,7 +23,7 @@ jobs:
           override: true
 
       - name: Cache Cargo registry, git dependencies, and build artifacts
-        uses: swatinam/cargo-cache@v1
+        uses: swatinam/cargo-cache@v2
         with:
           cache-key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           cache-path: |
