@@ -1,0 +1,138 @@
+name: Release sql-gen
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type: patch, minor, or major'
+        required: true
+        default: patch
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      new_tag: ${{ steps.get_tag.outputs.new_tag }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install cargo-release
+        run: cargo install cargo-release
+
+      - name: Bump version and create tag
+        run: |
+          cargo release ${{ github.event.inputs.bump }} --no-confirm --skip-publish
+          git push --follow-tags
+
+      - name: Publish to crates.io
+        env:
+          CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo publish --token $CRATES_IO_TOKEN
+
+      - name: Get new tag
+        id: get_tag
+        run: |
+          NEW_TAG=$(git describe --tags --abbrev=0)
+          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.get_tag.outputs.new_tag }}
+          name: "Release ${{ steps.get_tag.outputs.new_tag }}"
+          body: "Release of sql-gen"
+          
+  build:
+    needs: release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Build sql-gen
+        run: cargo build --release
+
+      - name: Upload binary artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v3
+        with:
+          name: sql-gen-windows
+          path: target\release\sql-gen.exe
+
+      - name: Upload binary artifact (Unix)
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v3
+        with:
+          name: sql-gen-${{ matrix.os }}
+          path: target/release/sql-gen
+
+  attach_assets:
+    needs: [release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Ubuntu Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: sql-gen-ubuntu-latest
+          path: ./ubuntu
+
+      - name: Download macOS Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: sql-gen-macos-latest
+          path: ./macos
+
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: sql-gen-windows
+          path: ./windows
+
+      - name: Upload Ubuntu Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./ubuntu/sql-gen
+          asset_name: sql-gen-linux
+          asset_content_type: application/octet-stream
+
+      - name: Upload macOS Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./macos/sql-gen
+          asset_name: sql-gen-macos
+          asset_content_type: application/octet-stream
+
+      - name: Upload Windows Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./windows/sql-gen.exe
+          asset_name: sql-gen-windows.exe
+          asset_content_type: application/octet-stream
+

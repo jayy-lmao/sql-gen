@@ -1,21 +1,25 @@
 [package]
 name = "sql-gen"
-version = "0.1.6"
+version = "0.1.5"
 edition = "2021"
 description = "A CLI tool for generating models based on a SQL Database using SQLx"
 license = "MIT"
 
 [dependencies]
-sqlx = { version = "0.7", features = ["postgres","runtime-tokio"] }
+sqlx = { version = "0.7", features = ["postgres","runtime-tokio", "mysql"] }
 sqlx-cli = "0.7"
-clap = "3.0"
+clap = { version = "4.5.31", features = ["derive"] }
 regex = "1.5"
 chrono = "0.4"
-# regex = "1.5"
 tokio = { version = "1", features = ["full"] }
 dotenv = "0.15.0"
-testcontainers = { version ="0.15.0" }
-testcontainers-modules = { version = "0.3.5", features = ["postgres"] }
-proc-macro2 = "1.0.93"
-syn = "2.0.96"
-prettyplease = "0.2.29"
+pretty_assertions = "1.4.1"
+syn = { version="2.0.98", features=["full"] }
+convert_case = "0.8.0"
+pluralizer = "0.5.0"
+quote = "1.0.37"
+proc-macro2 = "1.0.89"
+prettyplease = "0.2.25"
+uuid = { version = "1.15.1", features = ["serde", "v4"] }
+fd-lock = "4.0.3"
+
