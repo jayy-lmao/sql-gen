@@ -123,17 +123,17 @@ SQL-Gen uses the following command-line flags:
 - **`--include-tables <LIST>`**  
   Generate code only for the specified comma-separated table names (e.g., `users,orders,products`).
 
-- **`--enum-derive <TRAITS>`**  
+- **`--enum-derive <DERIVE TRAITS>`**  
   Extra traits to derive for any generated enums (e.g., `Serialize,Deserialize`).
 
-- **`--model-derive <TRAITS>`**  
+- **`--model-derive <DERIVE TRAITS>`**  
   Extra traits to derive for your generated structs (e.g., `Serialize,PartialEq`).
 
 - **`--type-overrides <MAP>`**  
   Override default SQL-to-Rust type mappings with custom values (e.g., `numeric=rust_decimal::Decimal,todo_status=String`).
 
 - **`--table-overrides <MAP>`**  
-  Override default SQL-to-Rust type mappings for a specific table column with custom values (e.g., `status=String`).
+  Override default SQL-to-Rust type mappings for a table column with custom values (e.g., `status=String` or `todos.status=String` if it's only for that table) .
 
 Run `sql-gen --help` to see the full list of options.
 

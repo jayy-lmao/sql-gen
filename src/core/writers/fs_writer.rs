@@ -40,6 +40,7 @@ impl DbSetsFsWriter {
             name: rust_struct.name.to_case(Case::Snake),
             content: rust_struct,
         });
+        self.struct_files.sort_by(|a, b| a.name.cmp(&b.name));
         self
     }
 
