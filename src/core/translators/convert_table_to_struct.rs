@@ -1,8 +1,11 @@
 use super::{convert_column_to_field::convert_column_to_field, models::CodegenOptions};
-use crate::{core::models::{
-    db::Table,
-    rust::{dbset_attribute_with_table_name, RustDbSetStruct},
-}, Mode};
+use crate::{
+    core::models::{
+        db::Table,
+        rust::{dbset_attribute_with_table_name, RustDbSetStruct},
+    },
+    Mode,
+};
 use convert_case::{Case, Casing};
 use pluralizer::pluralize;
 
@@ -27,7 +30,7 @@ pub fn convert_table_to_struct(table: Table, options: &CodegenOptions) -> RustDb
     let fields = table
         .columns
         .iter()
-        .filter_map(|c| { 
+        .filter_map(|c| {
             let key = &(table.table_name.clone(), c.column_name.clone());
 
             let column_override = options
@@ -51,9 +54,11 @@ pub fn convert_table_to_struct(table: Table, options: &CodegenOptions) -> RustDb
 
     RustDbSetStruct {
         name: struct_name.to_string(),
-        attributes: if options.mode == Mode::Dbset { vec![
-            dbset_attribute_with_table_name(table_name)
-        ]} else {vec![]},
+        attributes: if options.mode == Mode::Dbset {
+            vec![dbset_attribute_with_table_name(table_name)]
+        } else {
+            vec![]
+        },
         fields,
         derives: options.struct_derives.clone(),
         comment: table.table_comment.clone(),
