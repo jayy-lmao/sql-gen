@@ -12,10 +12,10 @@ This project draws inspiration from `rsdbgen` (GitHub: [brianhv/rsdbgen](https:/
 
 ## V2 Todo
 
-- [ ] Generate DB
-    - [ ] DB Support
-        - [ ] Postgres
-        - [ ] MySQL
+- [x] Generate DB
+    - [x] DB Support
+        - [x] Postgres
+        - [x] MySQL
         - [ ] SQLITE 3
     - [x] Writing files
         - [x] to `-`
@@ -34,12 +34,12 @@ This project draws inspiration from `rsdbgen` (GitHub: [brianhv/rsdbgen](https:/
             - [x] unique
             - [x] auto
     - [x] Model Derives arg
-    - [ ] Tables filter
+    - [x] Tables filter
         - [x] for PG
         - [x] for MySQL
-    - [ ] type overrides
-    - [ ] field overrides
-    - [ ] schema input
+    - [x] type overrides
+    - [x] field overrides
+    - [ ] schema selection for Postgres
 - [ ] Adding DbSet support for MySQL
 - [ ] Update the generated
     - [ ] Locate and update existing generated structs
