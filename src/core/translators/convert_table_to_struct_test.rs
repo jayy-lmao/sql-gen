@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     core::{
         models::{
@@ -25,7 +27,7 @@ fn should_convert_empty_table_to_struct() {
     };
     let mut options = CodegenOptions::default();
     options.set_mode(Mode::Dbset);
-    let rust_struct = convert_table_to_struct(table, options);
+    let rust_struct = convert_table_to_struct(table, &options);
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
@@ -45,7 +47,7 @@ fn should_convert_empty_table_to_struct_2() {
     };
     let mut options = CodegenOptions::default();
     options.set_mode(Mode::Dbset);
-    let rust_struct = convert_table_to_struct(table, options);
+    let rust_struct = convert_table_to_struct(table, &options);
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
@@ -65,12 +67,12 @@ fn should_convert_table_to_struct_with_override() {
     };
 
     let table_to_struct_options = CodegenOptions {
-        override_name: Some("Customer".to_string()),
+        override_name: HashMap::from_iter(vec![("users".to_string(), "Customer".to_string())]), // Some("Customer".to_string()),
         mode: Mode::Dbset,
         ..Default::default()
     };
 
-    let rust_struct = convert_table_to_struct(table, table_to_struct_options);
+    let rust_struct = convert_table_to_struct(table, &table_to_struct_options);
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
@@ -93,7 +95,7 @@ fn should_convert_table_with_basic_column() {
     let mut options = CodegenOptions::default();
     options.set_mode(Mode::Dbset);
 
-    let rust_struct = convert_table_to_struct(table, options);
+    let rust_struct = convert_table_to_struct(table, &options);
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
@@ -131,7 +133,7 @@ fn should_convert_table_with_each_column_attribute_type() {
     let mut options = CodegenOptions::default();
     options.set_mode(Mode::Dbset);
 
-    let rust_struct = convert_table_to_struct(table, options);
+    let rust_struct = convert_table_to_struct(table, &options);
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
@@ -176,7 +178,7 @@ fn should_convert_table_with_optional_column() {
     let mut options = CodegenOptions::default();
     options.set_mode(Mode::Dbset);
 
-    let rust_struct = convert_table_to_struct(table, options);
+    let rust_struct = convert_table_to_struct(table, &options);
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
@@ -207,7 +209,7 @@ fn should_convert_table_with_array_column() {
     let mut options = CodegenOptions::default();
     options.set_mode(Mode::Dbset);
 
-    let rust_struct = convert_table_to_struct(table, options);
+    let rust_struct = convert_table_to_struct(table, &options);
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
@@ -253,7 +255,7 @@ fn should_convert_table_with_enum_column() {
     table_to_struct_options.set_mode(Mode::Dbset);
     table_to_struct_options.add_enums(&enums);
 
-    let rust_struct = convert_table_to_struct(table, table_to_struct_options);
+    let rust_struct = convert_table_to_struct(table, &table_to_struct_options);
 
     assert_eq!(
         rust_struct,
@@ -281,7 +283,7 @@ fn should_ignore_columns_with_invalid_types() {
     let mut options = CodegenOptions::default();
     options.set_mode(Mode::Dbset);
 
-    let rust_struct = convert_table_to_struct(table, options);
+    let rust_struct = convert_table_to_struct(table, &options);
     assert_eq!(
         rust_struct,
         RustDbSetStruct {
@@ -311,7 +313,7 @@ fn should_convert_table_with_column_type_override() {
     table_to_struct_options.set_mode(Mode::Dbset);
     table_to_struct_options.add_column_override("id", column_override);
 
-    let rust_struct = convert_table_to_struct(table, table_to_struct_options);
+    let rust_struct = convert_table_to_struct(table, &table_to_struct_options);
 
     assert_eq!(
         rust_struct,
@@ -346,7 +348,7 @@ fn should_convert_table_with_global_type_override() {
     table_to_struct_options.set_mode(Mode::Dbset);
     table_to_struct_options.add_type_override("int4", type_override);
 
-    let rust_struct = convert_table_to_struct(table, table_to_struct_options);
+    let rust_struct = convert_table_to_struct(table, &table_to_struct_options);
 
     assert_eq!(
         rust_struct,
@@ -388,7 +390,7 @@ fn column_override_takes_preference_over_global_type_override() {
     table_to_struct_options.add_type_override("int4", type_override);
     table_to_struct_options.add_column_override("price", column_override);
 
-    let rust_struct = convert_table_to_struct(table, table_to_struct_options);
+    let rust_struct = convert_table_to_struct(table, &table_to_struct_options);
 
     assert_eq!(
         rust_struct,

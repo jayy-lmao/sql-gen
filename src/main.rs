@@ -9,6 +9,8 @@ use sqlx::{mysql::MySqlPoolOptions, postgres::PgPoolOptions};
 pub mod core;
 pub mod mysql;
 pub mod postgres;
+#[cfg(tests)]
+pub mod tests;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -21,14 +23,6 @@ struct Cli {
     #[arg(long)]
     db_url: String,
 
-    // /// Schema names (can accept many).
-    // #[arg(
-    //     long,
-    //     value_name = "SQLGEN_SCHEMAS",
-    //     default_value = "public",
-    //     value_delimiter = ','
-    // )]
-    // schemas: Vec<String>,
     /// Table names (can accept many).
     #[arg(long, value_name = "SQLGEN_INCLUDE_TABLES", value_delimiter = ',')]
     include_tables: Option<Vec<String>>,
@@ -94,10 +88,7 @@ pub enum DatabaseType {
     MySql,
 }
 
-#[tokio::main]
-async fn main() {
-    let args = Cli::parse();
-
+async fn generate_rust_from_database(args: &Cli) -> DbSetsFsWriter {
     let database_type = if args.db_url.starts_with("postgres://") {
         DatabaseType::Postgres
     } else {
@@ -170,7 +161,14 @@ async fn main() {
         writer.add_enum(rust_enum);
     }
 
-    // println!("[Debug] args {:#?}", args);
+    writer
+}
+
+#[tokio::main]
+async fn main() {
+    let args = Cli::parse();
+
+    let writer = generate_rust_from_database(&args).await;
 
     if args.output.as_str() == "-" {
         writer.write_to_std_out();
