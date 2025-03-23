@@ -9,7 +9,7 @@ use sqlx::{mysql::MySqlPoolOptions, postgres::PgPoolOptions};
 pub mod core;
 pub mod mysql;
 pub mod postgres;
-#[cfg(tests)]
+#[cfg(test)]
 pub mod tests;
 
 #[derive(Parser, Debug)]

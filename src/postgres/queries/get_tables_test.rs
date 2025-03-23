@@ -25,7 +25,7 @@ async fn test_table(
 
 #[tokio::test]
 async fn test_basic_postgres_tables() -> Result<(), Box<dyn Error>> {
-    let pool = setup_pg_db().await;
+    let (pool, _) = setup_pg_db().await;
     test_table(
         &pool,
         &["CREATE TABLE test_table_0 (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE, description TEXT, parent_id INTEGER REFERENCES test_table_0 (id));"],
@@ -48,7 +48,7 @@ async fn test_basic_postgres_tables() -> Result<(), Box<dyn Error>> {
 
 #[tokio::test]
 async fn test_basic_postgres_tables_with_comments() -> Result<(), Box<dyn Error>> {
-    let pool = setup_pg_db().await;
+    let (pool, _) = setup_pg_db().await;
     test_table(
         &pool,
         &[
@@ -87,7 +87,7 @@ async fn test_basic_postgres_tables_with_comments() -> Result<(), Box<dyn Error>
 
 #[tokio::test]
 async fn test_basic_postgres_table_with_array() -> Result<(), Box<dyn Error>> {
-    let pool = setup_pg_db().await;
+    let (pool, _) = setup_pg_db().await;
     test_table(
         &pool,
         &["CREATE TABLE test_table_1 (id SERIAL PRIMARY KEY, names TEXT[]);"],
@@ -114,7 +114,7 @@ async fn test_basic_postgres_table_with_array() -> Result<(), Box<dyn Error>> {
 
 #[tokio::test]
 async fn test_postgres_table_with_custom_type() -> Result<(), Box<dyn Error>> {
-    let pool = setup_pg_db().await;
+    let (pool, _) = setup_pg_db().await;
     sqlx::query("DROP TYPE IF EXISTS status CASCADE;")
         .execute(&pool)
         .await?;

@@ -43,7 +43,7 @@ impl DbSetsFsWriter {
         self
     }
 
-    fn write_to_string(&self) -> String {
+    pub fn write_to_string(&self) -> String {
         let mut outputs = vec![];
 
         for enum_tokens in &self.enum_files {

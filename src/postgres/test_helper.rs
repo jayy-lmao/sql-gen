@@ -45,7 +45,7 @@ impl ContainerGuard {
     }
 }
 
-pub async fn setup_pg_db() -> PgPool {
+pub async fn setup_pg_db() -> (PgPool, String) {
     // Ensure exactly one container guard is created (across threads within the same process)
     let _guard = CONTAINER_GUARD.get_or_init(|| Arc::new(ContainerGuard::new()));
 
@@ -66,11 +66,12 @@ pub async fn setup_pg_db() -> PgPool {
 
     let test_db_url = format!("postgres://postgres:postgres@localhost:5434/{db_name}");
 
-    PgPoolOptions::new()
+    let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&test_db_url)
         .await
-        .expect("Failed to connect to test database")
+        .expect("Failed to connect to test database");
+    return (pool, test_db_url);
 }
 
 async fn wait_for_postgres_ready() {

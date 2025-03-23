@@ -7,7 +7,7 @@ use crate::{
 
 #[tokio::test]
 async fn test_get_postgres_enums() -> Result<(), Box<dyn Error>> {
-    let pool = setup_pg_db().await;
+    let (pool, _) = setup_pg_db().await;
 
     sqlx::query("DROP TYPE IF EXISTS mood CASCADE;")
         .execute(&pool)
@@ -45,7 +45,7 @@ async fn test_get_postgres_enums() -> Result<(), Box<dyn Error>> {
 
 #[tokio::test]
 async fn test_get_postgres_enums_with_comments() -> Result<(), Box<dyn Error>> {
-    let pool = setup_pg_db().await;
+    let (pool, _) = setup_pg_db().await;
     // Clean up any existing type
     sqlx::query("DROP TYPE IF EXISTS weather CASCADE;")
         .execute(&pool)
