@@ -1,0 +1,30 @@
+name: Rust Nextest
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install cargo-nextest
+        run: cargo install cargo-nextest
+
+      - name: Run tests with nextest
+        run: cargo nextest run
+
