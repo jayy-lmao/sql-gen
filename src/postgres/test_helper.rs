@@ -2,7 +2,9 @@ use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::{
     process::Command,
     sync::{Arc, OnceLock},
+    time::Duration,
 };
+use tokio::time::timeout;
 use uuid::Uuid;
 
 static CONTAINER_GUARD: OnceLock<Arc<ContainerGuard>> = OnceLock::new();
@@ -49,9 +51,9 @@ pub async fn setup_pg_db() -> (PgPool, String) {
     // Ensure exactly one container guard is created (across threads within the same process)
     let _guard = CONTAINER_GUARD.get_or_init(|| Arc::new(ContainerGuard::new()));
 
-    wait_for_postgres_ready().await;
-
     let root_db_url = "postgres://postgres:postgres@localhost:5434/postgres";
+    wait_for_postgres_ready(root_db_url).await;
+
     let root_pool = PgPoolOptions::new()
         .connect(root_db_url)
         .await
@@ -74,19 +76,19 @@ pub async fn setup_pg_db() -> (PgPool, String) {
     (pool, test_db_url)
 }
 
-async fn wait_for_postgres_ready() {
+async fn wait_for_postgres_ready(db_url: &str) -> PgPool {
     const MAX_TRIES: usize = 10;
-    const DELAY: std::time::Duration = std::time::Duration::from_millis(500);
+    const DELAY: Duration = Duration::from_secs(1);
+    const CONN_TIMEOUT: Duration = Duration::from_secs(1);
+
     for _ in 0..MAX_TRIES {
-        if Command::new("docker")
-            .args(["exec", "rust_test_sqlx_container", "pg_isready"])
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false)
-        {
-            return;
+        // Wrap the connection attempt in a timeout
+        match timeout(CONN_TIMEOUT, PgPoolOptions::new().connect(db_url)).await {
+            Ok(Ok(pool)) => return pool,
+            Ok(Err(e)) => eprintln!("Connection error: {}", e),
+            Err(_) => eprintln!("Connection attempt timed out after {:?}", CONN_TIMEOUT),
         }
         tokio::time::sleep(DELAY).await;
     }
-    panic!("Postgres container failed to become ready in time");
+    panic!("MySQL container failed to become ready in time");
 }
