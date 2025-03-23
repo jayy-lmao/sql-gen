@@ -68,10 +68,9 @@ struct Cli {
     /// Output .
     #[arg(long, default_value = "src/models/")]
     output: String,
-
-    /// Overwrite files flag (if set, files will be overwritten).
-    #[arg(long, action = clap::ArgAction::SetTrue)]
-    overwrite_files: bool,
+    // /// Overwrite files flag (if set, files will be overwritten).
+    // #[arg(long, action = clap::ArgAction::SetTrue)]
+    // overwrite_files: bool,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum, Default)]
