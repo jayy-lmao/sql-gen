@@ -34,19 +34,7 @@ You can install SQL-Gen from [crates.io](https://crates.io/crates/sql-gen) using
 cargo install sql-gen
 ```
 
-If you only need support for one database, you can customize the installation. For example, to install with just PostgreSQL support:
-
-```bash
-cargo install sql-gen --no-default-features --features postgres
-```
-
-For MySQL:
-
-```bash
-cargo install sql-gen --no-default-features --features mysql
-```
-
-*(Want the latest updates? Install directly from GitHub with `cargo install --git https://github.com/yourusername/sql-gen --branch main`.)*
+*(Want the latest updates? Install directly from GitHub with `cargo install --git https://github.com/jayy-lmao/sql-gen --branch main`.)*
 
 ## Quick Start
 
