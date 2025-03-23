@@ -14,7 +14,7 @@ pub mod tests;
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "db-codegen",
+    name = "sql-gen",
     version = "0.1.0",
     about = "Database code generation CLI"
 )]
