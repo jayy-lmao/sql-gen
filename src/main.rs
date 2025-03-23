@@ -34,7 +34,7 @@ struct Cli {
         value_delimiter = ','
     )]
     enum_derives: Option<Vec<String>>,
-    ///
+
     /// Model derives to add (can be used multiple times).
     #[arg(
         long = "model-derive",
@@ -43,7 +43,7 @@ struct Cli {
     )]
     model_derives: Option<Vec<String>>,
 
-    // /// Mode of code generation: either sqlx or dbset.
+    /// Mode of code generation: either sqlx or dbset.
     #[arg(long,
         value_enum,
         value_name = "SQLGEN_MODE",
