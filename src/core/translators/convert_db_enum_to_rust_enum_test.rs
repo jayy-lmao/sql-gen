@@ -3,7 +3,9 @@ use crate::core::{
         db::{CustomEnum, CustomEnumVariant},
         rust::{enum_typename_attribute, enum_variant_rename_attribute},
     },
-    translators::convert_db_enum_to_rust_enum::convert_db_enum_to_rust_enum,
+    translators::{
+        convert_db_enum_to_rust_enum::convert_db_enum_to_rust_enum, models::CodegenOptions,
+    },
 };
 use pretty_assertions::assert_eq;
 
@@ -18,7 +20,8 @@ fn test_empty_variants() {
         ..Default::default()
     };
 
-    let rust_enum = convert_db_enum_to_rust_enum(&custom_enum);
+    let options = CodegenOptions::default();
+    let rust_enum = convert_db_enum_to_rust_enum(&custom_enum, &options);
     assert_eq!(rust_enum.name, "Examples");
     assert!(rust_enum.variants.is_empty());
     assert_eq!(rust_enum.derives, vec!["sqlx::Type".to_string()]);
@@ -38,7 +41,8 @@ fn test_empty_variants_when_child_of_table() {
         comments: Some("Example comment".to_string()),
     };
 
-    let rust_enum = convert_db_enum_to_rust_enum(&custom_enum);
+    let options = CodegenOptions::default();
+    let rust_enum = convert_db_enum_to_rust_enum(&custom_enum, &options);
     assert_eq!(rust_enum.name, "ProductProductStatus");
     assert!(rust_enum.variants.is_empty());
     assert_eq!(rust_enum.derives, vec!["sqlx::Type".to_string()]);
@@ -68,7 +72,8 @@ fn test_multiple_variants() {
         ..Default::default()
     };
 
-    let rust_enum = convert_db_enum_to_rust_enum(&custom_enum);
+    let options = CodegenOptions::default();
+    let rust_enum = convert_db_enum_to_rust_enum(&custom_enum, &options);
 
     assert_eq!(rust_enum.name, "Color");
 
@@ -106,7 +111,8 @@ fn test_pascal_case_conversion() {
         ..Default::default()
     };
 
-    let rust_enum = convert_db_enum_to_rust_enum(&custom_enum);
+    let options = CodegenOptions::default();
+    let rust_enum = convert_db_enum_to_rust_enum(&custom_enum, &options);
 
     assert_eq!(rust_enum.name, "MyCustomEnum");
 

@@ -9,14 +9,20 @@ use pluralizer::pluralize;
 
 use super::models::CodegenOptions;
 
-pub fn convert_db_enums_to_rust_enum(custom_enums: Vec<CustomEnum>) -> Vec<RustDbSetEnum> {
+pub fn convert_db_enums_to_rust_enum(
+    custom_enums: Vec<CustomEnum>,
+    options: &CodegenOptions,
+) -> Vec<RustDbSetEnum> {
     custom_enums
         .iter()
-        .map(convert_db_enum_to_rust_enum)
+        .map(|e| convert_db_enum_to_rust_enum(e, options))
         .collect()
 }
 
-pub fn convert_db_enum_to_rust_enum(custom_enum: &CustomEnum) -> RustDbSetEnum {
+pub fn convert_db_enum_to_rust_enum(
+    custom_enum: &CustomEnum,
+    options: &CodegenOptions,
+) -> RustDbSetEnum {
     let name = if let Some(parent_table_name) = &custom_enum.child_of_table {
         let table_name_singular = pluralize(parent_table_name, 1, false);
         format!(
@@ -43,7 +49,11 @@ pub fn convert_db_enum_to_rust_enum(custom_enum: &CustomEnum) -> RustDbSetEnum {
                 attributes: vec![enum_variant_rename_attribute(&v.name)],
             })
             .collect(),
-        derives: vec!["sqlx::Type".to_string()],
+        derives: if options.enum_derives.is_empty() {
+            vec!["sqlx::Type".to_string()]
+        } else {
+            options.enum_derives.clone()
+        },
         comment: custom_enum.comments.clone(),
     }
 }

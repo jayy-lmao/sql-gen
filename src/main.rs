@@ -149,7 +149,7 @@ async fn generate_rust_from_database(args: &Cli) -> DbSetsFsWriter {
     let structs_mapped =
         translators::convert_table_to_struct::convert_tables_to_struct(tables, &options);
     let enums_mapped =
-        translators::convert_db_enum_to_rust_enum::convert_db_enums_to_rust_enum(enums);
+        translators::convert_db_enum_to_rust_enum::convert_db_enums_to_rust_enum(enums, &options);
 
     let mut writer = DbSetsFsWriter::default();
 

@@ -120,7 +120,7 @@ impl CodegenOptions {
                 continue;
             }
 
-            let rust_enum = convert_db_enum_to_rust_enum(custom_enum);
+            let rust_enum = convert_db_enum_to_rust_enum(custom_enum, &self);
 
             self.type_overrides.insert(
                 custom_enum.name.clone(),
