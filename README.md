@@ -19,8 +19,8 @@ This project draws inspiration from `rsdbgen` (GitHub: [brianhv/rsdbgen](https:/
         - [ ] SQLITE 3
     - [x] Writing files
         - [x] to `-`
-        - [~] to a single file
-        - [ ] to a folder
+        - [x] to a single file
+        - [x] to a folder
     - [x] Support DB comments
     - [x] Support custom types
         - [x] User defined mappings

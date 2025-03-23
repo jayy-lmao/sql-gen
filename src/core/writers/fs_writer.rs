@@ -47,7 +47,16 @@ impl DbSetsFsWriter {
         let mut outputs = vec![];
 
         for enum_tokens in &self.enum_files {
-            outputs.push(enum_tokens.content.to_tokens());
+            let is_used = self.struct_files.iter().any(|s| {
+                s.content
+                    .fields
+                    .iter()
+                    .any(|f| f.field_type == enum_tokens.content.name)
+            });
+
+            if is_used {
+                outputs.push(enum_tokens.content.to_tokens());
+            }
         }
 
         for struct_tokens in &self.struct_files {

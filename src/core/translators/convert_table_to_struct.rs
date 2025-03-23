@@ -8,15 +8,15 @@ use pluralizer::pluralize;
 
 pub fn convert_tables_to_struct(
     tables: Vec<Table>,
-    options: CodegenOptions,
+    options: &CodegenOptions,
 ) -> Vec<RustDbSetStruct> {
     tables
         .into_iter()
-        .map(|table| convert_table_to_struct(table, options.clone()))
+        .map(|table| convert_table_to_struct(table, options))
         .collect()
 }
 
-pub fn convert_table_to_struct(table: Table, options: CodegenOptions) -> RustDbSetStruct {
+pub fn convert_table_to_struct(table: Table, options: &CodegenOptions) -> RustDbSetStruct {
     let table_name_pascal_case = table.table_name.clone().to_case(Case::Pascal);
     let table_name_singular = pluralize(&table_name_pascal_case, 1, false);
 
@@ -55,7 +55,7 @@ pub fn convert_table_to_struct(table: Table, options: CodegenOptions) -> RustDbS
             dbset_attribute_with_table_name(table_name)
         ]} else {vec![]},
         fields,
-        derives: options.struct_derives,
+        derives: options.struct_derives.clone(),
         comment: table.table_comment.clone(),
     }
 }

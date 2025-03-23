@@ -66,7 +66,7 @@ struct Cli {
     /// Field overrides (can be used multiple times).
     #[arg(
         long = "table-overrides",
-        value_name = "SQLGEN_TABLE_OVERRIDS",
+        value_name = "SQLGEN_TABLE_OVERRIDES",
         value_delimiter = ','
     )]
     table_overrides: Vec<String>,
@@ -156,7 +156,7 @@ async fn main() {
     options.set_enum_derives(&args.enum_derives);
 
     let structs_mapped =
-        translators::convert_table_to_struct::convert_tables_to_struct(tables, options);
+        translators::convert_table_to_struct::convert_tables_to_struct(tables, &options);
     let enums_mapped =
         translators::convert_db_enum_to_rust_enum::convert_db_enums_to_rust_enum(enums);
 
