@@ -1,7 +1,7 @@
 
 # SQL-Gen – Rust Database Codegen CLI
 
-SQL-Gen is a lightweight tool that connects to your PostgreSQL or MySQL database (with SQLite support coming soon) and generates Rust structs that work seamlessly with the [sqlx] crate. You can also choose to generate code using [db-set-macros] if you prefer a micro-ORM style—but note that the full ORM behavior is only available in DBSet mode (and DBSet mode is currently supported only for PostgreSQL).
+SQL-Gen is a lightweight tool that connects to your PostgreSQL or MySQL database (with SQLite support coming soon) and generates Rust structs that work seamlessly with the [sqlx](https://crates.io/crates/sqlx) crate. You can also choose to generate code using [db-set-macros](https://crates.io/crates/db-set-macros) if you prefer a micro-ORM style—but note that the full ORM behavior is only available in DBSet mode (and DBSet mode is currently supported only for PostgreSQL).
 
 Think of SQL-Gen as a simple, focused alternative to heavy ORMs like .NET’s Entity Framework. It saves you from writing repetitive boilerplate while giving you the flexibility to write your own SQL for more complex queries.
 
