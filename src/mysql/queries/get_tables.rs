@@ -15,8 +15,7 @@ pub async fn get_tables(
     let tables_argument = table_names.clone().unwrap_or_default().join(",");
 
     // get all tables from the database
-    let query = format!(
-        "
+    let query = "
 SELECT
     c.TABLE_NAME AS table_name,
     c.COLUMN_NAME AS column_name,
@@ -54,8 +53,7 @@ WHERE
 ORDER BY
     c.TABLE_NAME,
     c.ORDINAL_POSITION;
-",
-    );
+".to_string();
 
     let rows = sqlx::query_as::<sqlx::MySql, MySqlTableColumn>(query.as_str())
         .fetch_all(pool)

@@ -71,7 +71,7 @@ pub async fn setup_pg_db() -> (PgPool, String) {
         .connect(&test_db_url)
         .await
         .expect("Failed to connect to test database");
-    return (pool, test_db_url);
+    (pool, test_db_url)
 }
 
 async fn wait_for_postgres_ready() {

@@ -1,10 +1,9 @@
 use sqlx::{
-    mysql::{MySqlConnectOptions, MySqlPoolOptions},
+    mysql::MySqlPoolOptions,
     MySqlPool,
 };
 use std::{
     process::Command,
-    str::FromStr,
     sync::{Arc, OnceLock},
     time::Duration,
 };
