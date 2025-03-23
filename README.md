@@ -59,8 +59,7 @@ cargo install sql-gen --no-default-features --features mysql
    ```bash
    sql-gen generate \
        --db-url postgres://user:pass@localhost:5432/mydb \
-       --output src/models \
-       --mode sqlx
+       --output src/models
    ```
 
    This command connects to your database, inspects the schema, and writes the generated files into `src/models`. If the directory doesn’t exist, SQL-Gen will create it. If you need to overwrite existing files, add the `--overwrite-files` flag.
