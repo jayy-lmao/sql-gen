@@ -1,6 +1,6 @@
 [package]
 name = "sql-gen"
-version = "0.1.6"
+version = "0.2.0"
 edition = "2021"
 description = "A CLI tool for generating models based on a SQL Database using SQLx"
 license = "MIT"
