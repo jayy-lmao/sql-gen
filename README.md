@@ -152,7 +152,7 @@ Imagine you have a table named `todos` in your database. Running:
 ```bash
 sql-gen generate \
     --db-url postgres://user:pass@localhost:5432/mydb \
-    --output src/models 
+    --output src/models/ 
 ```
 
 might generate the following code in sqlx mode:

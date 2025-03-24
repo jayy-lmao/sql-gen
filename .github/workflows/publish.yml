@@ -10,6 +10,8 @@ on:
 
 jobs:
   release:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     outputs:
       new_tag: ${{ steps.get_tag.outputs.new_tag }}
