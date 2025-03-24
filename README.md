@@ -10,7 +10,7 @@ SQL-Gen is a lightweight tool that connects to your PostgreSQL or MySQL database
 
 - **Choose Your Generation Style:**  
   - **sqlx Mode (default):** Generates plain Rust models compatible with sqlx.  
-  - **DBSet Mode:** Uses the [db-set-macros] crate to generate models with ORM-style behavior (helper methods for queries, inserts, updates, etc.). *Note:* ORM behaviors are only available in DBSet mode, and DBSet mode is currently supported only for PostgreSQL. If you’re using MySQL, you’ll get only plain models via sqlx mode.
+  - **DBSet Mode:** Uses the [db-set-macros](https://crates.io/crates/db-set-macros) crate to generate sqlx-compatible models along with a ModelSet which has some ORM-style behavior (helper methods for queries, inserts, updates, etc.). *Note:* ORM behaviors are only available in DBSet mode, and DBSet mode is currently supported only for PostgreSQL. If you’re using MySQL, you’ll get only plain models via sqlx mode.
 
 - **Supported Databases:**  
   Works with **PostgreSQL** and **MySQL/MariaDB**. (SQLite support will be planned next.)
@@ -61,7 +61,7 @@ cargo install sql-gen
    }
    ```
 
-   In **sqlx mode**, you get plain models. If you switch to **DBSet mode** (PostgreSQL only), the generated structs will have additional ORM behaviors via the db-set-macros crate:
+   In **sqlx mode**, you get plain models. If you switch to **DBSet mode** (PostgreSQL only), it will also generate "ModelSet" structs with additional ORM behaviors via the [db-set-macros](https://crates.io/crates/db-set-macros) crate:
 
    ```rust
    // src/models/users.rs
@@ -77,8 +77,7 @@ cargo install sql-gen
    }
    ```
 
-   In DBSet mode, the ORM-style helpers (like query builders) are generated automatically.
-
+   An example of using the generated ModelSet:
    ```rust
     let users = UserDbSet::many()
         .name_eq("bob".to_string()) // Can set fields to match on
@@ -117,7 +116,7 @@ SQL-Gen uses the following command-line flags:
 Choose your generation mode. Options are:  
 
 - `sqlx` (default): Generates plain models for sqlx.  
-- `dbset`: Generates models with ORM behavior using [db-set-macros] (currently only supported for PostgreSQL).
+- `dbset`: Generates models and model-sets with ORM behavior using [db-set-macros](https://crates.io/crates/db-set-macros) (currently only supported for PostgreSQL).
 
 ### `--include-tables <LIST>`
 
