@@ -32,13 +32,10 @@ jobs:
       - name: Install cargo-release
         run: cargo install cargo-release
 
-      # - name: Bump version and create tag
-      #   run: |
-      #     cargo release ${{ github.event.inputs.bump }} --no-confirm 
-      #     git push --follow-tags
-      - name: release-plz
-        uses: release-plz/action@v0.5.100
-
+      - name: Bump version and create tag
+        run: |
+          cargo release ${{ github.event.inputs.bump }} --no-confirm  --execute
+          git push --follow-tags
 
       - name: Get new tag
         id: get_tag
