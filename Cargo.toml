@@ -4,6 +4,7 @@ version = "0.2.0"
 edition = "2021"
 description = "A CLI tool for generating models based on a SQL Database using SQLx"
 license = "MIT"
+repository = "https://github.com/jayy-lmao/sql-gen"
 
 [dependencies]
 sqlx = { version = "0.7", features = ["postgres","runtime-tokio", "mysql"] }
