@@ -1,299 +1,163 @@
-# SQL-Gen - Rust CLI Tool for PostgreSQL Database Operations Generation extending SQLX
 
-![codegen_example](https://github.com/jayy-lmao/sql-gen/assets/32926722/5308636d-3b5c-4fad-b250-109fb272d8b2)
+# SQL-Gen – Rust Database Codegen CLI
 
+SQL-Gen is a lightweight tool that connects to your PostgreSQL or MySQL database (with SQLite support coming soon) and generates Rust structs that work seamlessly with the [sqlx](https://crates.io/crates/sqlx) crate. You can also choose to generate code using [db-set-macros](https://crates.io/crates/db-set-macros) if you prefer a micro-ORM style—but note that the full ORM behavior is only available in DBSet mode (and DBSet mode is currently supported only for PostgreSQL).
 
-PR's and Issues welcome! This is still early stages of devopment, though hopefully useful to some! 
+## Key Features
 
-SQL-Gen is a command-line tool written in Rust that helps you generate Rust structs, queries, and SQL migrations based on an existing PostgreSQL database schema. It utilizes the `sqlx` and `clap` libraries to provide a user-friendly and efficient experience for working with your PostgreSQL database.
+- **Automatic Code Generation:**  
+  SQL-Gen inspects your database schema and generates Rust structs that map directly to your tables. These structs come with the sensible defaults (like `sqlx::FromRow`) so you can start using them immediately.
 
-This project draws inspiration from `rsdbgen` (GitHub: [brianhv/rsdbgen](https://github.com/brianhv/rsdbgen)) and we appreciate their contribution to the Rust database tooling ecosystem. Originally this was going to be extending `rsdbgen` but at a certain point of changes it seemed to have diverged.
+- **Choose Your Generation Style:**  
+  - **sqlx Mode (default):** Generates plain Rust models compatible with sqlx.  
+  - **DBSet Mode:** Uses the [db-set-macros](https://crates.io/crates/db-set-macros) crate to generate sqlx-compatible models along with a ModelSet which has some ORM-style behavior (helper methods for queries, inserts, updates, etc.). *Note:* ORM behaviors are only available in DBSet mode, and DBSet mode is currently supported only for PostgreSQL. If you’re using MySQL, you’ll get only plain models via sqlx mode.
 
-## Use Cases
+- **Supported Databases:**  
+  Works with **PostgreSQL** and **MySQL/MariaDB**. (SQLite support will be planned next.)
 
-- Generate Rust structs and queries for PostgreSQL database tables or from migrations via a Postgres test container
-- Generate SQL migrations based on changes in the structs vs a database or migration via a Postgres test container
-- Handle nullable/optional fields in the generated code.
-- Optional `--force` flag to overwrite existing files.
-- Use environment variables instead of clap flags (optional).
+- **Customizable Derives and Mappings:**  
+  Add extra trait derives to your enums or models, or override the default type mappings if you have special requirements.
+
+- **Selective Generation:**  
+  Only generate code for the tables you need by using filters
 
 ## Installation
 
-To use SQL-Gen, make sure you have Rust and Cargo installed on your system. You can install them by following the instructions at [https://www.rust-lang.org/](https://www.rust-lang.org/).
+You can install SQL-Gen from [crates.io](https://crates.io/crates/sql-gen) using Cargo:
 
-Once you have Rust and Cargo installed, you can build SQL-Gen by running the following command:
-
-```shell
+```bash
 cargo install sql-gen
 ```
 
-Or for the latest github
-```shell
-cargo install --git https://github.com/jayy-lmao/sql-gen --branch main
-```
+*(Want the latest updates? Install directly from GitHub with `cargo install --git https://github.com/jayy-lmao/sql-gen --branch main`.)*
 
-## Usage
+## Quick Start
 
-```
-sql-gen [SUBCOMMAND] [OPTIONS]
-```
+1. **Prepare Your Database:**  
+   Make sure you have a PostgreSQL or MySQL database ready, and grab your connection URL (e.g., `postgres://user:pass@localhost:5432/mydb`).
 
-### Subcommands:
+2. **Run SQL-Gen:**  
+   Generate the Rust code by running:
 
-#### `generate` - Generate structs and queries for tables in your db
+   ```bash
+   sql-gen generate \
+       --db-url postgres://user:pass@localhost:5432/mydb \
+       --output src/models/
+   ```
 
+   This command connects to your database, inspects the schema, and writes the generated files into `src/models`. If the directory doesn’t exist, SQL-Gen will create it. 
 
+3. **Review the Generated Code:**  
+   For each table, SQL-Gen creates a Rust file with a struct mapping to that table. For example, a table named `users` might generate something like:
 
+   ```rust
+   // src/models/users.rs
+   #[derive(Debug, sqlx::FromRow)]
+   pub struct User {
+       pub id: i32,
+       pub name: Option<String>,
+       pub email: String,
+       pub created_at: chrono::DateTime<chrono::Utc>,
+   }
+   ```
 
-https://github.com/jayy-lmao/sql-gen/assets/32926722/55f3391f-47e1-42dd-b24e-6903f96971d5
+   In **sqlx mode**, you get plain models. If you switch to **DBSet mode** (PostgreSQL only), it will also generate "ModelSet" structs with additional ORM behaviors via the [db-set-macros](https://crates.io/crates/db-set-macros) crate:
 
+   ```rust
+   // src/models/users.rs
+   #[derive(Debug, sqlx::FromRow, DbSet)]
+   #[dbset(table_name = "users")]
+   pub struct User {
+       #[key] 
+       pub id: i32,
+       pub name: Option<String>,
+       #[unique] 
+       pub email: String,
+       pub created_at: chrono::DateTime<chrono::Utc>,
+   }
+   ```
 
+   An example of using the generated ModelSet:
+   ```rust
+    let users = UserDbSet::many()
+        .name_eq("bob".to_string()) // Can set fields to match on
+        .fetch_all(pool)
+        .await?;
 
-#### `migrate` - Generate SQL migrations based on struct differences for structs that have a database table matching them
+   ```
 
+4. **Integrate Into Your Project:**  
+   Add the generated modules to your project:
 
+   ```rust
+   mod models;
+   use models::users::User;
+   // In DBSet mode, you will need to import the DbSet to use it:
+   // use models::users_dbset::UserDbSet;
+   ```
 
-https://github.com/jayy-lmao/sql-gen/assets/32926722/ea3b9739-be8f-43e5-b48d-83d130ffd1c5
+## CLI Options
 
+SQL-Gen uses the following command-line flags:
 
+### `--db-url <DATABASE_URL>`
 
+**Required.** The connection string to your database (e.g., `postgres://user:pass@localhost:5432/mydb`).
 
+### `--output <DIR>`
 
-### Options:
+**Required.** 
+- `-`: A dash will write to stdout 
+- `models.rs`: any filename ending in `.rs` will just write all models and enums to one file.
+- `models/`: any filename ending in a `/` will be written to as a module with a file-per-table and file-per-enum.
 
-- `generate` subcommand options:
-  - `-o, --models <SQLGEN_MODEL_OUTPUT_FOLDER>` - Sets the output folder for generated structs (required)
-  - `-d, --database <DATABASE_URL>` - Sets the database connection URL (required). Will default to docker to spin up a testcontainer instance for applying migrations (this will require docker CLI installed).
-  - `-c, --context <SQLGEN_CONTEXT_NAME>` - The name of the context for calling functions. Defaults to DB name
-  - `-f, --force` - Overwrites existing files sharing names in that folder
-  - `-m, --migrations <SQLGEN_MIGRATION_INPUT>` - Sets the input folder for migrations (required only if using docker as the database, otherwise this will determine whether to bother running migrations before generating models and queries)
 
-- `migrate` subcommand options:
-  - `-o, --models <SQLGEN_MODEL_FOLDER>` - Sets the folder containing existing struct files (required)
-  - `-m, --migrations <SQLGEN_MIGRATION_OUTPUT>` - Sets the output folder for migrations (required)
-  - `-d, --database <DATABASE_URL>` - Sets the database connection URL (required). Will default to docker to spin up a testcontainer instance for applying migrations (this will require docker CLI installed).
+### `--mode <MODE>`  
+Choose your generation mode. Options are:  
 
-### Example .env file
+- `sqlx` (default): Generates plain models for sqlx.  
+- `dbset`: Generates models and model-sets with ORM behavior using [db-set-macros](https://crates.io/crates/db-set-macros) (currently only supported for PostgreSQL).
 
-Create a `.env` file in the project root directory with the following content:
+### `--include-tables <LIST>`
 
-```
-DATABASE_URL=postgres://username:password@localhost/mydatabase
-SQLGEN_MODEL_OUTPUT_FOLDER=./src/models/
-SQLGEN_MODEL_FOLDER=./src/models/
-SQLGEN_MIGRATION_OUTPUT=./migrations
-SQLGEN_MIGRATION_INPUT=./migrations
+ Generate code only for the specified comma-separated table names (e.g., `users,orders,products`).
 
-```
+### `--enum-derive <DERIVE TRAITS>`
 
-Make sure to replace the values with your actual database connection URL and desired folder paths for generated structs and migrations.
+Derive traits to derive for any generated enums (e.g., `Serialize,Deserialize`).
+- `default` for enums is `Debug, Clone, sqlx::Type`
 
-### Generate Structs and Queries
+### `--model-derive <DERIVE TRAITS>`
+Derive traits for your generated structs (e.g., `Serialize,PartialEq`).
+- `default` for structs is `Debug, Clone, sqlx::FromRow`
 
-To generate Rust structs and queries for a PostgreSQL database, use the `generate` command:
+### `--type-overrides <MAP>`
 
-```shell
-sql-gen generate --output src/db --database <DATABASE_URL>
-```
+Override default SQL-to-Rust type mappings with custom values  
+- `numeric=rust_decimal::Decimal,todo_status=String` will overwrite all occurences of type `numeric` to `rust_decimal::Decimal` and all occurences of the enum `todo_status` to `String`
 
-Replace `<DATABASE_URL>` with the URL of your PostgreSQL database. The generated code will be saved in the `src/db` folder.
+### `--table-overrides <MAP>`
 
-**Example:**
+Override default SQL-to-Rust type mappings for a table column with custom values
+- `status=String` will overwrite all table columns of name `status` to type `String`
+- `todos.status=String` will overwrite the column `status` in table `todos` to type `String`
 
-Assuming we have the following input database schema:
-
-```sql
-CREATE TABLE customer (
-    id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-    email VARCHAR(255) UNIQUE,
-);
-```
-
-Running SQLGen with the `generate` command:
-
-```shell
-sql-gen generate --output src/db --database postgresql://postgres:password@localhost/mydatabase
-```
-
-This will generate the following Rust structs and queries (based on primary key, foreign keys, and unique fields):
-
-
-```rust
-// in src/db/customer.rs
-
-#[derive(sqlx::FromRow, Debug)]
-struct Customer {
-    pub id: i32,
-    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub email: Option<String>,
-}
-
-// in src/db/customer_db_set.rs
-use sqlx::{query, query_as, PgExecutor, Result};
-use super::Customer;
-
-pub struct CustomerSet;
-
-impl CustomerSet {
-    pub async fn all<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<Vec<Customer>> {
-        query_as::<_, Customer>(r#"SELECT * FROM "customer""#)
-            .fetch_all(executor)
-            .await
-    }
-
-    pub async fn by_id<'e, E: PgExecutor<'e>>(&self, executor: E, id: i64) -> Result<Customer> {
-        query_as::<_, Customer>(r#"SELECT * FROM "customer" WHERE "id" = $1"#)
-            .bind(id)
-            .fetch_one(executor)
-            .await
-    }
-
-    pub async fn by_id_optional<'e, E: PgExecutor<'e>>(&self, executor: E, id: i64) -> Result<Option<Customer>> {
-        query_as::<_, Customer>(r#"SELECT * FROM "customer" WHERE "id" = $1"#)
-            .bind(id)
-            .fetch_optional(executor)
-            .await
-    }
-
-    // Doesn't exist in this example, but foreign keys will functions like this, assuming customer has a fk field called category
-    // pub async fn all_by_categories_id<'e, E: PgExecutor<'e>>(executor: E, categories_id: i64) -> Result<Vec<Customer>> {
-    //     query_as::<_, Customer>(r#"SELECT * FROM "customer" WHERE category = $1"#)
-    //         .bind(categories_id)
-    //         .fetch_all(executor)
-    //         .await
-    // }
-
-    pub async fn by_email<'e, E: PgExecutor<'e>>(&self, executor: E, email: String) -> Result<Customer> {
-        query_as::<_, Customer>(r#"SELECT * FROM "customer" WHERE "email" = $1"#)
-            .bind(email)
-            .fetch_one(executor)
-            .await
-    }
-
-    pub async fn many_by_email_list<'e, E: PgExecutor<'e>>(&self, executor: E, email_list: Vec<String>) -> Result<Vec<Customer>> {
-        query_as::<_, Customer>(r#"SELECT * FROM "customer" WHERE "email" = ANY($1)"#)
-            .bind(email_list)
-            .fetch_all(executor)
-            .await
-    }
-
-    pub async fn by_email_optional<'e, E: PgExecutor<'e>>(&self, executor: E, email: String) -> Result<Option<Customer>> {
-        query_as::<_, Customer>(r#"SELECT * FROM "customer" WHERE "email" = $1"#)
-            .bind(email)
-            .fetch_optional(executor)
-            .await
-    }
-
-
-    pub async fn insert<'e, E: PgExecutor<'e>>(&self, executor: E, products: Customer) -> Result<Customer> {
-        query_as::<_, Customer>(r#"INSERT INTO "customer" ("id", "created_at", "email", "category") VALUES ($1, $2, $3, $4) RETURNING *;"#)
-            .bind(products.id)
-            .bind(products.created_at)
-            .bind(products.email)
-            .fetch_one(executor)
-            .await
-    }
-
-    pub async fn update<'e, E: PgExecutor<'e>>(&self, executor: E, products: Customer) -> Result<Customer> {
-        query_as::<_, Customer>(r#"UPDATE "customer" SET "created_at" = $2, "email" = $3 WHERE "id" = 1 RETURNING *;"#)
-            .bind(products.id)
-            .bind(products.created_at)
-            .bind(products.email)
-            .fetch_one(executor)
-            .await
-    }
-
-    pub async fn delete<'e, E: PgExecutor<'e>>(&self, executor: E) -> Result<()> {
-        query(r#"DELETE FROM "customer" WHERE "id" = 1"#)
-            .execute(executor)
-            .await
-            .map(|_| ())
-    }
-
-}
-
-
-// in src/db/mod.rs
-pub mod customer;
-pub use customer::Customer;
-pub mod customer_db_set;
-pub use customer_db_set::CustomerSet;
-
-pub struct PostgresContext;
-
-impl PostgresContext {
-  pub fn customer(&self) -> CustomerSet { CustomerSet }
-
-}
-```
-The name of the context will default to the name of your database, or can be set with the '--context' flag.
-These queries may need modifying or changing, but they can serve as a good start. You should be able to run commands like:
-
-```rust
-let customers = PostgresContext.customer().all(&pool).await?;
-```
-
-The suggested way to add customer queries etc would be to add them somewhere like `db/customer_custom_queries.rs` so that they are not overwritten by codgen. If you `impl CustomerSet` and add functions it should extend it.
-
-### Generate Migrations
-
-To generate SQL migrations based on changes in the structs, use the `migrate generate` command:
-
-```shell
-sql-gen migrate generate --database <DATABASE_URL> --models <FOLDER_PATH> --migrations migrations
-```
-
-Replace `<DATABASE_URL>` with the URL of your PostgreSQL database, `<FOLDER_PATH>` with the folder containing the generated structs (`src/db` in the previous example), and `migrations` with the output folder for the SQL migrations.
-
-
-**Example Migration:**
-
-Assuming a change is made to the `Customer` struct, adding a new field:
-
-```rust
-pub struct Customer {
-    pub id: i32,
-    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub email: Option<String>,
-    pub address: Option<String>, // New field
-}
-```
-
-Running SQL-Gen with the `migrate generate` command will generate the following migration:
-
-```sql
--- Migration generated for struct: Customer
-ALTER TABLE customer ADD COLUMN address TEXT;
-```
-
-For a complete list of available commands and options, you can use the `--help` flag:
-
-```shell
-sql-gen --help
-```
-
+Run `sql-gen --help` to see the full list of options.
 
 ## Roadmap
 
-SQL-Gen is under active development, and future enhancements are planned. Here are some items on the roadmap:
+- **SQLite Support:**  
+  Support for SQLite is in the works.
 
-Types
-- [ ] Arrays / Vectors
-- [ ] Enums
-- [ ] Composite types
-- [ ] Decimal
+- **DBSet support for MySQL:**  
 
-Other
-- Singularise/Pluralise correctly with inflection crate (e.g. your table is called customers, maybe you want the struct to still be Customer)
-- A way to customise generated derives
-- Clearer input types that allow for leaving out default fields
-- Tests
-- Linting on output (rustfmt has proven tricky with derive macros)
-- Support for comments and annotations
-- Support for more data types in struct and query generation.
-- Integration with other database systems (MySQL, SQLite, etc.).
-- Advanced migration scenarios (renaming columns, table-level changes, etc.).
-- Dry run mode for generating migration code without writing to files.
+- **Migration Generation:**  
 
-Your contributions and feedback are highly appreciated! If you encounter any issues or have suggestions
+## Contributing
+
+We welcome feedback, bug reports, and contributions. Feel free to open an issue or submit a pull request on [GitHub](https://github.com/jayy-lmao/sql-gen).
+
+## License
+
+This project is available under the [MIT License](./LICENSE). 
+
