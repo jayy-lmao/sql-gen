@@ -9,33 +9,42 @@ pub fn convert_data_type(udt_type: &str) -> Option<String> {
     }
 
     match udt_type {
-        "bool" | "boolean" => Some("bool".to_string()),
-        "bytea" => Some("u8".to_string()), // is this right?
-        "char" | "bpchar" | "character" => Some("String".to_string()),
+        // Boolean: MySQL treats TINYINT(1), BOOLEAN and BOOL as booleans.
+        "bool" | "boolean" | "tinyint(1)" => Some("bool".to_string()),
+
+        // Numeric types
+        "tinyint unsigned" => Some("u8".to_string()),
+        "tinyint" => Some("i8".to_string()),
+        "smallint unsigned" => Some("u16".to_string()),
+        "smallint" => Some("i16".to_string()),
+        "int unsigned" => Some("u32".to_string()),
+        "int" => Some("i32".to_string()),
+        "bigint unsigned" => Some("u64".to_string()),
+        "bigint" => Some("i64".to_string()),
+        "float" => Some("f32".to_string()),
+        "double" => Some("f64".to_string()),
+
+        // String types: VARCHAR, CHAR and TEXT map to Rust’s String.
+        "varchar" | "char" | "text" => Some("String".to_string()),
+
+        // Binary types: VARBINARY, BINARY and BLOB map to Vec<u8>
+        "varbinary" | "binary" | "blob" => Some("Vec<u8>".to_string()),
+
+        // Date and time types
         "date" => Some("chrono::NaiveDate".to_string()),
-        "float4" | "real" => Some("f32".to_string()),
-        "float8" | "double precision" => Some("f64".to_string()),
-        "int2" | "smallint" | "smallserial" => Some("i16".to_string()),
-        "int4" | "int" | "serial" => Some("i32".to_string()),
-        "int8" | "bigint" | "bigserial" => Some("i64".to_string()),
-        "void" => Some("()".to_string()),
-        "jsonb" | "json" => Some("serde_json::Value".to_string()),
-        "text" | "varchar" | "name" => Some("String".to_string()),
+        "datetime" => Some("chrono::NaiveDateTime".to_string()),
+        "timestamp" => Some("chrono::DateTime<chrono::Utc>".to_string()),
         "time" => Some("chrono::NaiveTime".to_string()),
-        "timestamp" => Some("chrono::NaiveDateTime".to_string()),
-        "timestamptz" => Some("chrono::DateTime<chrono::Utc>".to_string()),
+
+        // Decimal type
+        "decimal" => Some("rust_decimal::Decimal".to_string()),
+
+        // UUID type: MySQL often stores UUIDs as BINARY(16)
         "uuid" => Some("uuid::Uuid".to_string()),
-        "cube" => Some("sqlx::postgres::types::PgCube".to_string()),
-        "point" => Some("sqlx::postgres::types::PgPoint".to_string()),
-        "line" => Some("sqlx::postgres::types::PgLine".to_string()),
-        "money" => Some("sqlx::postgres::types::PgMoney".to_string()),
-        "interval" => Some("sqlx::postgres::types::PgInterval".to_string()),
-        "ltree" => Some("sqlx::postgres::types::PgLTree".to_string()),
-        "lquery" => Some("sqlx::postgres::types::PgLQuery".to_string()),
-        "citext" => Some("sqlx::postgres::types::PgCiText".to_string()),
-        "hstore" => Some("sqlx::postgres::types::PgHstore".to_string()),
-        "bit" | "varbit" => Some("bit_vec::BitVec".to_string()),
-        "macaddr" => Some("mac_address::MacAddress".to_string()),
+
+        // JSON type: maps to a serde_json value.
+        "json" => Some("serde_json::JsonValue".to_string()),
+
         _ => None,
     }
 }
