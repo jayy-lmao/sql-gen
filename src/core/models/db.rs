@@ -43,6 +43,7 @@ pub struct CustomEnum {
 pub struct TableColumnBuilder {
     column_name: String,
     column_comment: Option<String>,
+    recommended_rust_type: Option<String>,
     udt_name: String,
     data_type: String,
     is_nullable: bool,
@@ -59,6 +60,7 @@ impl TableColumnBuilder {
         column_name: impl ToString,
         udt_name: impl ToString,
         data_type: impl ToString,
+        recommended_rust_type: Option<String>,
     ) -> Self {
         Self {
             column_name: column_name.to_string(),
@@ -72,6 +74,7 @@ impl TableColumnBuilder {
             foreign_key_id: None,
             is_auto_populated: false,
             array_depth: 0,
+            recommended_rust_type,
         }
     }
 
@@ -117,7 +120,7 @@ impl TableColumnBuilder {
     pub fn build(self) -> TableColumn {
         TableColumn {
             column_name: self.column_name,
-            recommended_rust_type: convert_data_type(&self.udt_name),
+            recommended_rust_type: self.recommended_rust_type,
             udt_name: self.udt_name,
             data_type: self.data_type,
             is_nullable: self.is_nullable,

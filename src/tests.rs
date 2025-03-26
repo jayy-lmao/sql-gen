@@ -1,43 +1,43 @@
-use clap::Parser as _;
-use pretty_assertions::assert_eq;
-use sqlx::query;
+mod postgres {
+    use clap::Parser as _;
+    use pretty_assertions::assert_eq;
+    use sqlx::query;
 
-use crate::{generate_rust_from_database, postgres::test_helper::setup_pg_db, Cli};
-use std::error::Error;
+    use crate::{generate_rust_from_database, postgres::test_helper::setup_pg_db, Cli};
+    use std::error::Error;
+    #[tokio::test]
+    async fn test_basic_postgres_tables() -> Result<(), Box<dyn Error>> {
+        let (pool, uri) = setup_pg_db().await;
+        let statement = "CREATE TABLE test_table_0 (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE, description TEXT, parent_id INTEGER REFERENCES test_table_0 (id));";
+        query(statement).execute(&pool).await?;
 
-#[tokio::test]
-async fn test_basic_postgres_tables() -> Result<(), Box<dyn Error>> {
-    let (pool, uri) = setup_pg_db().await;
-    let statement = "CREATE TABLE test_table_0 (id SERIAL PRIMARY KEY, name VARCHAR(255) UNIQUE, description TEXT, parent_id INTEGER REFERENCES test_table_0 (id));";
-    query(statement).execute(&pool).await?;
+        let args = Cli::parse_from(["sql-gen", "--db-url", uri.as_str()]);
 
-    let args = Cli::parse_from(["sql-gen", "--db-url", uri.as_str()]);
+        let writer = generate_rust_from_database(&args).await;
 
-    let writer = generate_rust_from_database(&args).await;
-
-    assert_eq!(
-        writer.write_to_string().trim(),
-        r#"#[derive(Debug, Clone, sqlx::FromRow)]
+        assert_eq!(
+            writer.write_to_string().trim(),
+            r#"#[derive(Debug, Clone, sqlx::FromRow)]
 pub struct TestTable0 {
     id: i32,
     name: Option<String>,
     description: Option<String>,
     parent_id: Option<i32>,
 }"#
-        .to_string()
-    );
+            .to_string()
+        );
 
-    Ok(())
-}
+        Ok(())
+    }
 
-#[tokio::test]
-async fn test_basic_postgres_table_with_enum() -> Result<(), Box<dyn Error>> {
-    let (pool, uri) = setup_pg_db().await;
-    let statement_1 = "
+    #[tokio::test]
+    async fn test_basic_postgres_table_with_enum() -> Result<(), Box<dyn Error>> {
+        let (pool, uri) = setup_pg_db().await;
+        let statement_1 = "
 -- Create an enum type for todo statuses.
 CREATE TYPE todo_status AS ENUM ('pending', 'in_progress', 'completed');
 ";
-    let statement_2 = "
+        let statement_2 = "
 -- Create the todos table.
 CREATE TABLE todos (
     id SERIAL PRIMARY KEY,                  -- Primary key
@@ -48,22 +48,22 @@ CREATE TABLE todos (
 );
 ";
 
-    let statement_3 = "
+        let statement_3 = "
 -- Add a comment to the table.
 COMMENT ON TABLE todos IS 'Table to store todo items with tags and status information.';
 ";
 
-    query(statement_1).execute(&pool).await?;
-    query(statement_2).execute(&pool).await?;
-    query(statement_3).execute(&pool).await?;
+        query(statement_1).execute(&pool).await?;
+        query(statement_2).execute(&pool).await?;
+        query(statement_3).execute(&pool).await?;
 
-    let args = Cli::parse_from(["sql-gen", "--db-url", uri.as_str()]);
+        let args = Cli::parse_from(["sql-gen", "--db-url", uri.as_str()]);
 
-    let writer = generate_rust_from_database(&args).await;
+        let writer = generate_rust_from_database(&args).await;
 
-    assert_eq!(
-        writer.write_to_string().trim(),
-        r#"
+        assert_eq!(
+            writer.write_to_string().trim(),
+            r#"
 #[derive(Debug, Clone, PartialEq, sqlx::Type)]
 #[sqlx(type_name = "todo_status")]
 pub enum TodoStatus {
@@ -85,21 +85,21 @@ pub struct Todo {
     status: TodoStatus,
 }
 "#
-        .to_string()
-        .trim()
-    );
+            .to_string()
+            .trim()
+        );
 
-    Ok(())
-}
+        Ok(())
+    }
 
-#[tokio::test]
-async fn test_type_override_for_enum_type() -> Result<(), Box<dyn Error>> {
-    let (pool, uri) = setup_pg_db().await;
-    let statement_1 = "
+    #[tokio::test]
+    async fn test_type_override_for_enum_type() -> Result<(), Box<dyn Error>> {
+        let (pool, uri) = setup_pg_db().await;
+        let statement_1 = "
 -- Create an enum type for todo statuses.
 CREATE TYPE todo_status AS ENUM ('pending', 'in_progress', 'completed');
 ";
-    let statement_2 = "
+        let statement_2 = "
 -- Create the todos table.
 CREATE TABLE todos (
     id SERIAL PRIMARY KEY,                  -- Primary key
@@ -110,22 +110,22 @@ CREATE TABLE todos (
 );
 ";
 
-    query(statement_1).execute(&pool).await?;
-    query(statement_2).execute(&pool).await?;
+        query(statement_1).execute(&pool).await?;
+        query(statement_2).execute(&pool).await?;
 
-    let args = Cli::parse_from([
-        "sql-gen",
-        "--db-url",
-        uri.as_str(),
-        "--type-overrides",
-        "todo_status=String",
-    ]);
+        let args = Cli::parse_from([
+            "sql-gen",
+            "--db-url",
+            uri.as_str(),
+            "--type-overrides",
+            "todo_status=String",
+        ]);
 
-    let writer = generate_rust_from_database(&args).await;
+        let writer = generate_rust_from_database(&args).await;
 
-    assert_eq!(
-        writer.write_to_string().trim(),
-        r#"
+        assert_eq!(
+            writer.write_to_string().trim(),
+            r#"
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct Todo {
     id: i32,
@@ -135,21 +135,21 @@ pub struct Todo {
     status: String,
 }
 "#
-        .to_string()
-        .trim()
-    );
+            .to_string()
+            .trim()
+        );
 
-    Ok(())
-}
+        Ok(())
+    }
 
-#[tokio::test]
-async fn test_field_override() -> Result<(), Box<dyn Error>> {
-    let (pool, uri) = setup_pg_db().await;
-    let statement_1 = "
+    #[tokio::test]
+    async fn test_field_override() -> Result<(), Box<dyn Error>> {
+        let (pool, uri) = setup_pg_db().await;
+        let statement_1 = "
 -- Create an enum type for todo statuses.
 CREATE TYPE todo_status AS ENUM ('pending', 'in_progress', 'completed');
 ";
-    let statement_2 = "
+        let statement_2 = "
 -- Create the todos table.
 CREATE TABLE todos (
     id SERIAL PRIMARY KEY,                  -- Primary key
@@ -160,22 +160,22 @@ CREATE TABLE todos (
 );
 ";
 
-    query(statement_1).execute(&pool).await?;
-    query(statement_2).execute(&pool).await?;
+        query(statement_1).execute(&pool).await?;
+        query(statement_2).execute(&pool).await?;
 
-    let args = Cli::parse_from([
-        "sql-gen",
-        "--db-url",
-        uri.as_str(),
-        "--table-overrides",
-        "status=String",
-    ]);
+        let args = Cli::parse_from([
+            "sql-gen",
+            "--db-url",
+            uri.as_str(),
+            "--table-overrides",
+            "status=String",
+        ]);
 
-    let writer = generate_rust_from_database(&args).await;
+        let writer = generate_rust_from_database(&args).await;
 
-    assert_eq!(
-        writer.write_to_string().trim(),
-        r#"
+        assert_eq!(
+            writer.write_to_string().trim(),
+            r#"
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct Todo {
     id: i32,
@@ -185,21 +185,21 @@ pub struct Todo {
     status: String,
 }
 "#
-        .to_string()
-        .trim()
-    );
+            .to_string()
+            .trim()
+        );
 
-    Ok(())
-}
+        Ok(())
+    }
 
-#[tokio::test]
-async fn test_table_specific_field_override() -> Result<(), Box<dyn Error>> {
-    let (pool, uri) = setup_pg_db().await;
-    let statement_1 = "
+    #[tokio::test]
+    async fn test_table_specific_field_override() -> Result<(), Box<dyn Error>> {
+        let (pool, uri) = setup_pg_db().await;
+        let statement_1 = "
 -- Create an enum type for todo statuses.
 CREATE TYPE todo_status AS ENUM ('pending', 'in_progress', 'completed');
 ";
-    let statement_2 = "
+        let statement_2 = "
 -- Create the todos table.
 CREATE TABLE todos (
     id SERIAL PRIMARY KEY,                  -- Primary key
@@ -210,30 +210,30 @@ CREATE TABLE todos (
 );
 ";
 
-    let statement_3 = "
+        let statement_3 = "
 CREATE TABLE other_todos_table (
     id SERIAL PRIMARY KEY,                  -- Primary key
     status todo_status NOT NULL DEFAULT 'pending'  -- Enum field with a default value
 );
 ";
 
-    query(statement_1).execute(&pool).await?;
-    query(statement_2).execute(&pool).await?;
-    query(statement_3).execute(&pool).await?;
+        query(statement_1).execute(&pool).await?;
+        query(statement_2).execute(&pool).await?;
+        query(statement_3).execute(&pool).await?;
 
-    let args = Cli::parse_from([
-        "sql-gen",
-        "--db-url",
-        uri.as_str(),
-        "--table-overrides",
-        "todos.status=String,toto.status=i32",
-    ]);
+        let args = Cli::parse_from([
+            "sql-gen",
+            "--db-url",
+            uri.as_str(),
+            "--table-overrides",
+            "todos.status=String,toto.status=i32",
+        ]);
 
-    let writer = generate_rust_from_database(&args).await;
+        let writer = generate_rust_from_database(&args).await;
 
-    assert_eq!(
-        writer.write_to_string().trim(),
-        r#"
+        assert_eq!(
+            writer.write_to_string().trim(),
+            r#"
 #[derive(Debug, Clone, PartialEq, sqlx::Type)]
 #[sqlx(type_name = "todo_status")]
 pub enum TodoStatus {
@@ -262,66 +262,66 @@ pub struct Todo {
 
 
 "#
-        .to_string()
-        .trim()
-    );
+            .to_string()
+            .trim()
+        );
 
-    Ok(())
-}
+        Ok(())
+    }
 
-/// Test using the include_tables flag: if multiple tables exist, only the specified table is generated.
-#[tokio::test]
-async fn test_include_tables_filter() -> Result<(), Box<dyn Error>> {
-    let (pool, uri) = setup_pg_db().await;
-    // Create two tables in the database.
-    let statement1 = "CREATE TABLE table_one (id SERIAL PRIMARY KEY, data TEXT);";
-    let statement2 = "CREATE TABLE table_two (id SERIAL PRIMARY KEY, info TEXT);";
-    query(statement1).execute(&pool).await?;
-    query(statement2).execute(&pool).await?;
+    /// Test using the include_tables flag: if multiple tables exist, only the specified table is generated.
+    #[tokio::test]
+    async fn test_include_tables_filter() -> Result<(), Box<dyn Error>> {
+        let (pool, uri) = setup_pg_db().await;
+        // Create two tables in the database.
+        let statement1 = "CREATE TABLE table_one (id SERIAL PRIMARY KEY, data TEXT);";
+        let statement2 = "CREATE TABLE table_two (id SERIAL PRIMARY KEY, info TEXT);";
+        query(statement1).execute(&pool).await?;
+        query(statement2).execute(&pool).await?;
 
-    // Only include table_one in the generated output.
-    let args = Cli::parse_from([
-        "sql-gen",
-        "--db-url",
-        uri.as_str(),
-        "--include-tables",
-        "table_one",
-    ]);
-    let writer = generate_rust_from_database(&args).await;
-    let expected = r#"
+        // Only include table_one in the generated output.
+        let args = Cli::parse_from([
+            "sql-gen",
+            "--db-url",
+            uri.as_str(),
+            "--include-tables",
+            "table_one",
+        ]);
+        let writer = generate_rust_from_database(&args).await;
+        let expected = r#"
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct TableOne {
     id: i32,
     data: Option<String>,
 }
 "#;
-    assert_eq!(writer.write_to_string().trim(), expected.trim());
-    Ok(())
-}
+        assert_eq!(writer.write_to_string().trim(), expected.trim());
+        Ok(())
+    }
 
-/// Test passing extra derives for an enum type using the enum-derive flag.
-#[tokio::test]
-async fn test_enum_derives_flag() -> Result<(), Box<dyn Error>> {
-    let (pool, uri) = setup_pg_db().await;
-    let statement_1 = "CREATE TYPE color AS ENUM ('red', 'green', 'blue');";
-    let statement_2 = "
+    /// Test passing extra derives for an enum type using the enum-derive flag.
+    #[tokio::test]
+    async fn test_enum_derives_flag() -> Result<(), Box<dyn Error>> {
+        let (pool, uri) = setup_pg_db().await;
+        let statement_1 = "CREATE TYPE color AS ENUM ('red', 'green', 'blue');";
+        let statement_2 = "
             CREATE TABLE palette (
                 id SERIAL PRIMARY KEY,
                 favorite color NOT NULL
             );
         ";
-    query(statement_1).execute(&pool).await?;
-    query(statement_2).execute(&pool).await?;
+        query(statement_1).execute(&pool).await?;
+        query(statement_2).execute(&pool).await?;
 
-    let args = Cli::parse_from([
-        "sql-gen",
-        "--db-url",
-        uri.as_str(),
-        "--enum-derive",
-        "Debug,PartialEq",
-    ]);
-    let writer = generate_rust_from_database(&args).await;
-    let expected = r#"
+        let args = Cli::parse_from([
+            "sql-gen",
+            "--db-url",
+            uri.as_str(),
+            "--enum-derive",
+            "Debug,PartialEq",
+        ]);
+        let writer = generate_rust_from_database(&args).await;
+        let expected = r#"
 #[derive(Debug, PartialEq)]
 #[sqlx(type_name = "color")]
 pub enum Color {
@@ -339,32 +339,233 @@ pub struct Palette {
     favorite: Color,
 }
 "#;
-    assert_eq!(writer.write_to_string().trim(), expected.trim());
-    Ok(())
-}
+        assert_eq!(writer.write_to_string().trim(), expected.trim());
+        Ok(())
+    }
 
-/// Test passing extra derives for the model using the model-derive flag.
-#[tokio::test]
-async fn test_model_derives_flag() -> Result<(), Box<dyn Error>> {
-    let (pool, uri) = setup_pg_db().await;
-    let statement = "CREATE TABLE simple (id SERIAL PRIMARY KEY, value TEXT);";
-    query(statement).execute(&pool).await?;
+    /// Test passing extra derives for the model using the model-derive flag.
+    #[tokio::test]
+    async fn test_model_derives_flag() -> Result<(), Box<dyn Error>> {
+        let (pool, uri) = setup_pg_db().await;
+        let statement = "CREATE TABLE simple (id SERIAL PRIMARY KEY, value TEXT);";
+        query(statement).execute(&pool).await?;
 
-    let args = Cli::parse_from([
-        "sql-gen",
-        "--db-url",
-        uri.as_str(),
-        "--model-derive",
-        "Debug,Clone,PartialEq",
-    ]);
-    let writer = generate_rust_from_database(&args).await;
-    let expected = r#"
+        let args = Cli::parse_from([
+            "sql-gen",
+            "--db-url",
+            uri.as_str(),
+            "--model-derive",
+            "Debug,Clone,PartialEq",
+        ]);
+        let writer = generate_rust_from_database(&args).await;
+        let expected = r#"
 #[derive(Debug, Clone, PartialEq)]
 pub struct Simple {
     id: i32,
     value: Option<String>,
 }
 "#;
-    assert_eq!(writer.write_to_string().trim(), expected.trim());
-    Ok(())
+        assert_eq!(writer.write_to_string().trim(), expected.trim());
+        Ok(())
+    }
+}
+
+mod mysql {
+    use clap::Parser as _;
+    use pretty_assertions::assert_eq;
+    use sqlx::query;
+
+    use crate::{generate_rust_from_database, mysql::test_helper::setup_mysql_db, Cli};
+    use std::error::Error;
+
+    #[tokio::test]
+    async fn test_basic_mysql_tables() -> Result<(), Box<dyn Error>> {
+        let (pool, uri) = setup_mysql_db().await;
+        let statement = r#"
+        CREATE TABLE test_table_0 (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) UNIQUE,
+            description TEXT,
+            parent_id INT,
+            FOREIGN KEY (parent_id) REFERENCES test_table_0(id)
+        );
+    "#;
+        query(statement).execute(&pool).await?;
+
+        let args = Cli::parse_from(["sql-gen", "--db-url", uri.as_str()]);
+
+        let writer = generate_rust_from_database(&args).await;
+
+        assert_eq!(
+            writer.write_to_string().trim(),
+            r#"#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct TestTable0 {
+    id: i32,
+    name: Option<String>,
+    description: Option<String>,
+    parent_id: Option<i32>,
+}"#
+            .to_string()
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_basic_mysql_table_with_enum() -> Result<(), Box<dyn Error>> {
+        let (pool, uri) = setup_mysql_db().await;
+        // No separate CREATE TYPE needed for MySQL.
+        let statement = r#"
+            CREATE TABLE todos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL UNIQUE,
+                description TEXT,
+                tags JSON NOT NULL,
+                status ENUM('pending','in_progress','completed') NOT NULL DEFAULT 'pending'
+            ) COMMENT='Table to store todo items with tags and status information.';
+        "#;
+        query(statement).execute(&pool).await?;
+
+        let args = Cli::parse_from(["sql-gen", "--db-url", uri.as_str()]);
+
+        let writer = generate_rust_from_database(&args).await;
+
+        assert_eq!(
+            writer.write_to_string().trim(),
+            r#"
+#[derive(Debug, Clone, PartialEq, sqlx::Type)]
+pub enum TodoStatus {
+    #[sqlx(rename = "completed")]
+    Completed,
+    #[sqlx(rename = "in_progress")]
+    InProgress,
+    #[sqlx(rename = "pending")]
+    Pending,
+}
+
+/// Table to store todo items with tags and status information.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct Todo {
+    id: i32,
+    title: String,
+    description: Option<String>,
+    tags: serde_json::JsonValue,
+    status: TodoStatus,
+}
+    "#
+            .to_string()
+            .trim()
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_field_override() -> Result<(), Box<dyn Error>> {
+        let (pool, uri) = setup_mysql_db().await;
+        let statement = r#"
+            CREATE TABLE todos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL UNIQUE,
+                description TEXT,
+                tags JSON NOT NULL,
+                status ENUM('pending','in_progress','completed') NOT NULL DEFAULT 'pending'
+            );
+        "#;
+        query(statement).execute(&pool).await?;
+
+        let args = Cli::parse_from([
+            "sql-gen",
+            "--db-url",
+            uri.as_str(),
+            "--table-overrides",
+            "status=String",
+        ]);
+
+        let writer = generate_rust_from_database(&args).await;
+
+        assert_eq!(
+            writer.write_to_string().trim(),
+            r#"
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct Todo {
+    id: i32,
+    title: String,
+    description: Option<String>,
+    tags: serde_json::JsonValue,
+    status: String,
+}
+    "#
+            .to_string()
+            .trim()
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_table_specific_field_override() -> Result<(), Box<dyn Error>> {
+        let (pool, uri) = setup_mysql_db().await;
+        let statement_todos = r#"
+    CREATE TABLE todos (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL UNIQUE,
+        description TEXT,
+        tags JSON NOT NULL,
+        status ENUM('pending','in_progress','completed') NOT NULL DEFAULT 'pending'
+    );
+        "#;
+        let statement_other = r#"
+            CREATE TABLE other_todos_table (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                status ENUM('pending','in_progress','completed') NOT NULL DEFAULT 'pending'
+            );
+        "#;
+        query(statement_todos).execute(&pool).await?;
+        query(statement_other).execute(&pool).await?;
+
+        let args = Cli::parse_from([
+            "sql-gen",
+            "--db-url",
+            uri.as_str(),
+            "--table-overrides",
+            "todos.status=String,toto.status=i32",
+        ]);
+
+        let writer = generate_rust_from_database(&args).await;
+
+        assert_eq!(
+            writer.write_to_string().trim(),
+            r#"
+#[derive(Debug, Clone, PartialEq, sqlx::Type)]
+pub enum OtherTodosTableStatus {
+    #[sqlx(rename = "completed")]
+    Completed,
+    #[sqlx(rename = "in_progress")]
+    InProgress,
+    #[sqlx(rename = "pending")]
+    Pending,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct OtherTodosTable {
+    id: i32,
+    status: OtherTodosTableStatus,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct Todo {
+    id: i32,
+    title: String,
+    description: Option<String>,
+    tags: serde_json::JsonValue,
+    status: String,
+}
+    "#
+            .to_string()
+            .trim()
+        );
+
+        Ok(())
+    }
 }

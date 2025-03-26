@@ -26,7 +26,7 @@ async fn test_table(
 
 #[tokio::test]
 async fn test_basic_mysql_tables() -> Result<(), Box<dyn Error>> {
-    let pool = setup_mysql_db().await;
+    let (pool, _) = setup_mysql_db().await;
     test_table(
         &pool,
         &["CREATE TABLE test_table_0 (
@@ -40,18 +40,23 @@ async fn test_basic_mysql_tables() -> Result<(), Box<dyn Error>> {
             table_name: "test_table_0".to_string(),
             table_schema: None,
             columns: vec![
-                TableColumnBuilder::new("id", "int", "int")
+                TableColumnBuilder::new("id", "int", "int", Some("i32".to_string()))
                     .is_primary_key()
                     .is_auto_populated()
                     .build(),
-                TableColumnBuilder::new("name", "varchar(255)", "varchar")
-                    .is_unique()
+                TableColumnBuilder::new(
+                    "name",
+                    "varchar(255)",
+                    "varchar",
+                    Some("String".to_string()),
+                )
+                .is_unique()
+                .is_nullable()
+                .build(),
+                TableColumnBuilder::new("description", "text", "text", Some("String".to_string()))
                     .is_nullable()
                     .build(),
-                TableColumnBuilder::new("description", "text", "text")
-                    .is_nullable()
-                    .build(),
-                TableColumnBuilder::new("parent_id", "int", "int")
+                TableColumnBuilder::new("parent_id", "int", "int", Some("i32".to_string()))
                     .is_nullable()
                     .foreign_key_table("test_table_0")
                     .foreign_key_id("id")
@@ -67,7 +72,7 @@ async fn test_basic_mysql_tables() -> Result<(), Box<dyn Error>> {
 
 #[tokio::test]
 async fn test_basic_mysql_tables_with_comments() -> Result<(), Box<dyn Error>> {
-    let pool = setup_mysql_db().await;
+    let (pool, _) = setup_mysql_db().await;
     test_table(
         &pool,
         &["CREATE TABLE test_table_with_comments (
@@ -80,16 +85,21 @@ async fn test_basic_mysql_tables_with_comments() -> Result<(), Box<dyn Error>> {
             table_comment: Some("Some test table comment".to_string()),
             table_schema: None,
             columns: vec![
-                TableColumnBuilder::new("id", "int", "int")
+                TableColumnBuilder::new("id", "int", "int", Some("i32".to_string()))
                     .is_primary_key()
                     .is_auto_populated()
                     .add_column_comment("Some test table column comment")
                     .build(),
-                TableColumnBuilder::new("name", "varchar(255)", "varchar")
-                    .is_unique()
-                    .is_nullable()
-                    .build(),
-                TableColumnBuilder::new("description", "text", "text")
+                TableColumnBuilder::new(
+                    "name",
+                    "varchar(255)",
+                    "varchar",
+                    Some("String".to_string()),
+                )
+                .is_unique()
+                .is_nullable()
+                .build(),
+                TableColumnBuilder::new("description", "text", "text", Some("String".to_string()))
                     .is_nullable()
                     .build(),
             ],
@@ -102,7 +112,7 @@ async fn test_basic_mysql_tables_with_comments() -> Result<(), Box<dyn Error>> {
 
 #[tokio::test]
 async fn test_basic_mysql_table_with_array() -> Result<(), Box<dyn Error>> {
-    let pool = setup_mysql_db().await;
+    let (pool, _) = setup_mysql_db().await;
     // MySQL does not support array types. We use a JSON column instead.
     test_table(
         &pool,
@@ -114,14 +124,19 @@ async fn test_basic_mysql_table_with_array() -> Result<(), Box<dyn Error>> {
             table_name: "test_table_1".to_string(),
             table_schema: None,
             columns: vec![
-                TableColumnBuilder::new("id", "int", "int")
+                TableColumnBuilder::new("id", "int", "int", Some("i32".to_string()))
                     .is_primary_key()
                     .is_auto_populated()
                     .build(),
                 // Note: instead of an array, we expect a JSON type without array depth.
-                TableColumnBuilder::new("names", "json", "json")
-                    .is_nullable()
-                    .build(),
+                TableColumnBuilder::new(
+                    "names",
+                    "json",
+                    "json",
+                    Some("serde_json::JsonValue".to_string()),
+                )
+                .is_nullable()
+                .build(),
             ],
             ..Default::default()
         }],
@@ -133,7 +148,7 @@ async fn test_basic_mysql_table_with_array() -> Result<(), Box<dyn Error>> {
 
 #[tokio::test]
 async fn test_mysql_table_with_custom_type() -> Result<(), Box<dyn Error>> {
-    let pool = setup_mysql_db().await;
+    let (pool, _) = setup_mysql_db().await;
 
     // MySQL does not support custom types (CREATE TYPE). Instead, define ENUM directly.
     test_table(
@@ -146,12 +161,12 @@ async fn test_mysql_table_with_custom_type() -> Result<(), Box<dyn Error>> {
             table_name: "test_orders_status_0".to_string(),
             table_schema: None,
             columns: vec![
-                TableColumnBuilder::new("id", "int", "int")
+                TableColumnBuilder::new("id", "int", "int", Some("i32".to_string()))
                     .is_primary_key()
                     .is_auto_populated()
                     .build(),
                 // The expected type is now 'enum' instead of a custom type.
-                TableColumnBuilder::new("order_status", "order_status", "enum").build(),
+                TableColumnBuilder::new("order_status", "order_status", "enum", None).build(),
             ],
             ..Default::default()
         }],
