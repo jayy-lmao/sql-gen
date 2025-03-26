@@ -12,12 +12,12 @@ pub async fn get_mysql_enums(pool: &MySqlPool) -> Result<Vec<CustomEnum>, sqlx::
 WITH RECURSIVE enum_split AS (
   -- Initial row: extract the full list of enum values from COLUMN_TYPE
   SELECT
-    c.TABLE_SCHEMA AS `schema`,
+    CAST(c.TABLE_SCHEMA AS CHAR) AS `schema`,
     CONCAT(c.TABLE_NAME, '.', c.COLUMN_NAME) AS enum_type,
     c.COLUMN_TYPE,
-    c.COLUMN_COMMENT AS enum_type_comment,
+    CAST(c.COLUMN_COMMENT AS CHAR) AS enum_type_comment,
     -- Remove the leading "enum(" and trailing ")" then extract the first value.
-    TRIM(BOTH '\'' FROM SUBSTRING_INDEX(SUBSTRING(c.COLUMN_TYPE, 6, CHAR_LENGTH(c.COLUMN_TYPE) - 6 - 1), ',', 1)) AS enum_value,
+    CAST(TRIM(BOTH '\'' FROM SUBSTRING_INDEX(SUBSTRING(c.COLUMN_TYPE, 6, CHAR_LENGTH(c.COLUMN_TYPE) - 6 - 1), ',', 1)) AS CHAR) AS enum_value,
     CASE 
       WHEN LOCATE(',', SUBSTRING(c.COLUMN_TYPE, 6, CHAR_LENGTH(c.COLUMN_TYPE) - 6 - 1)) > 0 
       THEN TRIM(LEADING ' ' FROM SUBSTRING(

@@ -17,17 +17,17 @@ pub async fn get_tables(
     // get all tables from the database
     let query = "
 SELECT
-    c.TABLE_NAME AS table_name,
-    c.COLUMN_NAME AS column_name,
-    c.COLUMN_TYPE AS udt_name,
-    c.DATA_TYPE AS data_type,
+    CAST(c.TABLE_NAME AS CHAR) AS table_name,
+    CAST(c.COLUMN_NAME AS CHAR) AS column_name,
+    CAST(c.COLUMN_TYPE AS CHAR) AS udt_name,
+    CAST(c.DATA_TYPE AS CHAR) AS data_type,
     '' AS table_schema,
     (c.IS_NULLABLE = 'YES') AS is_nullable,
     (c.COLUMN_KEY = 'PRI') AS is_primary_key,
     (c.COLUMN_KEY = 'UNI') AS is_unique,
-    kcu.REFERENCED_TABLE_NAME AS foreign_key_table,
+    CAST(kcu.REFERENCED_TABLE_NAME AS CHAR) AS foreign_key_table,
     kcu.REFERENCED_COLUMN_NAME AS foreign_key_id,
-    NULLIF(c.COLUMN_COMMENT, '') AS column_comment,
+    NULLIF(CAST(c.COLUMN_COMMENT as CHAR), '') AS column_comment,
     NULLIF(t.TABLE_COMMENT, '') AS table_comment,
     CASE
          WHEN c.COLUMN_DEFAULT IS NOT NULL

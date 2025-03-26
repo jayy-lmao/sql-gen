@@ -7,7 +7,7 @@ use std::error::Error;
 
 #[tokio::test]
 async fn test_get_mysql_enums() -> Result<(), Box<dyn Error>> {
-    let pool = setup_mysql_db().await;
+    let (pool, _) = setup_mysql_db().await;
 
     sqlx::query("DROP TABLE IF EXISTS test_table;")
         .execute(&pool)
@@ -51,7 +51,7 @@ async fn test_get_mysql_enums() -> Result<(), Box<dyn Error>> {
 
 #[tokio::test]
 async fn test_get_mysql_enums_with_comments() -> Result<(), Box<dyn Error>> {
-    let pool = setup_mysql_db().await;
+    let (pool, _) = setup_mysql_db().await;
     // Clean up any existing type
     // Drop any existing table that uses the enum.
     sqlx::query("DROP TABLE IF EXISTS test_weather;")

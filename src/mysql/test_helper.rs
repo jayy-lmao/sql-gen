@@ -45,7 +45,7 @@ impl ContainerGuard {
     }
 }
 
-pub async fn setup_mysql_db() -> MySqlPool {
+pub async fn setup_mysql_db() -> (MySqlPool, String) {
     // Ensure exactly one container guard is created (across threads within the same process)
     let _guard = CONTAINER_GUARD.get_or_init(|| Arc::new(ContainerGuard::new()));
 
@@ -67,11 +67,12 @@ pub async fn setup_mysql_db() -> MySqlPool {
 
     let test_db_url = format!("mysql://root:root@localhost:3307/{}", db_name);
 
-    MySqlPoolOptions::new()
+    let pool = MySqlPoolOptions::new()
         .max_connections(5)
         .connect(&test_db_url)
         .await
-        .expect("Failed to connect to test database")
+        .expect("Failed to connect to test database");
+    (pool, test_db_url)
 }
 
 async fn wait_for_mysql_ready(db_url: &str) -> MySqlPool {

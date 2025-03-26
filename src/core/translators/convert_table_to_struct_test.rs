@@ -88,7 +88,9 @@ fn should_convert_table_with_basic_column() {
     let table = Table {
         table_name: "products".to_string(),
         table_schema: Some("public".to_string()),
-        columns: vec![TableColumnBuilder::new("title", "text", "text").build()],
+        columns: vec![
+            TableColumnBuilder::new("title", "text", "text", Some("String".to_string())).build(),
+        ],
         ..Default::default()
     };
 
@@ -117,14 +119,14 @@ fn should_convert_table_with_each_column_attribute_type() {
         table_name: "products".to_string(),
         table_schema: Some("public".to_string()),
         columns: vec![
-            TableColumnBuilder::new("id", "uuid", "uuid")
+            TableColumnBuilder::new("id", "uuid", "uuid", Some("uuid::Uuid".to_string()))
                 .is_auto_populated()
                 .is_primary_key()
                 .build(),
-            TableColumnBuilder::new("title", "text", "text")
+            TableColumnBuilder::new("title", "text", "text", Some("String".to_string()))
                 .is_unique()
                 .build(),
-            TableColumnBuilder::new("description", "text", "text")
+            TableColumnBuilder::new("description", "text", "text", Some("String".to_string()))
                 .is_nullable()
                 .build(),
         ],
@@ -170,9 +172,14 @@ fn should_convert_table_with_optional_column() {
     let table = Table {
         table_name: "products".to_string(),
         table_schema: Some("public".to_string()),
-        columns: vec![TableColumnBuilder::new("description", "text", "text")
-            .is_nullable()
-            .build()],
+        columns: vec![TableColumnBuilder::new(
+            "description",
+            "text",
+            "text",
+            Some("String".to_string()),
+        )
+        .is_nullable()
+        .build()],
         ..Default::default()
     };
     let mut options = CodegenOptions::default();
@@ -200,10 +207,15 @@ fn should_convert_table_with_array_column() {
     let table = Table {
         table_name: "products".to_string(),
         table_schema: Some("public".to_string()),
-        columns: vec![TableColumnBuilder::new("tags", "_text", "ARRAY")
-            .is_nullable()
-            .array_depth(1)
-            .build()],
+        columns: vec![TableColumnBuilder::new(
+            "tags",
+            "_text",
+            "ARRAY",
+            Some("String".to_string()),
+        )
+        .is_nullable()
+        .array_depth(1)
+        .build()],
         ..Default::default()
     };
     let mut options = CodegenOptions::default();
@@ -232,7 +244,9 @@ fn should_convert_table_with_enum_column() {
     let table = Table {
         table_name: "orders".to_string(),
         table_schema: Some("public".to_string()),
-        columns: vec![TableColumnBuilder::new("order_status", "status", "USER-DEFINED").build()],
+        columns: vec![
+            TableColumnBuilder::new("order_status", "status", "USER-DEFINED", None).build(),
+        ],
         ..Default::default()
     };
     let enums: Vec<CustomEnum> = vec![CustomEnum {
@@ -277,7 +291,7 @@ fn should_ignore_columns_with_invalid_types() {
     let table = Table {
         table_name: "products".to_string(),
         table_schema: Some("public".to_string()),
-        columns: vec![TableColumnBuilder::new("title", "badtype", "badtype").build()],
+        columns: vec![TableColumnBuilder::new("title", "badtype", "badtype", None).build()],
         ..Default::default()
     };
     let mut options = CodegenOptions::default();
@@ -300,7 +314,9 @@ fn should_convert_table_with_column_type_override() {
     let table = Table {
         table_name: "products".to_string(),
         table_schema: Some("public".to_string()),
-        columns: vec![TableColumnBuilder::new("id", "i32", "i32").build()],
+        columns: vec![
+            TableColumnBuilder::new("id", "int4", "int4", Some("i32".to_string())).build(),
+        ],
         ..Default::default()
     };
 
@@ -335,7 +351,9 @@ fn should_convert_table_with_global_type_override() {
     let table = Table {
         table_name: "products".to_string(),
         table_schema: Some("public".to_string()),
-        columns: vec![TableColumnBuilder::new("id", "int4", "int4").build()],
+        columns: vec![
+            TableColumnBuilder::new("id", "int4", "int4", Some("i32".to_string())).build(),
+        ],
         ..Default::default()
     };
 
@@ -370,7 +388,9 @@ fn column_override_takes_preference_over_global_type_override() {
     let table = Table {
         table_name: "products".to_string(),
         table_schema: Some("public".to_string()),
-        columns: vec![TableColumnBuilder::new("price", "int4", "int4").build()],
+        columns: vec![
+            TableColumnBuilder::new("price", "int4", "int4", Some("i32".to_string())).build(),
+        ],
         ..Default::default()
     };
 
