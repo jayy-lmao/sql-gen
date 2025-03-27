@@ -40,7 +40,7 @@ cargo install sql-gen
    Generate the Rust code by running:
 
    ```bash
-   sql-gen generate \
+   sql-gen \
        --db-url postgres://user:pass@localhost:5432/mydb \
        --output src/models/
    ```
