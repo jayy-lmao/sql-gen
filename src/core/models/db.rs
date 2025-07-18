@@ -8,7 +8,7 @@ pub struct TableColumn {
     pub data_type: String,
     pub recommended_rust_type: Option<String>,
     pub is_nullable: bool,
-    pub array_depth: i16,
+    pub array_depth: i32,
     pub is_unique: bool,
     pub is_primary_key: bool,
     pub foreign_key_table: Option<String>,
@@ -47,7 +47,7 @@ pub struct TableColumnBuilder {
     udt_name: String,
     data_type: String,
     is_nullable: bool,
-    array_depth: i16,
+    array_depth: i32,
     is_unique: bool,
     is_primary_key: bool,
     foreign_key_table: Option<String>,
@@ -83,7 +83,7 @@ impl TableColumnBuilder {
         self
     }
 
-    pub fn array_depth(mut self, depth: i16) -> Self {
+    pub fn array_depth(mut self, depth: i32) -> Self {
         self.array_depth = depth;
         self
     }

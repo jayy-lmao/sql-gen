@@ -27,7 +27,7 @@ pub struct RustDbSetField {
     pub field_name: String,
     pub field_type: String,
     pub is_optional: bool,
-    pub array_depth: i16,
+    pub array_depth: i32,
     pub attributes: Vec<RustDbSetAttribute>,
     pub comment: Option<String>,
 }
