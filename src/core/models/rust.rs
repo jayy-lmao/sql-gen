@@ -8,6 +8,13 @@ pub struct RustDbSetStruct {
 }
 
 #[derive(Debug, PartialEq, Default, Clone)]
+pub enum Visibility {
+    #[default]
+    Private,
+    Public,
+}
+
+#[derive(Debug, PartialEq, Default, Clone)]
 pub struct RustDbSetEnumVariant {
     pub name: String,
     pub attributes: Vec<RustDbSetAttribute>,
@@ -24,6 +31,7 @@ pub struct RustDbSetEnum {
 
 #[derive(Debug, PartialEq, Default, Clone)]
 pub struct RustDbSetField {
+    pub field_visibility: Visibility,
     pub field_name: String,
     pub field_type: String,
     pub is_optional: bool,

@@ -42,6 +42,7 @@ pub fn convert_table_to_struct(table: Table, options: &CodegenOptions) -> RustDb
 
             let mut column_to_field_options = column_override.or(type_override).unwrap_or_default();
             column_to_field_options.mode = options.mode;
+            column_to_field_options.public_fields = options.public_fields;
             let field = convert_column_to_field(c, column_to_field_options);
             if field.is_none() {
                 println!("WARNING: field {} in table {} has no user-defined type or recommended type for {}", c.column_name,&table.table_name,c.udt_name)
