@@ -84,7 +84,10 @@ impl DbSetsFsWriter {
     ) -> Vec<String> {
         known_types
             .iter()
-            .filter(|&t| content.contains(&format!(": {t}")) && t != struct_or_enum_name) // Check if struct/enum name appears in the content
+            .filter(|&t| {
+                (content.contains(&format!(": {t}")) || content.contains(&format!(": Option<{t}>")))
+                    && t != struct_or_enum_name
+            }) // Check if struct/enum name appears in the content
             .cloned()
             .collect()
     }
