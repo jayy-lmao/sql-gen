@@ -65,6 +65,10 @@ struct Cli {
     )]
     table_overrides: Vec<String>,
 
+    /// Public-fields flag (if set, struct fields will be public).
+    #[arg(long = "public-fields")]
+    public_fields: bool,
+
     /// Output .
     #[arg(long, default_value = "src/models/")]
     output: String,
@@ -144,6 +148,7 @@ async fn generate_rust_from_database(args: &Cli) -> DbSetsFsWriter {
     options.add_enums(&enums);
     options.set_model_derives(&args.model_derives);
     options.set_enum_derives(&args.enum_derives);
+    options.public_fields = args.public_fields;
 
     let structs_mapped =
         translators::convert_table_to_struct::convert_tables_to_struct(tables, &options);

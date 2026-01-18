@@ -324,6 +324,7 @@ fn should_convert_table_with_column_type_override() {
         override_name: None,
         override_type: Some("String".to_string()),
         mode: Mode::Dbset,
+        public_fields: false,
     };
     let mut table_to_struct_options = CodegenOptions::default();
     table_to_struct_options.set_mode(Mode::Dbset);
@@ -361,6 +362,7 @@ fn should_convert_table_with_global_type_override() {
         override_name: None,
         override_type: Some("String".to_string()),
         mode: Mode::Dbset,
+        public_fields: false,
     };
     let mut table_to_struct_options = CodegenOptions::default();
     table_to_struct_options.set_mode(Mode::Dbset);
@@ -398,11 +400,13 @@ fn column_override_takes_preference_over_global_type_override() {
         override_name: None,
         override_type: Some("String".to_string()),
         mode: Mode::Dbset,
+        public_fields: false,
     };
     let column_override = ColumnToFieldOptions {
         override_name: None,
         override_type: Some("rust_decimal::Decimal".to_string()),
         mode: Mode::Dbset,
+        public_fields: false,
     };
 
     let mut table_to_struct_options = CodegenOptions::default();

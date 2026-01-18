@@ -15,6 +15,7 @@ pub struct CodegenOptions {
     pub table_column_overrides: HashMap<(TableName, ColumnName), ColumnToFieldOptions>,
     pub column_overrides: HashMap<ColumnName, ColumnToFieldOptions>,
     pub type_overrides: HashMap<TypeName, ColumnToFieldOptions>,
+    pub public_fields: bool,
 }
 
 impl CodegenOptions {
@@ -45,6 +46,7 @@ impl CodegenOptions {
                     self.add_type_override(
                         qualifier,
                         ColumnToFieldOptions {
+                            public_fields: self.public_fields,
                             override_name: None,
                             override_type: Some(override_type.to_string()),
                             mode: self.mode,
@@ -66,6 +68,7 @@ impl CodegenOptions {
                             table_name,
                             column_name,
                             ColumnToFieldOptions {
+                                public_fields: self.public_fields,
                                 override_name: None,
                                 mode: self.mode,
                                 override_type: Some(override_type.to_string()),
@@ -76,6 +79,7 @@ impl CodegenOptions {
                     self.add_column_override(
                         qualifier,
                         ColumnToFieldOptions {
+                            public_fields: self.public_fields,
                             override_name: None,
                             mode: self.mode,
                             override_type: Some(override_type.to_string()),
@@ -128,6 +132,7 @@ impl CodegenOptions {
                     override_name: None,
                     override_type: Some(rust_enum.name),
                     mode: self.mode,
+                    public_fields: self.public_fields,
                 },
             );
         }
@@ -139,4 +144,5 @@ pub struct ColumnToFieldOptions {
     pub override_name: Option<String>,
     pub override_type: Option<String>,
     pub mode: Mode,
+    pub public_fields: bool,
 }

@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use super::helpers::{get_attributes, get_derives, pretty_print_tokenstream, sanitize_field_name};
-use crate::core::models::rust::{RustDbSetField, RustDbSetStruct};
+use crate::core::models::rust::{RustDbSetField, RustDbSetStruct, Visibility};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
@@ -21,6 +21,10 @@ fn get_struct_fields_tokens(rust_struct: &RustDbSetStruct) -> Vec<TokenStream> {
     let mut struct_fields_tokens = vec![];
 
     for field in rust_struct.fields.iter() {
+        let field_visibility = match field.field_visibility {
+            Visibility::Public => quote! { pub },
+            Visibility::Private => quote! {},
+        };
         let field_name = sanitize_field_name(&field.field_name);
         //let field_type = format_ident!("{}", field.field_type);
         let field_type: syn::Path =
@@ -39,7 +43,7 @@ fn get_struct_fields_tokens(rust_struct: &RustDbSetStruct) -> Vec<TokenStream> {
 
         let field = quote! {
             #attributes
-            #field_name: #base_type
+            #field_visibility #field_name: #base_type
         };
 
         struct_fields_tokens.push(field);
