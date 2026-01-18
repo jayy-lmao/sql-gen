@@ -88,11 +88,12 @@ pub enum DatabaseType {
 }
 
 async fn generate_rust_from_database(args: &Cli) -> DbSetsFsWriter {
-    let database_type = if args.db_url.starts_with("postgres://") {
-        DatabaseType::Postgres
-    } else {
-        DatabaseType::MySql
-    };
+    let database_type =
+        if args.db_url.starts_with("postgres://") || args.db_url.starts_with("postgresql://") {
+            DatabaseType::Postgres
+        } else {
+            DatabaseType::MySql
+        };
 
     if args.mode == Mode::Dbset && database_type == DatabaseType::MySql {
         panic!("DbSet not currently supported for MySql")
