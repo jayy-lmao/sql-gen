@@ -11,7 +11,7 @@ pub struct MySqlTableColumn {
     pub udt_name: String,
     pub data_type: String,
     pub is_nullable: bool,
-    pub array_depth: i16,
+    pub array_depth: i32,
     pub is_unique: bool,
     pub is_primary_key: bool,
     pub foreign_key_table: Option<String>,
