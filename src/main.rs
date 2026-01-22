@@ -27,6 +27,10 @@ struct Cli {
     #[arg(long, value_name = "SQLGEN_INCLUDE_TABLES", value_delimiter = ',')]
     include_tables: Option<Vec<String>>,
 
+    /// PostgreSQL schemas to include (defaults to "public").
+    #[arg(long, value_name = "SQLGEN_SCHEMAS", value_delimiter = ',')]
+    schemas: Option<Vec<String>>,
+
     /// Enum derives to add (can be used multiple times).
     #[arg(
         long = "enum-derive",
@@ -109,9 +113,11 @@ async fn generate_rust_from_database(args: &Cli) -> DbSetsFsWriter {
                 .await
                 .unwrap();
 
+            let schemas = args.schemas.clone().unwrap_or_else(|| vec![String::from("public")]);
+
             let tables = postgres::queries::get_tables::get_tables(
                 &pool,
-                &[String::from("public")],
+                &schemas,
                 &args.include_tables,
             )
             .await
